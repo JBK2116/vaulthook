@@ -3,8 +3,8 @@
     import { goto } from '$app/navigation';
     import Button from './button/button.svelte';
 
-    const pathname = $derived(String(page.url.pathname));
-    const isDashboard = $derived(pathname === '/');
+    const pathname: String = $derived(String(page.url.pathname));
+    const isDashboard: boolean = $derived(pathname === '/');
 
     function handleLogout() {
         // TODO: Call this function when the backend is ready.
@@ -13,6 +13,7 @@
     }
 
     function sayHi() {
+        // TODO: Delete this function when backend is ready
         console.log('hi');
     }
 </script>
