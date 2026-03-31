@@ -19,7 +19,7 @@
 
 <svelte:head>
     <title>Login - VaultHook</title>
-    <meta name="Login" content="Login to HooksVault to begin monitoring your webhooks" />
+    <meta name="Login" content="Login to VaultHook to begin monitoring your webhooks" />
 </svelte:head>
 <Navbar></Navbar>
 <main class="flex min-h-[calc(100svh-64px)] items-center justify-center px-4 py-10">

@@ -34,7 +34,7 @@
         <Card.Header class="">
             <Card.Title class="">Login To Your Account</Card.Title>
             <Card.Description class=""
-                >Enter your credentials to begin using HooksVault</Card.Description
+                >Enter your credentials to begin using VaultHook</Card.Description
             >
         </Card.Header>
         <Card.Content class="">
