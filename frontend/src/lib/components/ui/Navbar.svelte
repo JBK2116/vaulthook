@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { page } from '$app/state';
     import { goto } from '$app/navigation';
+    import { page } from '$app/state';
+
     import Button from './button/button.svelte';
 
     const pathname: String = $derived(String(page.url.pathname));

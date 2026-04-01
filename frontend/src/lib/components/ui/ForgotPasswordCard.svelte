@@ -1,5 +1,6 @@
 <script lang="ts">
     import * as Card from '$lib/components/ui/card/index.js';
+
     let { showModal, onClose }: { showModal: boolean; onClose: () => void } = $props();
 </script>
 

@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { MOCK_DATA } from '../utils/mock-data.ts';
-    import * as functions from '../utils/functions.ts';
-    import Navbar from '$lib/components/ui/Navbar.svelte';
-    import StatCard from '$lib/components/ui/StatCard.svelte';
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
-    import { DeliveryStatusColors, SelectTypes } from '../utils/types.ts';
+    import Navbar from '$lib/components/ui/Navbar.svelte';
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
+    import StatCard from '$lib/components/ui/StatCard.svelte';
+
+    import * as functions from '../utils/functions.ts';
+    import { MOCK_DATA } from '../utils/mock-data.ts';
+    import { DeliveryStatusColors, SelectTypes } from '../utils/types.ts';
 
     // Data Manipulation
     let data = $state(MOCK_DATA);

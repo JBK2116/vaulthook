@@ -1,6 +1,6 @@
 <script lang="ts">
+    import { type WithoutChild, cn } from '$lib/utils.js';
     import { Select as SelectPrimitive } from 'bits-ui';
-    import { cn, type WithoutChild } from '$lib/utils.js';
     import CheckIcon from 'phosphor-svelte/lib/Check';
 
     let {
