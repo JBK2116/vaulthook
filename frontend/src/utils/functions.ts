@@ -34,3 +34,10 @@ export function getTotalQueuedEvents(events: WebHookEvent[]): number {
 export function getTotalFailedEvents(events: WebHookEvent[]): number {
     return events.filter((e) => e.delivery_status === DeliveryStatusTypes.Failed).length;
 }
+
+/**
+ * Capitalizes the first letter of the provided string
+ */
+export function capitalize(str: string): string {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}

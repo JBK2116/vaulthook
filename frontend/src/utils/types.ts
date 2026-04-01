@@ -25,3 +25,11 @@ export enum DeliveryStatusColors {
     retrying = 'text-amber-400',
     queued = 'text-slate-400',
 }
+
+export enum SelectTypes {
+    All = 'all',
+    Delivered = 'delivered',
+    Queued = 'queued',
+    Retrying = 'retrying',
+    Failed = 'failed',
+}
