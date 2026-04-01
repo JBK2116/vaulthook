@@ -70,5 +70,13 @@
             <SelectFilter bind:currentSelectedOption></SelectFilter>
             <SearchFilter bind:currentSearchString></SearchFilter>
         </div>
+        <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
+            <div class="md:basis-2/3 h-full overflow-auto border-r border-border">
+                <!-- Table component -->
+            </div>
+            <div class="md:basis-1/3 h-full overflow-auto">
+                <!-- Side component -->
+            </div>
+        </div>
     </div>
 </div>
