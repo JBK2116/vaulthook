@@ -21,12 +21,14 @@ export function getDisplayedEvents(
         return data;
     }
     if (currentSelectedOption === SelectTypes.All) {
-        return data.filter((e) => e.event_type.includes(currentSearchString));
+        return data.filter((e) =>
+            e.event_type.toLowerCase().includes(currentSearchString.toLowerCase()),
+        );
     }
     return data.filter(
         (e) =>
             e.delivery_status === currentSelectedOption &&
-            e.event_type.includes(currentSearchString),
+            e.event_type.toLowerCase().includes(currentSearchString.toLowerCase()),
     );
 }
 
