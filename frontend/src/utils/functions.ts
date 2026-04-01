@@ -1,4 +1,20 @@
-import { DeliveryStatusTypes, type WebHookEvent } from './types.ts';
+import {
+    DeliveryStatusColors,
+    DeliveryStatusTypes,
+    ProviderTypes,
+    type WebHookEvent,
+} from './types.ts';
+
+/**
+ * Returns an array containing all events that match the provided option filter and search string
+ */
+export function getDisplayedEvents(
+    currentSelectedOption: string,
+    currentSearchString: string,
+): WebHookEvent[] {
+    // TODO: Implement this
+    return [];
+}
 
 /**
  * Returns the total number of webhook events stored in the frontend
@@ -40,4 +56,79 @@ export function getTotalFailedEvents(events: WebHookEvent[]): number {
  */
 export function capitalize(str: string): string {
     return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+/**
+ * Returns the css background color associated with the passed in provider
+ */
+export function getProviderBackgroundColor(provider: string): string {
+    switch (provider) {
+        case ProviderTypes.Stripe:
+            return '#1a1040'; // deep stripe purple
+        case ProviderTypes.Github:
+            return '#161b22'; // github dark
+        case ProviderTypes.Sns:
+            return '#1a2a0a'; // aws green dark
+        default:
+            return '#1a1a1a';
+    }
+}
+
+/**
+ * Returns the css text color associated with the passed in provider
+ */
+export function getProviderTextColor(provider: string): string {
+    switch (provider) {
+        case ProviderTypes.Stripe:
+            return '#7c6af7'; // stripe purple
+        case ProviderTypes.Github:
+            return '#e6edf3'; // github text white
+        case ProviderTypes.Sns:
+            return '#4caf50'; // aws green
+        default:
+            return '#a3a3a3';
+    }
+}
+
+/**
+ * Returns the css text color associated with the provided delivery status string
+ */
+export function getDeliveryStatusTextColor(delivery_status: string) {
+    switch (delivery_status) {
+        case DeliveryStatusTypes.Delivered:
+            return DeliveryStatusColors.delivered;
+        case DeliveryStatusTypes.Failed:
+            return DeliveryStatusColors.failed;
+        case DeliveryStatusTypes.Queued:
+            return DeliveryStatusColors.queued;
+        case DeliveryStatusTypes.Retrying:
+            return DeliveryStatusColors.retrying;
+        default:
+            return '';
+    }
+}
+
+/**
+ * Returns the css color associated with the provided response code
+ *
+ * If the provided response_code is null, then it returns a text color variant (ie: text-muted-foreground)
+ */
+export function getResponseCodeColor(response_code: number | null): string {
+    if (typeof response_code === 'number') {
+        if (response_code >= 200 && response_code < 300) {
+            return DeliveryStatusColors.delivered;
+        } else {
+            return DeliveryStatusColors.failed;
+        }
+    } else {
+        return 'text-muted-foreground';
+    }
+}
+
+/**
+ * Returns a formatted string in HH:MM:SS format using the provided received_at time
+ */
+export function formatReceivedAtTime(received_at: string): string {
+    let date = new Date(received_at);
+    return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
 }

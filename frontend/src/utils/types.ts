@@ -33,3 +33,9 @@ export enum SelectTypes {
     Retrying = 'retrying',
     Failed = 'failed',
 }
+
+export enum ProviderTypes {
+    Stripe = 'stripe',
+    Github = 'github',
+    Sns = 'sns',
+}

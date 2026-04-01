@@ -1,5 +1,6 @@
 <script lang="ts">
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
+    import EventTable from '$lib/components/ui/EventTable.svelte';
     import Navbar from '$lib/components/ui/Navbar.svelte';
     import SearchFilter from '$lib/components/ui/SearchFilter.svelte';
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
@@ -7,15 +8,22 @@
 
     import * as functions from '../utils/functions.ts';
     import { MOCK_DATA } from '../utils/mock-data.ts';
-    import { DeliveryStatusColors, SelectTypes } from '../utils/types.ts';
+    import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '../utils/types.ts';
 
     // Data Manipulation
-    let data = $state(MOCK_DATA);
-    let totalEvents = $derived(functions.getTotalEvents(data));
-    let totalDeliveredEvents = $derived(functions.getTotalDeliveredEvents(data));
-    let totalRetryingEvents = $derived(functions.getTotalRetryingEvents(data));
-    let totalQueuedEvents = $derived(functions.getTotalQueuedEvents(data));
-    let totalFailedEvents = $derived(functions.getTotalFailedEvents(data));
+    let events: WebHookEvent[] = $state(MOCK_DATA);
+    let totalEvents = $derived(functions.getTotalEvents(events));
+    let totalDeliveredEvents = $derived(functions.getTotalDeliveredEvents(events));
+    let totalRetryingEvents = $derived(functions.getTotalRetryingEvents(events));
+    let totalQueuedEvents = $derived(functions.getTotalQueuedEvents(events));
+    let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
+
+    // Table State
+    let currentSelectedEvent: WebHookEvent = $state(events[0]);
+    let displayedEvents: WebHookEvent[] = $state(events);
+    $effect(() => {
+        // TODO: Update this effect to change the sidebar display beside the table
+    });
 
     // Connection State
     let isConnectedToBackend: boolean = $state(true);
@@ -24,15 +32,18 @@
     let currentSelectedOption: SelectTypes = $state(SelectTypes.All);
     $effect(() => {
         // TODO: Update this effect to change the webhook events displayed in the table
-        console.log('Effect is running for currentSelectedOption: ' + currentSelectedOption);
     });
 
     // Search handling
     let currentSearchString: string = $state('');
     $effect(() => {
         // TODO: Update this effect to change the webhook events displayed in the table
-        console.log('Effect is running for currentSearchString :', currentSearchString);
     });
+
+    // TODO: Delete these inspect runes once each associated variable has had it's effect rune applied
+    $inspect(currentSelectedEvent);
+    $inspect(currentSelectedOption);
+    $inspect(currentSearchString);
 </script>
 
 <Navbar></Navbar>
@@ -72,7 +83,7 @@
         </div>
         <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
             <div class="md:basis-2/3 h-full overflow-auto border-r border-border">
-                <!-- Table component -->
+                <EventTable bind:currentSelectedEvent {displayedEvents}></EventTable>
             </div>
             <div class="md:basis-1/3 h-full overflow-auto">
                 <!-- Side component -->
