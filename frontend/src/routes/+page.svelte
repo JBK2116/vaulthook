@@ -1,6 +1,7 @@
 <script lang="ts">
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
     import Navbar from '$lib/components/ui/Navbar.svelte';
+    import SearchFilter from '$lib/components/ui/SearchFilter.svelte';
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
 
@@ -24,6 +25,13 @@
     $effect(() => {
         // TODO: Update this effect to change the webhook events displayed in the table
         console.log('Effect is running for currentSelectedOption: ' + currentSelectedOption);
+    });
+
+    // Search handling
+    let currentSearchString: string = $state('');
+    $effect(() => {
+        // TODO: Update this effect to change the webhook events displayed in the table
+        console.log('Effect is running for currentSearchString :', currentSearchString);
     });
 </script>
 
@@ -60,6 +68,7 @@
             class="border-border flex shrink-0 flex-row items-center justify-between gap-2 border-b px-4 py-2.5"
         >
             <SelectFilter bind:currentSelectedOption></SelectFilter>
+            <SearchFilter bind:currentSearchString></SearchFilter>
         </div>
     </div>
 </div>
