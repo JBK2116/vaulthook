@@ -10,6 +10,6 @@
 <Input
     type="search"
     placeholder="Search by event..."
-    class="max-w-3xs rounded-sm"
+    class="w-full sm:max-w-3xs rounded-sm"
     bind:value={currentSearchString}
 ></Input>

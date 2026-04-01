@@ -76,16 +76,16 @@
             <ConnIndicator {isConnectedToBackend}></ConnIndicator>
         </div>
         <div
-            class="border-border flex shrink-0 flex-row items-center justify-between gap-2 border-b px-4 py-2.5"
+            class="border-border flex shrink-0 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b px-4 py-2.5"
         >
             <SelectFilter bind:currentSelectedOption></SelectFilter>
             <SearchFilter bind:currentSearchString></SearchFilter>
         </div>
         <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
-            <div class="md:basis-2/3 h-full overflow-auto border-r border-border">
+            <div class="basis-full md:basis-2/3 h-full overflow-auto border-r border-border">
                 <EventTable bind:currentSelectedEvent {displayedEvents}></EventTable>
             </div>
-            <div class="md:basis-1/3 h-full overflow-auto">
+            <div class="hidden md:block md:basis-1/3 h-full overflow-auto">
                 <!-- Side component -->
             </div>
         </div>
