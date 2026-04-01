@@ -2,6 +2,7 @@ import {
     DeliveryStatusColors,
     DeliveryStatusTypes,
     ProviderTypes,
+    SelectTypes,
     type WebHookEvent,
 } from './types.ts';
 
@@ -11,9 +12,22 @@ import {
 export function getDisplayedEvents(
     currentSelectedOption: string,
     currentSearchString: string,
+    data: WebHookEvent[],
 ): WebHookEvent[] {
-    // TODO: Implement this
-    return [];
+    if (
+        (currentSelectedOption === SelectTypes.All && currentSearchString === '') ||
+        data.length <= 0
+    ) {
+        return data;
+    }
+    if (currentSelectedOption === SelectTypes.All) {
+        return data.filter((e) => e.event_type.includes(currentSearchString));
+    }
+    return data.filter(
+        (e) =>
+            e.delivery_status === currentSelectedOption &&
+            e.event_type.includes(currentSearchString),
+    );
 }
 
 /**

@@ -46,7 +46,7 @@
                                 event.delivery_status,
                             )}"
                         ></span>
-                        {event.delivery_status}
+                        {functions.capitalize(event.delivery_status)}
                     </span>
                 </Table.Cell>
                 <Table.Cell class="text-muted-foreground">

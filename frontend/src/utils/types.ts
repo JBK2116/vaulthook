@@ -13,10 +13,10 @@ export interface WebHookEvent {
 }
 
 export enum DeliveryStatusTypes {
-    Delivered = 'Delivered',
-    Queued = 'Queued',
-    Retrying = 'Retrying',
-    Failed = 'Failed',
+    Delivered = 'delivered',
+    Queued = 'queued',
+    Retrying = 'retrying',
+    Failed = 'failed',
 }
 
 export enum DeliveryStatusColors {

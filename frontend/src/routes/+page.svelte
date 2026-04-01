@@ -18,26 +18,20 @@
     let totalQueuedEvents = $derived(functions.getTotalQueuedEvents(events));
     let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
 
-    // Table State
-    let currentSelectedEvent: WebHookEvent = $state(events[0]);
-    let displayedEvents: WebHookEvent[] = $state(events);
-    $effect(() => {
-        // TODO: Update this effect to change the sidebar display beside the table
-    });
-
     // Connection State
     let isConnectedToBackend: boolean = $state(true);
 
-    // Select Handling
+    // Select & Search Handling
     let currentSelectedOption: SelectTypes = $state(SelectTypes.All);
-    $effect(() => {
-        // TODO: Update this effect to change the webhook events displayed in the table
-    });
-
-    // Search handling
     let currentSearchString: string = $state('');
+
+    // Table State
+    let currentSelectedEvent: WebHookEvent = $state(events[0]);
+    let displayedEvents: WebHookEvent[] = $derived(
+        functions.getDisplayedEvents(currentSelectedOption, currentSearchString, events),
+    );
     $effect(() => {
-        // TODO: Update this effect to change the webhook events displayed in the table
+        // TODO: Update this effect to change the sidebar display beside the table
     });
 
     // TODO: Delete these inspect runes once each associated variable has had it's effect rune applied
