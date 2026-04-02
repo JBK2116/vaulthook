@@ -144,7 +144,30 @@ export function getResponseCodeColor(response_code: number | null): string {
 /**
  * Returns a formatted string in HH:MM:SS format using the provided received_at time
  */
-export function formatReceivedAtTime(received_at: string): string {
-    let date = new Date(received_at);
-    return `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+export function formatReceivedAtTimeForTable(received_at: string, timezone: string): string {
+    let utcDate = new Date(received_at);
+    const options: Intl.DateTimeFormatOptions = {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    };
+    return utcDate.toLocaleString('en-us', options);
+}
+
+/**
+ * Returns a nicely formatted time string converted to the user's local time using the provided timezone
+ */
+export function formatReceivedAtTimeForSidebar(received_at: string, timezone: string): string {
+    let utcDate = new Date(received_at);
+    const options: Intl.DateTimeFormatOptions = {
+        timeZone: timezone,
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    };
+    return utcDate.toLocaleString('en-us', options);
 }

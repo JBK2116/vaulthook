@@ -9,6 +9,7 @@
         displayedEvents: WebHookEvent[];
     }
     let { currentSelectedEvent = $bindable(), displayedEvents }: Props = $props();
+    let userTimeZone: string = $derived(Intl.DateTimeFormat().resolvedOptions().timeZone);
 </script>
 
 <Table.Root class="w-full">
@@ -53,7 +54,7 @@
                     {event.event_type}
                 </Table.Cell>
                 <Table.Cell class="text-muted-foreground">
-                    {functions.formatReceivedAtTime(event.received_at)}
+                    {functions.formatReceivedAtTimeForTable(event.received_at, userTimeZone)}
                 </Table.Cell>
                 <Table.Cell class={functions.getResponseCodeColor(event.response_code)}>
                     {event.response_code ? event.response_code : '-'}

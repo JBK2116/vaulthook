@@ -4,6 +4,7 @@
     import Navbar from '$lib/components/ui/Navbar.svelte';
     import SearchFilter from '$lib/components/ui/SearchFilter.svelte';
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
+    import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
 
     import * as functions from '../utils/functions.ts';
@@ -80,7 +81,7 @@
                 <EventTable bind:currentSelectedEvent {displayedEvents}></EventTable>
             </div>
             <div class="hidden md:block md:basis-1/3 h-full overflow-auto">
-                <!-- Side component -->
+                <Sidebar {currentSelectedEvent}></Sidebar>
             </div>
         </div>
     </div>
