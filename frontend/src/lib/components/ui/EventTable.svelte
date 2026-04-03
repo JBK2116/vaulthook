@@ -5,7 +5,7 @@
     import type { WebHookEvent } from '../../../utils/types.ts';
 
     interface Props {
-        currentSelectedEvent: WebHookEvent;
+        currentSelectedEvent: WebHookEvent | null;
         displayedEvents: WebHookEvent[];
     }
     let { currentSelectedEvent = $bindable(), displayedEvents }: Props = $props();

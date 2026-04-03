@@ -27,7 +27,7 @@
     let currentSearchString: string = $state('');
 
     // Table State
-    let currentSelectedEvent: WebHookEvent = $state(events[0]);
+    let currentSelectedEvent: WebHookEvent | null = $state(events[0]);
     let displayedEvents: WebHookEvent[] = $derived(
         functions.getDisplayedEvents(currentSelectedOption, currentSearchString, events),
     );
