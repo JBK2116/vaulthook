@@ -32,9 +32,6 @@
     let displayedEvents: WebHookEvent[] = $derived(
         functions.getDisplayedEvents(currentSelectedOption, currentSearchString, events),
     );
-    $effect(() => {
-        // TODO: Update this effect to change the sidebar display beside the table
-    });
 
     // Sheet State
     let isSheetOpen: boolean = $state(false);
