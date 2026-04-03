@@ -106,7 +106,9 @@
                     Headers
                 </Button>
             </div>
-            <div class="border-border overflow-x-auto rounded-sm border mx-5 p-3">
+            <div
+                class="border-border overflow-auto rounded-sm border mx-5 p-3 max-h-32 md:max-h-64"
+            >
                 {#if activeTabIsPayload}
                     <pre class="text-xs whitespace-pre">{JSON.stringify(
                             currentSelectedEvent.payload,
