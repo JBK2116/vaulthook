@@ -1,5 +1,6 @@
 <script lang="ts">
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
+    import EventSheet from '$lib/components/ui/EventSheet.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
     import Navbar from '$lib/components/ui/Navbar.svelte';
     import SearchFilter from '$lib/components/ui/SearchFilter.svelte';
@@ -27,12 +28,20 @@
     let currentSearchString: string = $state('');
 
     // Table State
-    let currentSelectedEvent: WebHookEvent | null = $state(events[0]);
+    let currentSelectedEvent: WebHookEvent | null = $state(null);
     let displayedEvents: WebHookEvent[] = $derived(
         functions.getDisplayedEvents(currentSelectedOption, currentSearchString, events),
     );
     $effect(() => {
         // TODO: Update this effect to change the sidebar display beside the table
+    });
+
+    // Sheet State
+    let isSheetOpen: boolean = $state(false);
+    $effect(() => {
+        if (currentSelectedEvent && window.innerWidth < 768) {
+            isSheetOpen = true;
+        }
     });
 
     // TODO: Delete these inspect runes once each associated variable has had it's effect rune applied
@@ -84,5 +93,6 @@
                 <Sidebar {currentSelectedEvent}></Sidebar>
             </div>
         </div>
+        <EventSheet bind:open={isSheetOpen} {currentSelectedEvent} />
     </div>
 </div>
