@@ -1,33 +1,25 @@
 // Package config is responsible for initializing and exposing all application-level configuration.
 //
-// This package loads environment variables, initializes the database connection,
-// and sets up the logger. It exposes a single Config struct that is passed
-// throughout the application.
+// This package loads environment variables, and ensures that each variable is correctly configured.
+// It exposes a single Config struct that is passed throughout the application.
 //
 // # Section 1: Initialization  Order
 //
 // 1. Load environment variables from .env.
-// 2. Initialize the logger.
-// 3. Open and verify the database connection.
-// 4. Return a populated Config struct to the caller.
+//
+// 2. Ensure that all necessary environment variables are properly configured.
+//
+// 3. Return a populated Config struct to the caller.
 package config
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"strconv"
-
-	"github.com/rs/zerolog"
 )
 
-// Config manages all required tools and variables necessary for the application to run
-// Serves as the singular object storing env variables, database connections and loggers
+// Config manages all enviroment vairables necessary for the application to run
 type Config struct {
-	// db is a sql.DB connection object used to query and execute database related statements
-	db *sql.DB
-	// logger is a zerolog.Logger objected used to log statements during the applications runtime
-	logger *zerolog.Logger
 	// DB_TYPE is a string representing the type of database used in the application, e.g. "postgres"
 	DB_TYPE string
 	// DB_USER is a string representing the user connected to the database connection
@@ -40,16 +32,27 @@ type Config struct {
 	DB_PORT int
 	// DB_NAME is a string representing the name of the database e.g. "vaulthook"
 	DB_NAME string
+	// LOG_LEVEL is an int representing the log level configured in the global logger e.g. 0
+	LOG_LEVEL int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
 }
 
-// var Envs = initConfig()
-//
-// // initConfig loads all the required variables to configure the application
-// func initConfig() Config {
-//
-// }
+var Envs = initConfig()
+
+// initConfig loads all the required variables to configure the application
+func initConfig() Config {
+	return Config{
+		DB_TYPE:        getEnvString("DB_TYPE"),
+		DB_USER:        getEnvString("DB_USER"),
+		DB_PASSWORD:    getEnvString("DB_PASSWORD"),
+		DB_HOST:        getEnvString("DB_HOST"),
+		DB_PORT:        getEnvInt("DB_PORT"),
+		DB_NAME:        getEnvString("DB_NAME"),
+		LOG_LEVEL:      getEnvInt("LOG_LEVEL"),
+		IS_DEVELOPMENT: getEnvBool("IS_DEVELOPMENT"),
+	}
+}
 
 // getEnvString loads an environment variable using the provided name and returns the value in string format if found.
 // If the environment variable is not found, panic is called.

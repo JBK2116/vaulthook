@@ -6,8 +6,11 @@ DB_TYPE=string (example: postgres)
 DB_USER=string (example: john)
 DB_PASSWORD=string (example: qwerty123)
 DB_HOST=string (example: localhost)
-DB_PORT=string (example: 5432)
+DB_PORT=number (example: 5432)
 DB_NAME=string (exaple: devdb)
+
+# Logging
+LOG_LEVEL=number (must be between [-1, 5])
 
 
 # Goose
