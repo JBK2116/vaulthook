@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // Config manages all enviroment vairables necessary for the application to run
@@ -42,6 +44,10 @@ var Envs = initConfig()
 
 // initConfig loads all the required variables to configure the application
 func initConfig() Config {
+	err := godotenv.Load()
+	if err != nil {
+		panic("Error loading environment variables: %w", err)
+	}
 	return Config{
 		DB_TYPE:        getEnvString("DB_TYPE"),
 		DB_USER:        getEnvString("DB_USER"),
