@@ -1,3 +1,6 @@
+# Environment
+IS_DEVELOPMENT=string (must be either "true" or "false")
+
 # Database
 DB_TYPE=string (example: postgres)
 DB_USER=string (example: john)
@@ -7,3 +10,7 @@ DB_PORT=string (example: 5432)
 DB_NAME=string (exaple: devdb)
 
 
+# Goose
+GOOSE_DRIVER=string (example: postgres)
+GOOSE_DBSTRING=string (example: postgres://user:password@host:port/db_name)
+GOOSE_MIGRATION_DIR= string (example: ./migrations)
