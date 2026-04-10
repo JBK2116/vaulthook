@@ -46,7 +46,7 @@ var Envs = initConfig()
 func initConfig() Config {
 	err := godotenv.Load()
 	if err != nil {
-		panic("Error loading environment variables: %w", err)
+		panic(fmt.Errorf("error loading environment variable: %w", err))
 	}
 	return Config{
 		DB_TYPE:        getEnvString("DB_TYPE"),
