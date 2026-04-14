@@ -34,6 +34,10 @@ type Config struct {
 	DB_PORT int
 	// DB_NAME is a string representing the name of the database e.g. "vaulthook"
 	DB_NAME string
+	// USER_EMAIL is a string representing the email of the user running this application
+	USER_EMAIL string
+	// USER_PASSWORD is a string representing the password of the user running this application
+	USER_PASSWORD string
 	// LOG_LEVEL is an int representing the log level configured in the global logger e.g. 0
 	LOG_LEVEL int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
@@ -57,6 +61,8 @@ func initConfig() Config {
 		DB_NAME:        getEnvString("DB_NAME"),
 		LOG_LEVEL:      getEnvInt("LOG_LEVEL"),
 		IS_DEVELOPMENT: getEnvBool("IS_DEVELOPMENT"),
+		USER_EMAIL:     getEnvString("USER_EMAIL"),
+		USER_PASSWORD:  getEnvString("USER_PASSWORD"),
 	}
 }
 

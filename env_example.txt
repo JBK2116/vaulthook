@@ -1,6 +1,10 @@
 # Environment
 IS_DEVELOPMENT=string (must be either "true" or "false")
 
+# User Credentials
+USER_EMAIL=string (example: johndoe@gmail.com)
+USER_PASSWORD = string (example: qwerty123) though you should likely use a strong hashed version
+
 # Database
 DB_TYPE=string (example: postgres)
 DB_USER=string (example: john)
