@@ -1,7 +1,6 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(), -- Token ID Generated In Database
-    user_id    UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- User Associated With Token
     token      VARCHAR(255) UNIQUE NOT NULL, -- Token String 
     expires_at TIMESTAMP    NOT NULL, -- Token Expiry Timestamp
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Token Created At Timestamp Generated In Database
