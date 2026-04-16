@@ -40,6 +40,8 @@ type Config struct {
 	USER_PASSWORD string
 	// LOG_LEVEL is an int representing the log level configured in the global logger e.g. 0
 	LOG_LEVEL int
+	// TOKEN_SECRET is a string representing the secret code used to encode and decode JWT Tokens
+	TOKEN_SECRET string
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
 }
@@ -61,6 +63,7 @@ func initConfig() Config {
 		DB_NAME:        getEnvString("DB_NAME"),
 		LOG_LEVEL:      getEnvInt("LOG_LEVEL"),
 		IS_DEVELOPMENT: getEnvBool("IS_DEVELOPMENT"),
+		TOKEN_SECRET:   getEnvString("TOKEN_SECRET"),
 		USER_EMAIL:     getEnvString("USER_EMAIL"),
 		USER_PASSWORD:  getEnvString("USER_PASSWORD"),
 	}
