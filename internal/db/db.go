@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -24,7 +25,15 @@ var (
 
 // NewPG uses `sync.Once` to create a new pgxpool database connection.
 // If successful a postgres struct is returned, else an error is returned.
-func NewPG(ctx context.Context, connString string) (*postgres, error) {
+func NewPG(ctx context.Context) (*postgres, error) {
+	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s",
+		config.Envs.DB_TYPE,
+		config.Envs.DB_USER,
+		config.Envs.DB_PASSWORD,
+		config.Envs.DB_HOST,
+		config.Envs.DB_PORT,
+		config.Envs.DB_NAME,
+	)
 	var err error
 	pgOnce.Do(func() {
 		db, pgErr := pgxpool.New(ctx, connString)

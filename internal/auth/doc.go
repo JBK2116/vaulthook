@@ -2,7 +2,5 @@
 //
 // This package serves as the security functionality of the application.
 //
-// Functionality includes handling JWT authentication, validating event signatures and related logic.
-//
-// Each provider's specific validation lives in its own file, named <provider>_middleware.go.
+// Functionality includes handling JWT authentication, user endpoint authentication and related logic
 package auth
