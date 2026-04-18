@@ -5,8 +5,10 @@ IS_DEVELOPMENT=string (must be either "true" or "false")
 USER_EMAIL=string (example: johndoe@gmail.com)
 USER_PASSWORD = string (example: qwerty123) though you should likely use a strong hashed version
 
-# JWT Credentials
+# JWT Configuration
 TOKEN_SECRET=string (example: 5ed8a0e881f679121d9550b3530134ae70e457a9ab2f151269d4201e7e86fea6) 
+ACCESS_TOKEN_TLL=number (must be greater than 0) *treated as minutes
+REFRESH_TOKEN_TTL=number (must be greater than 0) *treated as days
 
 # Database
 DB_TYPE=string (example: postgres)

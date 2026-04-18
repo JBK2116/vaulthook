@@ -42,6 +42,10 @@ type Config struct {
 	LOG_LEVEL int
 	// TOKEN_SECRET is a string representing the secret code used to encode and decode JWT Tokens
 	TOKEN_SECRET string
+	// ACCESS_TOKEN_TLL is an int representing the token time to live in days of JWT Access Tokens
+	ACCESS_TOKEN_TLL int
+	// REFRESH_TOKEN_TTL is an int representing the token time to live in days of the JWT Refresh Tokens
+	REFRESH_TOKEN_TTL int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
 }
@@ -55,17 +59,19 @@ func initConfig() Config {
 		panic(fmt.Errorf("error loading environment variable: %w", err))
 	}
 	return Config{
-		DB_TYPE:        getEnvString("DB_TYPE"),
-		DB_USER:        getEnvString("DB_USER"),
-		DB_PASSWORD:    getEnvString("DB_PASSWORD"),
-		DB_HOST:        getEnvString("DB_HOST"),
-		DB_PORT:        getEnvInt("DB_PORT"),
-		DB_NAME:        getEnvString("DB_NAME"),
-		LOG_LEVEL:      getEnvInt("LOG_LEVEL"),
-		IS_DEVELOPMENT: getEnvBool("IS_DEVELOPMENT"),
-		TOKEN_SECRET:   getEnvString("TOKEN_SECRET"),
-		USER_EMAIL:     getEnvString("USER_EMAIL"),
-		USER_PASSWORD:  getEnvString("USER_PASSWORD"),
+		DB_TYPE:           getEnvString("DB_TYPE"),
+		DB_USER:           getEnvString("DB_USER"),
+		DB_PASSWORD:       getEnvString("DB_PASSWORD"),
+		DB_HOST:           getEnvString("DB_HOST"),
+		DB_PORT:           getEnvInt("DB_PORT"),
+		DB_NAME:           getEnvString("DB_NAME"),
+		LOG_LEVEL:         getEnvInt("LOG_LEVEL"),
+		IS_DEVELOPMENT:    getEnvBool("IS_DEVELOPMENT"),
+		TOKEN_SECRET:      getEnvString("TOKEN_SECRET"),
+		ACCESS_TOKEN_TLL:  getEnvInt("ACCESS_TOKEN_TLL"),
+		REFRESH_TOKEN_TTL: getEnvInt("REFRESH_TOKEN_TTL"),
+		USER_EMAIL:        getEnvString("USER_EMAIL"),
+		USER_PASSWORD:     getEnvString("USER_PASSWORD"),
 	}
 }
 

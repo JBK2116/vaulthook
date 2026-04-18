@@ -15,7 +15,7 @@ import (
 
 // postgres manages a psql connection pool used to query and execute statements in the database
 type postgres struct {
-	db *pgxpool.Pool
+	DB *pgxpool.Pool
 }
 
 var (
@@ -48,10 +48,10 @@ func NewPG(ctx context.Context) (*postgres, error) {
 
 // Ping checks if the postgres db is properly connected to the database
 func (pg *postgres) Ping(ctx context.Context) error {
-	return pg.db.Ping(ctx)
+	return pg.DB.Ping(ctx)
 }
 
 // Close is responsible for closing all connections in the pool and rejecting all future calls permanently
 func (pg *postgres) Close() {
-	pg.db.Close()
+	pg.DB.Close()
 }
