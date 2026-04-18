@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+var (
+	errNoTokenInRequest = errors.New("no token present in request")
+)
+
 type malformedRequest struct {
 	Status  int
 	Message string
@@ -78,4 +82,16 @@ func DecodeBodyJson(writer http.ResponseWriter, request *http.Request, destinati
 		return &malformedRequest{Status: http.StatusBadRequest, Message: msg}
 	}
 	return nil
+}
+
+func ExtractBearerToken(r *http.Request) (string, error) {
+	tokenHeader := r.Header.Get("Authorization")
+	if len(tokenHeader) < 7 || !strings.EqualFold(tokenHeader[:7], "bearer") {
+		return "", errNoTokenInRequest
+	}
+	token := strings.TrimSpace(tokenHeader[7:])
+	if token == "" {
+		return "", errNoTokenInRequest
+	}
+	return token, nil
 }
