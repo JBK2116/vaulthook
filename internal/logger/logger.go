@@ -21,7 +21,7 @@ var once sync.Once
 var logger zerolog.Logger
 
 // NewLogger
-func NewLogger() (zerolog.Logger, error) {
+func NewLogger() (*zerolog.Logger, error) {
 	var err error
 	once.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -47,5 +47,5 @@ func NewLogger() (zerolog.Logger, error) {
 		}
 		logger = zerolog.New(output).Level(zerolog.Level(config.Envs.LOG_LEVEL)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
 	})
-	return logger, err
+	return &logger, err
 }
