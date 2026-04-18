@@ -6,6 +6,8 @@ require github.com/rs/zerolog v1.35.0
 
 require github.com/google/uuid v1.6.0
 
+require github.com/go-chi/chi/v5 v5.2.5 // indirect
+
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgpassfile v1.0.0 // indirect
