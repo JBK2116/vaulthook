@@ -52,6 +52,8 @@ type Config struct {
 	THROTTLE_MAX_BACKLOG int
 	// THROTTLE_BACKLOG_TIMEOUT is an int representing the number of seconds a request can be queued before timing out
 	THROTTLE_BACKLOG_TIMEOUT int
+	// MAX_REQUEST_TIME_LENGTH is an int representing the number of seconds a request can be running from start to finish before it times out
+	MAX_REQUEST_TIME_LENGTH int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
 }
@@ -80,6 +82,7 @@ func initConfig() Config {
 		THROTTLE_MAX_CONCURRENT:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
 		THROTTLE_MAX_BACKLOG:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		THROTTLE_BACKLOG_TIMEOUT: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
+		MAX_REQUEST_TIME_LENGTH:  getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		IS_DEVELOPMENT:           getEnvBool("IS_DEVELOPMENT"),
 	}
 }

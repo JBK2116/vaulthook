@@ -11,6 +11,7 @@ ACCESS_TOKEN_TLL=number (must be greater than 0) *treated as minutes
 REFRESH_TOKEN_TTL=number (must be greater than 0) *treated as hours
 
 # Router Configuration
+MAX_REQUEST_TIME_LENGTH=int
 THROTTLE_MAX_CONCURRENT=int
 THROTTLE_MAX_BACKLOG=int
 THROTTLE_BACKLOG_TIMEOUT=int
