@@ -42,9 +42,9 @@ type Config struct {
 	LOG_LEVEL int
 	// TOKEN_SECRET is a string representing the secret code used to encode and decode JWT Tokens
 	TOKEN_SECRET string
-	// ACCESS_TOKEN_TLL is an int representing the token time to live in days of JWT Access Tokens
+	// ACCESS_TOKEN_TLL is an int representing the token time to live in minutes of JWT Access Tokens
 	ACCESS_TOKEN_TLL int
-	// REFRESH_TOKEN_TTL is an int representing the token time to live in days of the JWT Refresh Tokens
+	// REFRESH_TOKEN_TTL is an int representing the token time to live in hours of the JWT Refresh Tokens
 	REFRESH_TOKEN_TTL int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
