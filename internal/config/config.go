@@ -46,6 +46,12 @@ type Config struct {
 	ACCESS_TOKEN_TLL int
 	// REFRESH_TOKEN_TTL is an int representing the token time to live in hours of the JWT Refresh Tokens
 	REFRESH_TOKEN_TTL int
+	// THROTTLE_MAX_CONCURRENT is an int representing the max number of concurrent requests this application can handle
+	THROTTLE_MAX_CONCURRENT int
+	// THROTTLE_MAX_BACKLOG is an int representing the max number of requests that can be pending in this application
+	THROTTLE_MAX_BACKLOG int
+	// THROTTLE_BACKLOG_TIMEOUT is an int representing the number of seconds a request can be queued before timing out
+	THROTTLE_BACKLOG_TIMEOUT int
 	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
 	IS_DEVELOPMENT bool
 }
@@ -59,19 +65,22 @@ func initConfig() Config {
 		panic(fmt.Errorf("error loading environment variable: %w", err))
 	}
 	return Config{
-		DB_TYPE:           getEnvString("DB_TYPE"),
-		DB_USER:           getEnvString("DB_USER"),
-		DB_PASSWORD:       getEnvString("DB_PASSWORD"),
-		DB_HOST:           getEnvString("DB_HOST"),
-		DB_PORT:           getEnvInt("DB_PORT"),
-		DB_NAME:           getEnvString("DB_NAME"),
-		LOG_LEVEL:         getEnvInt("LOG_LEVEL"),
-		IS_DEVELOPMENT:    getEnvBool("IS_DEVELOPMENT"),
-		TOKEN_SECRET:      getEnvString("TOKEN_SECRET"),
-		ACCESS_TOKEN_TLL:  getEnvInt("ACCESS_TOKEN_TLL"),
-		REFRESH_TOKEN_TTL: getEnvInt("REFRESH_TOKEN_TTL"),
-		USER_EMAIL:        getEnvString("USER_EMAIL"),
-		USER_PASSWORD:     getEnvString("USER_PASSWORD"),
+		DB_TYPE:                  getEnvString("DB_TYPE"),
+		DB_USER:                  getEnvString("DB_USER"),
+		DB_PASSWORD:              getEnvString("DB_PASSWORD"),
+		DB_HOST:                  getEnvString("DB_HOST"),
+		DB_PORT:                  getEnvInt("DB_PORT"),
+		DB_NAME:                  getEnvString("DB_NAME"),
+		USER_EMAIL:               getEnvString("USER_EMAIL"),
+		USER_PASSWORD:            getEnvString("USER_PASSWORD"),
+		LOG_LEVEL:                getEnvInt("LOG_LEVEL"),
+		TOKEN_SECRET:             getEnvString("TOKEN_SECRET"),
+		ACCESS_TOKEN_TLL:         getEnvInt("ACCESS_TOKEN_TLL"),
+		REFRESH_TOKEN_TTL:        getEnvInt("REFRESH_TOKEN_TTL"),
+		THROTTLE_MAX_CONCURRENT:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
+		THROTTLE_MAX_BACKLOG:     getEnvInt("THROTTLE_MAX_BACKLOG"),
+		THROTTLE_BACKLOG_TIMEOUT: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
+		IS_DEVELOPMENT:           getEnvBool("IS_DEVELOPMENT"),
 	}
 }
 
