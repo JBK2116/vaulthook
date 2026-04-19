@@ -86,7 +86,7 @@ func DecodeBodyJson(writer http.ResponseWriter, request *http.Request, destinati
 
 func ExtractBearerToken(r *http.Request) (string, error) {
 	tokenHeader := r.Header.Get("Authorization")
-	if len(tokenHeader) < 7 || !strings.EqualFold(tokenHeader[:7], "bearer") {
+	if len(tokenHeader) < 7 || !strings.EqualFold(tokenHeader[:6], "bearer") {
 		return "", errNoTokenInRequest
 	}
 	token := strings.TrimSpace(tokenHeader[7:])
