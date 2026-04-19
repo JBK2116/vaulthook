@@ -1,4 +1,4 @@
-# Application Environment For Root .env
+# Testing Environment For Root .env.test
 
 # Type: bool | Accepted values: "true" | "false"
 IS_DEVELOPMENT=true
