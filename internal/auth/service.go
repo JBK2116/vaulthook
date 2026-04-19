@@ -47,7 +47,7 @@ func NewAuthService(jwtSecret string, accessTokenTTL int, refreshTokenTTL int, r
 //
 // It returns ErrInvalidCredentials if the email or password do not match.
 func (s *AuthService) Login(ctx context.Context, email string, password string) (string, string, error) {
-	if email != config.Envs.USER_EMAIL || password != config.Envs.USER_PASSWORD {
+	if email != config.Envs.UserEmail || password != config.Envs.UserPassword {
 		return "", "", ErrInvalidCredentials
 	}
 

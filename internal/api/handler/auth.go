@@ -48,7 +48,7 @@ func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *authHand
 // containing an access token and a refresh token on success.
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequestBody
-	if err := internal.DecodeBodyJson(w, r, &body); err != nil {
+	if err := internal.DecodeBodyJSON(w, r, &body); err != nil {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}

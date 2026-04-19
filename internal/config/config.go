@@ -23,40 +23,40 @@ import (
 
 // Config holds all environment variables required for the application to run.
 type Config struct {
-	// DB_TYPE is the database driver type, e.g. "postgres".
-	DB_TYPE string
-	// DB_USER is the database user.
-	DB_USER string
-	// DB_PASSWORD is the database user's password.
-	DB_PASSWORD string
-	// DB_HOST is the database host, e.g. "localhost".
-	DB_HOST string
-	// DB_PORT is the database port, e.g. 5432.
-	DB_PORT int
-	// DB_NAME is the name of the target database, e.g. "vaulthook".
-	DB_NAME string
-	// USER_EMAIL is the email of the authenticated application user.
-	USER_EMAIL string
-	// USER_PASSWORD is the password of the authenticated application user.
-	USER_PASSWORD string
-	// LOG_LEVEL is the zerolog log level, e.g. 0 for debug.
-	LOG_LEVEL int
-	// TOKEN_SECRET is the HMAC secret used to sign and verify JWT tokens.
-	TOKEN_SECRET string
-	// ACCESS_TOKEN_TLL is the access token lifetime in minutes.
-	ACCESS_TOKEN_TLL int
-	// REFRESH_TOKEN_TTL is the refresh token lifetime in hours.
-	REFRESH_TOKEN_TTL int
-	// THROTTLE_MAX_CONCURRENT is the maximum number of requests handled concurrently.
-	THROTTLE_MAX_CONCURRENT int
-	// THROTTLE_MAX_BACKLOG is the maximum number of requests queued while at capacity.
-	THROTTLE_MAX_BACKLOG int
-	// THROTTLE_BACKLOG_TIMEOUT is the number of seconds a queued request may wait before timing out.
-	THROTTLE_BACKLOG_TIMEOUT int
-	// MAX_REQUEST_TIME_LENGTH is the maximum number of seconds a request may run end-to-end.
-	MAX_REQUEST_TIME_LENGTH int
-	// IS_DEVELOPMENT indicates whether the application is running in a development environment.
-	IS_DEVELOPMENT bool
+	// DBType is the database driver type, e.g. "postgres".
+	DBType string
+	// DBUser is the database user.
+	DBUser string
+	// DBPassword is the database user's password.
+	DBPassword string
+	// DBHost is the database host, e.g. "localhost".
+	DBHost string
+	// DBPort is the database port, e.g. 5432.
+	DBPort int
+	// DBName is the name of the target database, e.g. "vaulthook".
+	DBName string
+	// UserEmail is the email of the authenticated application user.
+	UserEmail string
+	// UserPassword is the password of the authenticated application user.
+	UserPassword string
+	// LogLevel is the zerolog log level, e.g. 0 for debug.
+	LogLevel int
+	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
+	JWTSecret string
+	// AccessTokenTTL is the access token lifetime in minutes.
+	AccessTokenTTL int
+	// RefreshTokenTTL is the refresh token lifetime in hours.
+	RefreshTokenTTL int
+	// ThrottleMaxConcurrent is the maximum number of requests handled concurrently.
+	ThrottleMaxConcurrent int
+	// ThrottleMaxBacklog is the maximum number of requests queued while at capacity.
+	ThrottleMaxBacklog int
+	// ThrottleBacklogTimeout is the number of seconds a queued request may wait before timing out.
+	ThrottleBacklogTimeout int
+	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
+	MaxRequestTime int
+	// IsDevelopment indicates whether the application is running in a development environment.
+	IsDevelopment bool
 }
 
 // Envs is the package-level Config instance, initialized once at startup.
@@ -70,23 +70,23 @@ func initConfig() Config {
 		panic(fmt.Errorf("error loading environment variable: %w", err))
 	}
 	return Config{
-		DB_TYPE:                  getEnvString("DB_TYPE"),
-		DB_USER:                  getEnvString("DB_USER"),
-		DB_PASSWORD:              getEnvString("DB_PASSWORD"),
-		DB_HOST:                  getEnvString("DB_HOST"),
-		DB_PORT:                  getEnvInt("DB_PORT"),
-		DB_NAME:                  getEnvString("DB_NAME"),
-		USER_EMAIL:               getEnvString("USER_EMAIL"),
-		USER_PASSWORD:            getEnvString("USER_PASSWORD"),
-		LOG_LEVEL:                getEnvInt("LOG_LEVEL"),
-		TOKEN_SECRET:             getEnvString("TOKEN_SECRET"),
-		ACCESS_TOKEN_TLL:         getEnvInt("ACCESS_TOKEN_TLL"),
-		REFRESH_TOKEN_TTL:        getEnvInt("REFRESH_TOKEN_TTL"),
-		THROTTLE_MAX_CONCURRENT:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
-		THROTTLE_MAX_BACKLOG:     getEnvInt("THROTTLE_MAX_BACKLOG"),
-		THROTTLE_BACKLOG_TIMEOUT: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
-		MAX_REQUEST_TIME_LENGTH:  getEnvInt("MAX_REQUEST_TIME_LENGTH"),
-		IS_DEVELOPMENT:           getEnvBool("IS_DEVELOPMENT"),
+		DBType:                 getEnvString("DB_TYPE"),
+		DBUser:                 getEnvString("DB_USER"),
+		DBPassword:             getEnvString("DB_PASSWORD"),
+		DBHost:                 getEnvString("DB_HOST"),
+		DBPort:                 getEnvInt("DB_PORT"),
+		DBName:                 getEnvString("DB_NAME"),
+		UserEmail:              getEnvString("USER_EMAIL"),
+		UserPassword:           getEnvString("USER_PASSWORD"),
+		LogLevel:               getEnvInt("LOG_LEVEL"),
+		JWTSecret:              getEnvString("TOKEN_SECRET"),
+		AccessTokenTTL:         getEnvInt("ACCESS_TOKEN_TLL"),
+		RefreshTokenTTL:        getEnvInt("REFRESH_TOKEN_TTL"),
+		ThrottleMaxConcurrent:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
+		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
+		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
+		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
+		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
 	}
 }
 

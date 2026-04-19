@@ -32,12 +32,12 @@ var (
 // be created, an error is returned and pgInstance remains nil.
 func NewPG(ctx context.Context) (*postgres, error) {
 	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s",
-		config.Envs.DB_TYPE,
-		config.Envs.DB_USER,
-		config.Envs.DB_PASSWORD,
-		config.Envs.DB_HOST,
-		config.Envs.DB_PORT,
-		config.Envs.DB_NAME,
+		config.Envs.DBType,
+		config.Envs.DBUser,
+		config.Envs.DBPassword,
+		config.Envs.DBHost,
+		config.Envs.DBPort,
+		config.Envs.DBName,
 	)
 	var err error
 	pgOnce.Do(func() {

@@ -42,15 +42,15 @@ func main() {
 	}
 	// Wire auth dependencies.
 	refreshTokenRepo := auth.NewRefreshTokenRepo(db.DB)
-	authService := auth.NewAuthService(config.Envs.TOKEN_SECRET, config.Envs.ACCESS_TOKEN_TLL, config.Envs.REFRESH_TOKEN_TTL, refreshTokenRepo, logger)
+	authService := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, refreshTokenRepo, logger)
 	authHandler := handler.NewAuthHandler(logger, authService)
 	// Configure the router with global middleware.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.CleanPath)
 	r.Use(chimiddleware.StripSlashes)
-	r.Use(chimiddleware.ThrottleBacklog(config.Envs.THROTTLE_MAX_CONCURRENT, config.Envs.THROTTLE_MAX_BACKLOG, time.Duration(config.Envs.THROTTLE_BACKLOG_TIMEOUT)*time.Second))
-	r.Use(chimiddleware.Timeout(time.Duration(config.Envs.MAX_REQUEST_TIME_LENGTH) * time.Second))
+	r.Use(chimiddleware.ThrottleBacklog(config.Envs.ThrottleMaxConcurrent, config.Envs.ThrottleMaxBacklog, time.Duration(config.Envs.ThrottleBacklogTimeout)*time.Second))
+	r.Use(chimiddleware.Timeout(time.Duration(config.Envs.MaxRequestTime) * time.Second))
 	// Register API routes.
 	r.Route("/api", func(r chi.Router) {
 		// User Authentication related routes.

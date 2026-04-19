@@ -24,7 +24,7 @@ func (mr *malformedRequest) Error() string {
 	return mr.Message
 }
 
-func DecodeBodyJson(writer http.ResponseWriter, request *http.Request, destination any) *malformedRequest {
+func DecodeBodyJSON(writer http.ResponseWriter, request *http.Request, destination any) *malformedRequest {
 	contentType := request.Header.Get("Content-Type")
 	if contentType != "" {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))

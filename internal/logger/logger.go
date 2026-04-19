@@ -57,7 +57,7 @@ func NewLogger() (*zerolog.Logger, error) {
 				break
 			}
 		}
-		logger = zerolog.New(output).Level(zerolog.Level(config.Envs.LOG_LEVEL)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
+		logger = zerolog.New(output).Level(zerolog.Level(config.Envs.LogLevel)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
 	})
 	return &logger, err
 }
