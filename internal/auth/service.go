@@ -24,7 +24,7 @@ type AuthService struct {
 	jwtSecret        []byte
 	accessTokenTTL   time.Duration
 	refreshTokenTTL  time.Duration
-	refreshTokenRepo *RefreshTokenRepo
+	refreshTokenRepo *refreshTokenRepo
 	logger           *zerolog.Logger
 }
 
@@ -32,7 +32,7 @@ type AuthService struct {
 // token TTLs, repository, and logger.
 //
 // accessTokenTTL is interpreted as minutes; refreshTokenTTL as hours.
-func NewAuthService(jwtSecret string, accessTokenTTL int, refreshTokenTTL int, refreshTokenRepo *RefreshTokenRepo, logger *zerolog.Logger) *AuthService {
+func NewAuthService(jwtSecret string, accessTokenTTL int, refreshTokenTTL int, refreshTokenRepo *refreshTokenRepo, logger *zerolog.Logger) *AuthService {
 	return &AuthService{
 		jwtSecret:        []byte(jwtSecret),
 		accessTokenTTL:   time.Duration(accessTokenTTL) * time.Minute,
@@ -154,12 +154,12 @@ func (s *AuthService) generateRefreshToken(email string, exp time.Time, iat time
 	return tokenStr, nil
 }
 
-// validateAccessToken parses and validates a JWT access token, enforcing
+// ValidateAccessToken parses and validates a JWT access token, enforcing
 // the HS256 signing method. It returns the token claims on success.
 //
 // It returns jwt.ErrTokenExpired if the token has expired, or ErrInvalidToken
 // for any other validation failure.
-func (s *AuthService) validateAccessToken(tokenStr string) (jwt.MapClaims, error) {
+func (s *AuthService) ValidateAccessToken(tokenStr string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		return s.jwtSecret, nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
