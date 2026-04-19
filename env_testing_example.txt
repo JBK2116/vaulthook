@@ -36,9 +36,3 @@ DB_NAME=vaulthook
 # Logging
 # Type: int | Follows zerolog levels: -1=Trace 0=Debug 1=Info 2=Warn 3=Error 4=Fatal 5=Panic
 LOG_LEVEL=0
-
-# Goose Migrations
-# Type: string | GOOSE_DBSTRING format: driver://user:password@host:port/db_name
-GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgres://john:password@localhost:5432/vaulthook
-GOOSE_MIGRATION_DIR=./migrations
