@@ -1,34 +1,43 @@
-# Environment
-IS_DEVELOPMENT=string (must be either "true" or "false")
+# Application Environment
+# Type: bool | Accepted values: "true" | "false"
+IS_DEVELOPMENT=true
 
 # User Credentials
-USER_EMAIL=string (example: johndoe@gmail.com)
-USER_PASSWORD = string (example: qwerty123) though you should likely use a strong hashed version
+# Type: string | USER_PASSWORD should be a cryptographically strong value, not a plain text password.
+USER_EMAIL=johndoe@gmail.com
+USER_PASSWORD=a3f8c2e1b4d6f9a0e7c5b2d8f1a4c7e0b3d6f9a2c5e8b1d4f7a0c3e6b9d2f5a8
 
 # JWT Configuration
-TOKEN_SECRET=string (example: 5ed8a0e881f679121d9550b3530134ae70e457a9ab2f151269d4201e7e86fea6) 
-ACCESS_TOKEN_TLL=number (must be greater than 0) *treated as minutes
-REFRESH_TOKEN_TTL=number (must be greater than 0) *treated as hours
+# Type: string | TOKEN_SECRET should be a cryptographically random 64 character hex string.
+# Type: int    | ACCESS_TOKEN_TTL is interpreted as minutes. Must be greater than 0.
+# Type: int    | REFRESH_TOKEN_TTL is interpreted as hours. Must be greater than 0.
+TOKEN_SECRET=5ed8a0e881f679121d9550b3530134ae70e457a9ab2f151269d4201e7e86fea6
+ACCESS_TOKEN_TLL=15
+REFRESH_TOKEN_TTL=72
 
 # Router Configuration
-MAX_REQUEST_TIME_LENGTH=int
-THROTTLE_MAX_CONCURRENT=int
-THROTTLE_MAX_BACKLOG=int
-THROTTLE_BACKLOG_TIMEOUT=int
+# Type: int | All duration values are interpreted as seconds.
+MAX_REQUEST_TIME_LENGTH=30
+THROTTLE_MAX_CONCURRENT=100
+THROTTLE_MAX_BACKLOG=50
+THROTTLE_BACKLOG_TIMEOUT=10
 
 # Database
-DB_TYPE=string (example: postgres)
-DB_USER=string (example: john)
-DB_PASSWORD=string (example: qwerty123)
-DB_HOST=string (example: localhost)
-DB_PORT=number (example: 5432)
-DB_NAME=string (exaple: devdb)
+# Type: string | DB_TYPE is the driver name, e.g. "postgres".
+# Type: int    | DB_PORT is the database port, e.g. 5432.
+DB_TYPE=postgres
+DB_USER=john
+DB_PASSWORD=a3f8c2e1b4d6f9a0e7c5b2d8f1a4c7e0b3d6f9a2c5e8b1d4f7a0c3e6b9d2f5a8
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=vaulthook
 
 # Logging
-LOG_LEVEL=number (must be between [-1, 5])
+# Type: int | Follows zerolog levels: -1=Trace 0=Debug 1=Info 2=Warn 3=Error 4=Fatal 5=Panic
+LOG_LEVEL=0
 
-
-# Goose
-GOOSE_DRIVER=string (example: postgres)
-GOOSE_DBSTRING=string (example: postgres://user:password@host:port/db_name)
-GOOSE_MIGRATION_DIR= string (example: ./migrations)
+# Goose Migrations
+# Type: string | GOOSE_DBSTRING format: driver://user:password@host:port/db_name
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://john:password@localhost:5432/vaulthook
+GOOSE_MIGRATION_DIR=./migrations
