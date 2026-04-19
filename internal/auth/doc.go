@@ -1,6 +1,5 @@
-// Package auth is responsible for handling all authentication related code in the application
+// Package auth provides authentication functionality for the application.
 //
-// This package serves as the security functionality of the application.
-//
-// Functionality includes handling JWT authentication, user endpoint authentication and related logic
+// Responsibilities include JWT issuance and validation, credential verification,
+// and token refresh logic.
 package auth

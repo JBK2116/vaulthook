@@ -1,15 +1,16 @@
-// Package config is responsible for initializing and exposing all application-level configuration.
+// Package config loads and validates all application-level configuration from environment variables.
 //
-// This package loads environment variables, and ensures that each variable is correctly configured.
-// It exposes a single Config struct that is passed throughout the application.
+// Configuration is initialized once at startup via a package-level variable.
+// Any missing or malformed variable causes an immediate panic, preventing the
+// application from starting in a misconfigured state.
 //
-// # Section 1: Initialization  Order
+// # Initialization Order
 //
-// 1. Load environment variables from .env.
+//  1. Load environment variables from .env via godotenv.
 //
-// 2. Ensure that all necessary environment variables are properly configured.
+//  2. Validate and parse each required variable into its target type.
 //
-// 3. Return a populated Config struct to the caller.
+//  3. Return a populated Config struct assigned to the package-level Envs variable.
 package config
 
 import (
@@ -20,47 +21,49 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config manages all enviroment vairables necessary for the application to run
+// Config holds all environment variables required for the application to run.
 type Config struct {
-	// DB_TYPE is a string representing the type of database used in the application, e.g. "postgres"
+	// DB_TYPE is the database driver type, e.g. "postgres".
 	DB_TYPE string
-	// DB_USER is a string representing the user connected to the database connection
+	// DB_USER is the database user.
 	DB_USER string
-	// DB_PASSWORD is a string representing the password to connect to the database connection
+	// DB_PASSWORD is the database user's password.
 	DB_PASSWORD string
-	// DB_HOST is a string representing the host connected to the database connection e.g. "localhost"
+	// DB_HOST is the database host, e.g. "localhost".
 	DB_HOST string
-	// DB_PORT is an int representing the host connected to the database connection e.g. 5432
+	// DB_PORT is the database port, e.g. 5432.
 	DB_PORT int
-	// DB_NAME is a string representing the name of the database e.g. "vaulthook"
+	// DB_NAME is the name of the target database, e.g. "vaulthook".
 	DB_NAME string
-	// USER_EMAIL is a string representing the email of the user running this application
+	// USER_EMAIL is the email of the authenticated application user.
 	USER_EMAIL string
-	// USER_PASSWORD is a string representing the password of the user running this application
+	// USER_PASSWORD is the password of the authenticated application user.
 	USER_PASSWORD string
-	// LOG_LEVEL is an int representing the log level configured in the global logger e.g. 0
+	// LOG_LEVEL is the zerolog log level, e.g. 0 for debug.
 	LOG_LEVEL int
-	// TOKEN_SECRET is a string representing the secret code used to encode and decode JWT Tokens
+	// TOKEN_SECRET is the HMAC secret used to sign and verify JWT tokens.
 	TOKEN_SECRET string
-	// ACCESS_TOKEN_TLL is an int representing the token time to live in minutes of JWT Access Tokens
+	// ACCESS_TOKEN_TLL is the access token lifetime in minutes.
 	ACCESS_TOKEN_TLL int
-	// REFRESH_TOKEN_TTL is an int representing the token time to live in hours of the JWT Refresh Tokens
+	// REFRESH_TOKEN_TTL is the refresh token lifetime in hours.
 	REFRESH_TOKEN_TTL int
-	// THROTTLE_MAX_CONCURRENT is an int representing the max number of concurrent requests this application can handle
+	// THROTTLE_MAX_CONCURRENT is the maximum number of requests handled concurrently.
 	THROTTLE_MAX_CONCURRENT int
-	// THROTTLE_MAX_BACKLOG is an int representing the max number of requests that can be pending in this application
+	// THROTTLE_MAX_BACKLOG is the maximum number of requests queued while at capacity.
 	THROTTLE_MAX_BACKLOG int
-	// THROTTLE_BACKLOG_TIMEOUT is an int representing the number of seconds a request can be queued before timing out
+	// THROTTLE_BACKLOG_TIMEOUT is the number of seconds a queued request may wait before timing out.
 	THROTTLE_BACKLOG_TIMEOUT int
-	// MAX_REQUEST_TIME_LENGTH is an int representing the number of seconds a request can be running from start to finish before it times out
+	// MAX_REQUEST_TIME_LENGTH is the maximum number of seconds a request may run end-to-end.
 	MAX_REQUEST_TIME_LENGTH int
-	// IS_DEVELOPMENT is a boolean representing the environment that the application is running
+	// IS_DEVELOPMENT indicates whether the application is running in a development environment.
 	IS_DEVELOPMENT bool
 }
 
+// Envs is the package-level Config instance, initialized once at startup.
 var Envs = initConfig()
 
-// initConfig loads all the required variables to configure the application
+// initConfig loads environment variables from .env and populates a Config.
+// It panics if any required variable is missing or malformed.
 func initConfig() Config {
 	err := godotenv.Load()
 	if err != nil {
@@ -87,8 +90,8 @@ func initConfig() Config {
 	}
 }
 
-// getEnvString loads an environment variable using the provided name and returns the value in string format if found.
-// If the environment variable is not found, panic is called.
+// getEnvString returns the string value of the named environment variable.
+// It panics if the variable is not set.
 func getEnvString(name string) string {
 	value := os.Getenv(name)
 	if len(value) == 0 {
@@ -97,8 +100,8 @@ func getEnvString(name string) string {
 	return value
 }
 
-// getEnvString loads an environment variable using the provided name and returns the value in boolean format if found.
-// If the environment variable is not found, panic is called.
+// getEnvBool returns the boolean value of the named environment variable.
+// It panics if the variable is not set or cannot be parsed as a boolean.
 func getEnvBool(name string) bool {
 	value := os.Getenv(name)
 	if len(value) == 0 {
@@ -111,8 +114,8 @@ func getEnvBool(name string) bool {
 	return boolValue
 }
 
-// getEnvString loads an environment variable using the provided name and returns the value in int format if found.
-// If the environment variable is not found, panic is called.
+// getEnvInt returns the integer value of the named environment variable.
+// It panics if the variable is not set or cannot be parsed as an integer.
 func getEnvInt(name string) int {
 	value := os.Getenv(name)
 	if len(value) == 0 {

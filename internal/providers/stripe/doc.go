@@ -1,11 +1,12 @@
-// Package stripe is responsible for all business logic related to Stripe webhook processing.
+// Package stripe handles all business logic for inbound Stripe webhook processing.
 //
-// This package sits between the handler and the database, handling signature verification,
-// event persistence, and forwarding logic for all inbound Stripe webhook events.
+// This package sits between the handler and the database, orchestrating
+// signature verification, event persistence, and forwarding logic.
 //
-// # Section 1: File Structure
+// # File Structure
 //
-// 1. repository.go - Database access layer. Handles all queries and statements against the webhook_events table.
+//   - repository.go - Database access layer for the webhook_events table.
 //
-// 2. service.go - Business logic layer. Orchestrates signature verification via auth/stripe_middleware.go and persistence via repository.go.
+//   - service.go - Business logic layer. Coordinates signature verification
+//     via middleware and persistence via repository.go.
 package stripe

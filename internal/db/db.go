@@ -1,7 +1,7 @@
-// Package db is responsible for database related configuration logic
+// Package db manages the application's database connection pool.
 //
-// This package handles connecting the database,  managing pooling and related logic.
-// It exposes a database object that is passed throughout the application.
+// It handles pool initialization and exposes a postgres instance
+// that is passed throughout the application.
 package db
 
 import (
@@ -13,18 +13,23 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// postgres manages a psql connection pool used to query and execute statements in the database
+// postgres holds the pgxpool connection pool used to query and execute
+// statements against the PostgreSQL database.
 type postgres struct {
 	DB *pgxpool.Pool
 }
 
 var (
-	pgInstance *postgres
-	pgOnce     sync.Once
+	pgInstance *postgres // singleton postgres instance.
+	pgOnce     sync.Once // guards pool initialization.
 )
 
-// NewPG uses `sync.Once` to create a new pgxpool database connection.
-// If successful a postgres struct is returned, else an error is returned.
+// NewPG constructs and returns a singleton postgres instance backed by a
+// pgxpool connection pool. The pool is initialized exactly once via sync.Once.
+// Subsequent calls return the existing instance.
+//
+// The connection string is assembled from config.Envs. If the pool cannot
+// be created, an error is returned and pgInstance remains nil.
 func NewPG(ctx context.Context) (*postgres, error) {
 	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s",
 		config.Envs.DB_TYPE,
@@ -46,12 +51,13 @@ func NewPG(ctx context.Context) (*postgres, error) {
 	return pgInstance, err
 }
 
-// Ping checks if the postgres db is properly connected to the database
+// Ping verifies the database connection is alive.
 func (pg *postgres) Ping(ctx context.Context) error {
 	return pg.DB.Ping(ctx)
 }
 
-// Close is responsible for closing all connections in the pool and rejecting all future calls permanently
+// Close terminates all connections in the pool. It is permanent;
+// the pool cannot be reused after Close is called.
 func (pg *postgres) Close() {
 	pg.DB.Close()
 }

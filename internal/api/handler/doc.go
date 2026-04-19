@@ -1,14 +1,15 @@
-// Package handler is responsible for creating all handlers used for corresponding provider endpoints
+// Package handler provides HTTP handlers for all provider and authentication endpoints.
 //
-// This package serves as the highest level of code for all provider logic,
-// therefore code in these handlers should be kept to a minimal.
-// Leverage the code in each providers dedicated package to handle the main business logic for these endpoints.
+// This package is the topmost layer of the provider request lifecycle.
+// Handler logic should remain thin, request decoding, response writing,
+// and error translation only. All business logic must be delegated to the
+// corresponding provider package.
 //
-// # Section 1: Example Handler Flow With Stripe
+// # Handler Flow (Stripe Example)
 //
-// 1. Receive the incoming http/https request.
+//  1. Receive the incoming HTTP request.
 //
-// 2. Use the logic in `providers/stripe/` to respond accordingly to the request.
+//  2. Delegate to the appropriate logic in providers/stripe/.
 //
-// 3. Send the result to it's appropriate destination.
+//  3. Write the result back to the response writer.
 package handler

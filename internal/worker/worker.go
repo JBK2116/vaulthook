@@ -1,4 +1,5 @@
-// Package worker is responsible for all background worker related logic
+// Package worker provides background processing for webhook delivery.
 //
-// This package sits behind the main application, handling webhook retries, processing and forwarding.
+// It handles retry scheduling, event processing, and forwarding
+// independently of the main request lifecycle.
 package worker
