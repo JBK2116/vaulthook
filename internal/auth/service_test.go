@@ -19,7 +19,7 @@ type loginResult struct {
 	err       error
 }
 
-func TestLogin(t *testing.T) {
+func TestLoginService(t *testing.T) {
 	tests := map[string]struct {
 		input  loginBody
 		result loginResult
@@ -52,7 +52,7 @@ type tokenResult struct {
 	err       error
 }
 
-func TestRefreshToken(t *testing.T) {
+func TestRefreshTokenService(t *testing.T) {
 	tests := map[string]struct {
 		input  tokenBody
 		result tokenResult
@@ -83,7 +83,7 @@ func TestRefreshToken(t *testing.T) {
 	}
 }
 
-func TestValidateAccessToken(t *testing.T) {
+func TestValidateAccessTokenService(t *testing.T) {
 	tests := map[string]struct {
 		input  tokenBody
 		result tokenResult

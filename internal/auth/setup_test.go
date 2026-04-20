@@ -16,7 +16,7 @@ import (
 
 var testDB *pgxpool.Pool
 var testLogger *zerolog.Logger
-var testRepo *refreshTokenRepo
+var testRepo *RefreshTokenRepo
 var testService *AuthService
 
 func TestMain(m *testing.M) {

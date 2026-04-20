@@ -24,7 +24,7 @@ type AuthService struct {
 	jwtSecret        []byte
 	accessTokenTTL   time.Duration
 	refreshTokenTTL  time.Duration
-	refreshTokenRepo *refreshTokenRepo
+	refreshTokenRepo *RefreshTokenRepo
 	logger           *zerolog.Logger
 }
 
@@ -32,7 +32,7 @@ type AuthService struct {
 // token TTLs, repository, and logger.
 //
 // accessTokenTTL is interpreted as minutes; refreshTokenTTL as hours.
-func NewAuthService(jwtSecret string, accessTokenTTL int, refreshTokenTTL int, refreshTokenRepo *refreshTokenRepo, logger *zerolog.Logger) *AuthService {
+func NewAuthService(jwtSecret string, accessTokenTTL int, refreshTokenTTL int, refreshTokenRepo *RefreshTokenRepo, logger *zerolog.Logger) *AuthService {
 	return &AuthService{
 		jwtSecret:        []byte(jwtSecret),
 		accessTokenTTL:   time.Duration(accessTokenTTL) * time.Minute,
