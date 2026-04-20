@@ -84,6 +84,7 @@ func initConfig() Config {
 	}
 }
 
+// Init configures the `Envs` variable that stores all environment variables used in this project
 func Init() {
 	Envs = initConfig()
 }
