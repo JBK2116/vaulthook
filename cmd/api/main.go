@@ -60,7 +60,7 @@ func main() {
 	// Register API routes.
 	r.Route("/api", func(r chi.Router) {
 		// User Authentication related routes.
-		authHandler.RegisterPublicRoutes(r)
+		authHandler.RegisterRoutes(r)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Jwt(authService))
 		})

@@ -120,8 +120,8 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// RegisterPublicRoutes mounts the authentication endpoints onto the provided router.
-func (h *authHandler) RegisterPublicRoutes(r chi.Router) {
+// RegisterRoutes mounts the authentication endpoints onto the provided router.
+func (h *authHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/refresh", h.refreshToken)
 }
