@@ -55,7 +55,7 @@ func (s *AuthService) Login(ctx context.Context, email string, password string) 
 	if err != nil {
 		return "", "", err
 	}
-	refreshStr, err := s.generateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
+	refreshStr, err := s.GenerateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
@@ -96,7 +96,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 	if err != nil {
 		return "", "", err
 	}
-	refreshStr, err := s.generateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
+	refreshStr, err := s.GenerateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
@@ -124,9 +124,9 @@ func (s *AuthService) generateAccessToken(email string, exp time.Time, iat time.
 	return tokenStr, nil
 }
 
-// generateRefreshToken creates a signed HS256 JWT refresh token for the given
+// GenerateRefreshToken creates a signed HS256 JWT refresh token for the given
 // email, expiry, and issued-at time.
-func (s *AuthService) generateRefreshToken(email string, exp time.Time, iat time.Time) (string, error) {
+func (s *AuthService) GenerateRefreshToken(email string, exp time.Time, iat time.Time) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":   fmt.Sprintf("refresh token | %s", email),
 		"email": email,

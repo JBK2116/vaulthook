@@ -66,7 +66,7 @@ func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
-	token, err := testService.generateRefreshToken(email, exp, now)
+	token, err := testService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func createExpiredRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Minute * -1)
-	token, err := testService.generateRefreshToken(email, exp, now)
+	token, err := testService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
