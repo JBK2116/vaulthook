@@ -56,11 +56,11 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	accessT, refreshT, err := h.service.Login(ctx, body.Email, body.Password)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg(err.Error())
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+		h.logger.Error().Stack().Err(err).Msg(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
