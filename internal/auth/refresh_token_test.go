@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDeleteRefreshToken(t *testing.T) {
+func TestDelete(t *testing.T) {
 	ctx := context.Background()
 	beforeEach(t)
 	// create and delete the same token
@@ -17,7 +17,7 @@ func TestDeleteRefreshToken(t *testing.T) {
 	afterEach(t)
 }
 
-func TestExistsRefreshToken(t *testing.T) {
+func TestExists(t *testing.T) {
 	ctx := context.Background()
 	beforeEach(t)
 	// create and insert the token
