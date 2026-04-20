@@ -10,6 +10,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal"
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 )
 
@@ -88,18 +89,19 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 	token, err := internal.ExtractBearerToken(r)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error extracting bearer token in refresh token endpoint")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-
 	accessT, refreshT, err := h.service.RefreshToken(ctx, token)
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, auth.ErrInvalidToken) || errors.Is(err, auth.ErrTokenNotFound) || errors.Is(err, auth.ErrTokenKeyMissing) {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
 		h.logger.Error().Stack().Err(err).Msg("error refreshing token in refresh token endpoint")
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	response := tokenResponse{

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
@@ -70,4 +71,38 @@ func getValidLoginCredentials() []byte {
 	loginCreds := loginRequestBody{Email: config.Envs.UserEmail, Password: config.Envs.UserPassword}
 	body, _ := json.Marshal(&loginCreds)
 	return body
+}
+
+// CreateRefreshToken generates a valid refresh token, saves it to the database and returns it to the user
+func createRefreshToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
+	token, err := testService.GenerateRefreshToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	tokenStruct, err := testRepo.Create(ctx, token, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tokenStruct.Token
+}
+
+// createExpiredRefreshToken generates an expired refresh token, saves it to the database and returns it to the user
+func createExpiredRefreshToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Minute * -1)
+	token, err := testService.GenerateRefreshToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	tokenStruct, err := testRepo.Create(ctx, token, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tokenStruct.Token
 }

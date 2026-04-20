@@ -30,6 +30,7 @@ func TestLoginService(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			beforeEach(t)
+			t.Cleanup(func() { afterEach(t) })
 			ctx := context.Background()
 			accessT, refreshT, err := testService.Login(ctx, test.input.email, test.input.password)
 			if err != test.result.err {
@@ -38,7 +39,6 @@ func TestLoginService(t *testing.T) {
 			if test.result.hasTokens && (accessT == "" || refreshT == "") {
 				t.Fatalf("expected tokens to be returned, received %s and %s", accessT, refreshT)
 			}
-			t.Cleanup(func() { afterEach(t) })
 		})
 	}
 }
@@ -70,6 +70,7 @@ func TestRefreshTokenService(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			beforeEach(t)
+			t.Cleanup(func() { afterEach(t) })
 			ctx := context.Background()
 			accessT, refreshT, err := testService.RefreshToken(ctx, test.input.setup())
 			if !errors.Is(err, test.result.err) {
@@ -78,7 +79,6 @@ func TestRefreshTokenService(t *testing.T) {
 			if test.result.hasTokens && (accessT == "" || refreshT == "") {
 				t.Fatalf("expected tokens to be returned, received %s and %s", accessT, refreshT)
 			}
-			t.Cleanup(func() { afterEach(t) })
 		})
 	}
 }
@@ -101,11 +101,11 @@ func TestValidateAccessTokenService(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			beforeEach(t)
+			t.Cleanup(func() { afterEach(t) })
 			_, err := testService.ValidateAccessToken(test.input.setup())
 			if err != test.result.err {
 				t.Fatalf("expected error: %v, got error: %v", test.result.err, err)
 			}
 		})
-		t.Cleanup(func() { afterEach(t) })
 	}
 }
