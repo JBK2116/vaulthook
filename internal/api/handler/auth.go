@@ -52,7 +52,8 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
 	accessT, refreshT, err := h.service.Login(ctx, body.Email, body.Password)
 	if err != nil {
 		h.logger.Error().Stack().Err(err).Msg(err.Error())

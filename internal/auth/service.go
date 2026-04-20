@@ -50,26 +50,19 @@ func (s *AuthService) Login(ctx context.Context, email string, password string) 
 	if email != config.Envs.UserEmail || password != config.Envs.UserPassword {
 		return "", "", ErrInvalidCredentials
 	}
-
 	now := time.Now()
 	accessStr, err := s.generateAccessToken(email, now.Add(s.accessTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
 	refreshStr, err := s.generateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
-	defer cancel()
-
 	_, err = s.refreshTokenRepo.Create(ctx, refreshStr, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
 	return accessStr, refreshStr, nil
 }
 
@@ -91,32 +84,26 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 		}
 		return "", "", err
 	}
-
 	email, ok := claims["email"].(string)
 	if !ok {
 		return "", "", ErrTokenKeyMissing
 	}
-
 	if err := s.refreshTokenRepo.Delete(ctx, token); err != nil {
 		return "", "", err
 	}
-
 	now := time.Now()
 	accessStr, err := s.generateAccessToken(email, now.Add(s.accessTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
 	refreshStr, err := s.generateRefreshToken(email, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
 	_, err = s.refreshTokenRepo.Create(ctx, refreshStr, now.Add(s.refreshTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
-
 	return accessStr, refreshStr, nil
 }
 
@@ -189,7 +176,6 @@ func (s *AuthService) validateRefreshToken(ctx context.Context, tokenStr string)
 	if !exists {
 		return nil, ErrTokenNotFound
 	}
-
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		return s.jwtSecret, nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
