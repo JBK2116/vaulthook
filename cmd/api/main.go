@@ -17,6 +17,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 )
 
 // main initializes infrastructure, wires dependencies, and starts the HTTP server.
@@ -24,6 +25,11 @@ import (
 // Any failure during initialization panics to prevent a misconfigured server
 // from accepting traffic.
 func main() {
+	// initialize the environment variables
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+	config.Init()
 	ctx := context.Background()
 	// Initialize and verify the database connection pool.
 	ctxDB, cancelDB := context.WithTimeout(ctx, time.Second*10)

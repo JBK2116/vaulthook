@@ -17,8 +17,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
 // Config holds all environment variables required for the application to run.
@@ -60,15 +58,11 @@ type Config struct {
 }
 
 // Envs is the package-level Config instance, initialized once at startup.
-var Envs = initConfig()
+var Envs Config
 
 // initConfig loads environment variables from .env and populates a Config.
 // It panics if any required variable is missing or malformed.
 func initConfig() Config {
-	err := godotenv.Load()
-	if err != nil {
-		panic(fmt.Errorf("error loading environment variable: %w", err))
-	}
 	return Config{
 		DBType:                 getEnvString("DB_TYPE"),
 		DBUser:                 getEnvString("DB_USER"),
@@ -88,6 +82,10 @@ func initConfig() Config {
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
 	}
+}
+
+func Init() {
+	Envs = initConfig()
 }
 
 // getEnvString returns the string value of the named environment variable.
