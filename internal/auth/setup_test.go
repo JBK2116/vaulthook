@@ -61,8 +61,8 @@ func afterEach(t *testing.T) {
 	}
 }
 
-// CreateRefreshToken generates a refresh token, saves it to the database and returns it to the user
-func createRefreshToken(t *testing.T) (string, error) {
+// CreateRefreshToken generates a valid refresh token, saves it to the database and returns it to the user
+func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
@@ -75,5 +75,34 @@ func createRefreshToken(t *testing.T) (string, error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return tokenStruct.Token, nil
+	return tokenStruct.Token
+}
+
+// createExpiredRefreshToken generates an expired refresh token, saves it to the database and returns it to the user
+func createExpiredRefreshToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Minute * -1)
+	token, err := testService.generateRefreshToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	tokenStruct, err := testRepo.Create(ctx, token, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tokenStruct.Token
+}
+
+// createExpiredAccessToken generates an expired access token and returns it to the user
+func createExpiredAccessToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Minute * -1)
+	token, err := testService.generateAccessToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
 }

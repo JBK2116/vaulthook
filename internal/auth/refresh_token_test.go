@@ -9,7 +9,7 @@ func TestDelete(t *testing.T) {
 	ctx := context.Background()
 	beforeEach(t)
 	// create and delete the same token
-	token, _ := createRefreshToken(t)
+	token := createRefreshToken(t)
 	err := testRepo.Delete(ctx, token)
 	if err != nil {
 		t.Fatal(err)
@@ -21,7 +21,7 @@ func TestExists(t *testing.T) {
 	ctx := context.Background()
 	beforeEach(t)
 	// create and insert the token
-	token, _ := createRefreshToken(t)
+	token := createRefreshToken(t)
 	// token exists in the database
 	exists, err := testRepo.Exists(ctx, token)
 	if err != nil {
