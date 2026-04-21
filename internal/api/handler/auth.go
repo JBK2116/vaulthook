@@ -2,13 +2,13 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal"
 	"github.com/JBK2116/vaulthook/internal/auth"
+	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
@@ -18,13 +18,6 @@ import (
 type loginRequestBody struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-// tokenResponse holds the access and refresh tokens returned after a
-// successful login or token refresh.
-type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
 }
 
 // authHandler handles authentication-related HTTP requests.
@@ -65,36 +58,41 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response := tokenResponse{
-		AccessToken:  accessT,
-		RefreshToken: refreshT,
+	secure := !config.Envs.IsDevelopment
+	accessC := http.Cookie{
+		Name:     "access_token",
+		Value:    accessT,
+		MaxAge:   config.Envs.AccessTokenTTL * 60, // minutes converted to seconds
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 	}
-	rBody, err := json.Marshal(&response)
-	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling token response struct in login endpoint")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	refreshC := http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshT,
+		MaxAge:   config.Envs.RefreshTokenTTL * 60 * 60, // hours converted to seconds
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/api/refresh", // only sent to the refresh token endpoint
 	}
-	w.Header().Set("Content-Type", "application/json")
+	http.SetCookie(w, &accessC)
+	http.SetCookie(w, &refreshC)
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error writing body to login endpoint")
-		return
-	}
 }
 
 // refreshToken handles POST /refresh. It extracts a bearer token from
 // the Authorization header, passes it to the AuthService for validation,
 // and writes a JSON response with a new access token and refresh token.
 func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
-	token, err := internal.ExtractBearerToken(r)
+	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	accessT, refreshT, err := h.service.RefreshToken(ctx, token)
+	accessT, refreshT, err := h.service.RefreshToken(ctx, token.Value)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, auth.ErrInvalidToken) || errors.Is(err, auth.ErrTokenNotFound) || errors.Is(err, auth.ErrTokenKeyMissing) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -104,22 +102,27 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response := tokenResponse{
-		AccessToken:  accessT,
-		RefreshToken: refreshT,
+	secure := !config.Envs.IsDevelopment
+	accessC := http.Cookie{
+		Name:     "access_token",
+		Value:    accessT,
+		MaxAge:   config.Envs.AccessTokenTTL * 60, // minutes converted to seconds
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 	}
-	rBody, err := json.Marshal(&response)
-	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling token response struct in login endpoint")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	refreshC := http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshT,
+		MaxAge:   config.Envs.RefreshTokenTTL * 60 * 60, // hours converted to seconds
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/api/refresh", // only sent to the refresh token endpoint
 	}
-	w.Header().Set("Content-Type", "application/json")
+	http.SetCookie(w, &accessC)
+	http.SetCookie(w, &refreshC)
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error writing body to login endpoint")
-		return
-	}
 }
 
 // RegisterRoutes mounts the authentication endpoints onto the provided router.
