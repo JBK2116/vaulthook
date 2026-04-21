@@ -73,6 +73,30 @@ func getValidLoginCredentials() []byte {
 	return body
 }
 
+// createAccessToken generates a valid access token and returns it to the user
+func createAccessToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Duration(config.Envs.AccessTokenTTL) * time.Minute)
+	token, err := testService.GenerateAccessToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
+}
+
+// createAccessToken generates a expired access token and returns it to the user
+func createExpiredAccessToken(t *testing.T) string {
+	email := config.Envs.UserEmail
+	now := time.Now()
+	exp := now.Add(time.Minute * -1)
+	token, err := testService.GenerateAccessToken(email, exp, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
+}
+
 // CreateRefreshToken generates a valid refresh token, saves it to the database and returns it to the user
 func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail

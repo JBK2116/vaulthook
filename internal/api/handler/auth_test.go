@@ -74,3 +74,39 @@ func TestRefreshTokenHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestMeHandler(t *testing.T) {
+	tests := map[string]struct {
+		token              func() string
+		shouldIncludeToken bool
+		statusCode         int
+	}{
+		"missing token in header": {token: func() string { return "" }, shouldIncludeToken: false, statusCode: http.StatusUnauthorized},
+		"expired token":           {token: func() string { return createExpiredAccessToken(t) }, shouldIncludeToken: true, statusCode: http.StatusUnauthorized},
+		"valid token":             {token: func() string { return createAccessToken(t) }, shouldIncludeToken: true, statusCode: http.StatusOK},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			beforeEach(t)
+			t.Cleanup(func() { afterEach(t) })
+			r := httptest.NewRequest("POST", "http://localhost:8080/api/me", nil)
+			if test.shouldIncludeToken {
+				cookie := http.Cookie{
+					Name:     "access_token",
+					Value:    test.token(),
+					MaxAge:   0, // cookie should always be included in test, in prod, expired cookies are handled with a simple if check
+					HttpOnly: true,
+					Secure:   !config.Envs.IsDevelopment,
+					SameSite: http.SameSiteLaxMode,
+				}
+				r.AddCookie(&cookie)
+			}
+			w := httptest.NewRecorder()
+			testHandler.me(w, r)
+			res := w.Result()
+			if res.StatusCode != test.statusCode {
+				t.Fatalf("expected status code: %d, received: %d", test.statusCode, res.StatusCode)
+			}
+		})
+	}
+}

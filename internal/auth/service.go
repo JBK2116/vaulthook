@@ -51,7 +51,7 @@ func (s *AuthService) Login(ctx context.Context, email string, password string) 
 		return "", "", ErrInvalidCredentials
 	}
 	now := time.Now()
-	accessStr, err := s.generateAccessToken(email, now.Add(s.accessTokenTTL), now)
+	accessStr, err := s.GenerateAccessToken(email, now.Add(s.accessTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
@@ -92,7 +92,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 		return "", "", err
 	}
 	now := time.Now()
-	accessStr, err := s.generateAccessToken(email, now.Add(s.accessTokenTTL), now)
+	accessStr, err := s.GenerateAccessToken(email, now.Add(s.accessTokenTTL), now)
 	if err != nil {
 		return "", "", err
 	}
@@ -107,9 +107,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 	return accessStr, refreshStr, nil
 }
 
-// generateAccessToken creates a signed HS256 JWT access token for the given
+// GenerateAccessToken creates a signed HS256 JWT access token for the given
 // email, expiry, and issued-at time.
-func (s *AuthService) generateAccessToken(email string, exp time.Time, iat time.Time) (string, error) {
+func (s *AuthService) GenerateAccessToken(email string, exp time.Time, iat time.Time) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":   fmt.Sprintf("access token | %s", email),
 		"email": email,

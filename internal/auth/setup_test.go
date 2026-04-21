@@ -100,7 +100,7 @@ func createExpiredAccessToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Minute * -1)
-	token, err := testService.generateAccessToken(email, exp, now)
+	token, err := testService.GenerateAccessToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}

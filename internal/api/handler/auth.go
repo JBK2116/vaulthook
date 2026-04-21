@@ -37,7 +37,7 @@ func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *authHand
 	}
 }
 
-// login handles POST /login. It decodes the request body, delegates
+// login handles POST /api/login. It decodes the request body, delegates
 // credential validation to the AuthService, and writes a JSON response
 // containing an access token and a refresh token on success.
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +81,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// refreshToken handles POST /refresh. It extracts a bearer token from
+// refreshToken handles POST /api/refresh. It extracts a bearer token from
 // the Authorization header, passes it to the AuthService for validation,
 // and writes a JSON response with a new access token and refresh token.
 func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
@@ -125,8 +125,31 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// me handles GET /api/me. It extracts the access token from the request cookie,
+// validates it, and returns 200 OK if the token is valid or 401 Unauthorized if not.
+func (h *authHandler) me(w http.ResponseWriter, r *http.Request) {
+	token, err := r.Cookie("access_token")
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	_, err = h.service.ValidateAccessToken(token.Value)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // RegisterRoutes mounts the authentication endpoints onto the provided router.
+//
+// Endpoints:
+//
+//	POST /api/login
+//	POST /api/refresh
+//	GET /api/me
 func (h *authHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/refresh", h.refreshToken)
+	r.Get("/me", h.me)
 }
