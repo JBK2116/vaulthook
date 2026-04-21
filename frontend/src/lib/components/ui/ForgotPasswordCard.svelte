@@ -24,8 +24,9 @@
                 </Card.Header>
                 <Card.Content class="">
                     <p>
-                        Ensure that ADMIN_PASSWORD and ADMIN_EMAIL is set in the .env file. If it is
-                        already set, update it to change your credentials for the application.
+                        Ensure that USER_PASSWORD and USER_EMAIL is set in the .env file. If it is
+                        already set, update it to change your credentials for the application. Then
+                        restart the server.
                     </p>
                     <button onclick={onClose} class="mt-4 w-full rounded bg-black py-2 text-white">
                         Close
