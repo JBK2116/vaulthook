@@ -3,7 +3,6 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/JBK2116/vaulthook/internal"
 	"github.com/JBK2116/vaulthook/internal/auth"
 )
 
@@ -15,12 +14,12 @@ import (
 func Jwt(s *auth.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, err := internal.ExtractBearerToken(r)
+			token, err := r.Cookie("access_token")
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			_, err = s.ValidateAccessToken(token)
+			_, err = s.ValidateAccessToken(token.Value)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
