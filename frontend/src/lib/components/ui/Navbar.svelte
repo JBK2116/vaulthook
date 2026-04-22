@@ -5,7 +5,7 @@
     import Button from './button/button.svelte';
 
     const pathname: String = $derived(String(page.url.pathname));
-    const isDashboard: boolean = $derived(pathname === '/');
+    const isLogin: boolean = $derived(pathname === '/login');
 
     async function logout(): Promise<void> {
         try {
@@ -18,6 +18,10 @@
             goto('/login');
         }
     }
+
+    async function gotoProviders(): Promise<void> {
+        goto('/providers');
+    }
 </script>
 
 <nav
@@ -27,15 +31,14 @@
         <span class="text-primary">🟈</span>
         VaultHook
     </a>
-    {#if isDashboard}
-        <Button
-            variant="link"
-            type="button"
-            class="text-sm"
-            size="lg"
-            aria-label="Submit"
-            disabled={false}
-            onclick={logout}>Logout</Button
-        >
+    {#if !isLogin}
+        <div class="flex items-center gap-2">
+            <Button variant="link" type="button" class="text-sm" size="lg" onclick={gotoProviders}>
+                Providers
+            </Button>
+            <Button variant="link" type="button" class="text-sm" size="lg" onclick={logout}>
+                Logout
+            </Button>
+        </div>
     {/if}
 </nav>
