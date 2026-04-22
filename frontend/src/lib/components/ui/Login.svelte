@@ -1,11 +1,14 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Card from '$lib/components/ui/card/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
     import { Label } from '$lib/components/ui/label/index.js';
 
     // STATE
-    let error: String = $state('');
+    let error: string = $state('');
+    let email: string = $state('');
+    let password: string = $state('');
     let isLoginAttemptLoading: boolean = $state(false);
 
     let { onForgotPassword }: { onForgotPassword: () => void } = $props();
@@ -14,13 +17,26 @@
         isLoginAttemptLoading = true;
         e.preventDefault();
         try {
-            // TODO:  Replace this and implement it to work with the go backend
-            await new Promise((res) => setTimeout(res, 1000));
-            const success = false;
-
-            if (!success) {
+            if (email.length <= 0) {
+                throw new Error('Email required');
+            }
+            if (password.length <= 0) {
+                throw new Error('Password required');
+            }
+            const body = { email: email, password: password };
+            const url = '/api/login';
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!response.ok) {
+                if (response.status === 500) {
+                    throw new Error('An error occurred ...');
+                }
                 throw new Error('Invalid email or password');
             }
+            goto('/');
         } catch (err: any) {
             error = err.message;
         } finally {
@@ -43,6 +59,7 @@
                     <div class="grid gap-2">
                         <Label for="email" class="">Email</Label>
                         <Input
+                            bind:value={email}
                             id="email"
                             type="email"
                             placeholder="john@example.com"
@@ -61,7 +78,13 @@
                                 Forgot your password?
                             </a>
                         </div>
-                        <Input id="password" type="password" required class="" />
+                        <Input
+                            bind:value={password}
+                            id="password"
+                            type="password"
+                            required
+                            class=""
+                        />
                     </div>
                 </div>
             </form>
