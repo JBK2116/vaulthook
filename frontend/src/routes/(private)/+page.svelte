@@ -8,9 +8,9 @@
     import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
 
-    import * as functions from '../../utils/functions.ts';
-    import { MOCK_DATA } from '../../utils/mock-data.ts';
-    import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '../../utils/types.ts';
+    import * as functions from '$lib/utils/functions';
+    import { MOCK_DATA } from '$lib/utils/mock-data';
+    import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '$lib/utils/types';
 
     // Data Manipulation
     let events: WebHookEvent[] = $state(MOCK_DATA);

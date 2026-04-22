@@ -1,8 +1,7 @@
 <script lang="ts">
     import * as Table from '$lib/components/ui/table/index.js';
-
-    import * as functions from '../../../utils/functions.ts';
-    import type { WebHookEvent } from '../../../utils/types.ts';
+    import * as functions from '$lib/utils/functions';
+    import type { WebHookEvent } from '$lib/utils/types';
 
     interface Props {
         currentSelectedEvent: WebHookEvent | null;

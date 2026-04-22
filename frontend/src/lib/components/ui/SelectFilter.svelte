@@ -1,8 +1,7 @@
 <script lang="ts">
     import * as Select from '$lib/components/ui/select/index.js';
-
-    import * as functions from '../../../utils/functions.ts';
-    import { SelectTypes } from '../../../utils/types.ts';
+    import * as functions from '$lib/utils/functions';
+    import { SelectTypes } from '$lib/utils/types';
 
     interface Props {
         currentSelectedOption: string;

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Input } from './input/index.ts';
+    import { Input } from './input/index';
 
     interface Props {
         currentSearchString: string;

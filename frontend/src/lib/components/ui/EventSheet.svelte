@@ -1,7 +1,7 @@
 <script lang="ts">
     import * as Sheet from '$lib/components/ui/sheet/index.js';
+    import type { WebHookEvent } from '$lib/utils/types';
 
-    import type { WebHookEvent } from '../../../utils/types.ts';
     import Sidebar from './Sidebar.svelte';
 
     interface Props {
