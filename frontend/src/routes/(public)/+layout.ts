@@ -1,15 +1,15 @@
-// import { goto } from '$app/navigation';
-// import { error } from '@sveltejs/kit';
-//
-// import type { LayoutLoad } from '../$types.js';
-//
-// export const load: LayoutLoad = async ({ fetch }) => {
-//     try {
-//         const response = await fetch('/api/me', { method: 'GET', credentials: 'include' });
-//         if (!response.ok) {
-//             goto('/');
-//         }
-//     } catch (err: any) {
-//         error(500);
-//     }
-// };
+import { redirect } from '@sveltejs/kit';
+
+import type { LayoutLoad } from '../$types.js';
+
+export const load: LayoutLoad = async ({ fetch }) => {
+    const res = await fetch('/api/me', { method: 'GET', credentials: 'include' });
+    if (res.ok) {
+        redirect(302, '/');
+    }
+
+    const refresh = await fetch('/api/refresh', { method: 'POST', credentials: 'include' });
+    if (refresh.ok) {
+        redirect(302, '/');
+    }
+};

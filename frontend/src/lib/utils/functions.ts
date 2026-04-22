@@ -4,7 +4,7 @@ import {
     ProviderTypes,
     SelectTypes,
     type WebHookEvent,
-} from './types.ts';
+} from './types';
 
 /**
  * Returns an array containing all events that match the provided option filter and search string
