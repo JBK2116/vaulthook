@@ -190,3 +190,12 @@ func (s *AuthService) validateRefreshToken(ctx context.Context, tokenStr string)
 	}
 	return nil, ErrInvalidToken
 }
+
+// DeleteRefreshToken removes the given refresh token from the repository.
+// Returns an error if the deletion fails.
+func (s *AuthService) DeleteRefreshToken(ctx context.Context, tokenStr string) error {
+	if err := s.refreshTokenRepo.Delete(ctx, tokenStr); err != nil {
+		return err
+	}
+	return nil
+}

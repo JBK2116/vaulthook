@@ -74,7 +74,41 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
-		Path:     "/api/refresh", // only sent to the refresh token endpoint
+	}
+	http.SetCookie(w, &accessC)
+	http.SetCookie(w, &refreshC)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
+	refreshT, err := r.Cookie("refresh_token")
+	if err != nil {
+		http.Error(w, "missing refresh token cookie", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
+	defer cancel()
+	if err := h.service.DeleteRefreshToken(ctx, refreshT.Value); err != nil {
+		h.logger.Error().Stack().Err(err).Msg("error occurred deleting refresh token")
+		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
+		return
+	}
+	secure := !config.Envs.IsDevelopment
+	accessC := http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		MaxAge:   -1, // expires the cookie immediately
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	}
+	refreshC := http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1, // expires the cookie immediately
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &accessC)
 	http.SetCookie(w, &refreshC)
@@ -118,7 +152,6 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
-		Path:     "/api/refresh", // only sent to the refresh token endpoint
 	}
 	http.SetCookie(w, &accessC)
 	http.SetCookie(w, &refreshC)
@@ -146,10 +179,12 @@ func (h *authHandler) me(w http.ResponseWriter, r *http.Request) {
 // Endpoints:
 //
 //	POST /api/login
+//	POST /api/logout
 //	POST /api/refresh
 //	GET /api/me
 func (h *authHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/login", h.login)
+	r.Post("/logout", h.logout)
 	r.Post("/refresh", h.refreshToken)
 	r.Get("/me", h.me)
 }

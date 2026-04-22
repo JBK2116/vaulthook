@@ -7,15 +7,16 @@
     const pathname: String = $derived(String(page.url.pathname));
     const isDashboard: boolean = $derived(pathname === '/');
 
-    function handleLogout() {
-        // TODO: Call this function when the backend is ready.
-        localStorage.removeItem('token');
-        goto('/login');
-    }
-
-    function sayHi() {
-        // TODO: Delete this function when backend is ready
-        console.log('hi');
+    async function logout(): Promise<void> {
+        try {
+            const res = await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+            if (!res.ok) {
+                throw new Error('Error occurred logging out...');
+            }
+            goto('/login');
+        } catch (err: any) {
+            goto('/login');
+        }
     }
 </script>
 
@@ -34,7 +35,7 @@
             size="lg"
             aria-label="Submit"
             disabled={false}
-            onclick={sayHi}>Logout</Button
+            onclick={logout}>Logout</Button
         >
     {/if}
 </nav>
