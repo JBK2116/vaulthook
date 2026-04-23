@@ -12,6 +12,14 @@ export interface WebHookEvent {
     delivery_status: DeliveryStatusTypes; // delivery status of the event
 }
 
+export interface Provider {
+    id: string; // id of the provider
+    name: string; // name of the provider
+    signing_secret: string; // signing_secret of the provider to validate webhooks
+    destination_url: string; // destination address to forward webhooks
+    is_configured: boolean; // boolean indicating if the user has configured this provider fully
+}
+
 export enum DeliveryStatusTypes {
     Delivered = 'delivered',
     Queued = 'queued',

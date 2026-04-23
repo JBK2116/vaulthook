@@ -7,13 +7,12 @@
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
     import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
-
     import * as functions from '$lib/utils/functions';
     import { MOCK_DATA } from '$lib/utils/mock-data';
     import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '$lib/utils/types';
 
     // Data Manipulation
-    let events: WebHookEvent[] = $state(MOCK_DATA);
+    let events: WebHookEvent[] = $state(MOCK_DATA); // TODO: Replace this with data from the backend
     let totalEvents = $derived(functions.getTotalEvents(events));
     let totalDeliveredEvents = $derived(functions.getTotalDeliveredEvents(events));
     let totalRetryingEvents = $derived(functions.getTotalRetryingEvents(events));
@@ -21,7 +20,7 @@
     let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
 
     // Connection State
-    let isConnectedToBackend: boolean = $state(true);
+    let isConnectedToBackend: boolean = $state(true); // TODO: replace this with data from the backend
 
     // Select & Search Handling
     let currentSelectedOption: SelectTypes = $state(SelectTypes.All);
@@ -40,11 +39,6 @@
             isSheetOpen = true;
         }
     });
-
-    // TODO: Delete these inspect runes once each associated variable has had it's effect rune applied
-    $inspect(currentSelectedEvent);
-    $inspect(currentSelectedOption);
-    $inspect(currentSearchString);
 </script>
 
 <Navbar></Navbar>

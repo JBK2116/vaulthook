@@ -3,7 +3,7 @@
  * This file reperesents mock data for display testing functionality.
  * It is to be replaced and deleted once the backend is implemented
  */
-import { DeliveryStatusTypes, type WebHookEvent } from './types.ts';
+import { DeliveryStatusTypes, type Provider, type WebHookEvent } from './types';
 
 export const MOCK_DATA: WebHookEvent[] = (
     [
@@ -171,3 +171,27 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
     ] as WebHookEvent[]
 ).sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
+
+export const MOCK_PROVIDERS: Provider[] = [
+    {
+        id: 'pvdr_001',
+        name: 'stripe',
+        signing_secret: 'whsec_abc123xyz456',
+        destination_url: 'https://api.myapp.com/webhooks/stripe',
+        is_configured: false,
+    },
+    {
+        id: 'pvdr_002',
+        name: 'github',
+        signing_secret: 'ghsec_def789uvw012',
+        destination_url: 'https://api.myapp.com/webhooks/github',
+        is_configured: false,
+    },
+    {
+        id: 'pvdr_003',
+        name: 'amazon sns',
+        signing_secret: 'snssec_ghi345rst678',
+        destination_url: 'https://api.myapp.com/webhooks/sns',
+        is_configured: false,
+    },
+];
