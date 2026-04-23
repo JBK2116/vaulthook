@@ -1,8 +1,8 @@
 <script lang="ts">
     import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
-
     import * as functions from '$lib/utils/functions';
     import type { WebHookEvent } from '$lib/utils/types';
+
     import Button from './button/button.svelte';
 
     interface Props {
