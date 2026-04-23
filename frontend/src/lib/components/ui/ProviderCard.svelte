@@ -41,7 +41,7 @@
                 <Card.Title class="text-base">{provider.name}</Card.Title>
                 {#if !provider.is_configured}
                     <span
-                        class="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded-md px-2 py-0.5 text-xs font-medium"
+                        class="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 ml-5 rounded-md px-2 py-0.5 text-xs font-medium"
                     >
                         Not configured
                     </span>

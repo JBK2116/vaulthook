@@ -189,7 +189,7 @@ export const MOCK_PROVIDERS: Provider[] = [
     },
     {
         id: 'pvdr_003',
-        name: 'Amazon Sns',
+        name: 'SNS',
         signing_secret: 'snssec_ghi345rst678',
         destination_url: 'https://api.myapp.com/webhooks/sns',
         is_configured: false,
