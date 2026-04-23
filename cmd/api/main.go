@@ -15,6 +15,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/JBK2116/vaulthook/internal/middleware"
+	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -50,6 +51,10 @@ func main() {
 	refreshTokenRepo := auth.NewRefreshTokenRepo(db.DB)
 	authService := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, refreshTokenRepo, logger)
 	authHandler := handler.NewAuthHandler(logger, authService)
+	// Wire provider dependencies.
+	providerRepo := providers.NewProviderRepo(db.DB)
+	providerService := providers.NewProviderService(providerRepo)
+	providerHandler := handler.NewProviderHandler(logger, providerService)
 	// Configure the router with global middleware.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
@@ -63,6 +68,7 @@ func main() {
 		authHandler.RegisterRoutes(r)
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Jwt(authService))
+			providerHandler.RegisterRoutes(r)
 		})
 	})
 	// Start the HTTP server.

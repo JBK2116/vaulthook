@@ -181,7 +181,7 @@ func (h *authHandler) me(w http.ResponseWriter, r *http.Request) {
 //	POST /api/login
 //	POST /api/logout
 //	POST /api/refresh
-//	GET /api/me
+//	GET  /api/me
 func (h *authHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
