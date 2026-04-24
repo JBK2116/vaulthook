@@ -50,7 +50,7 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]Provider, error) {
 func (s *ProviderService) Configure(ctx context.Context, ID string, signingSecret string, destinationURL string) (Provider, error) {
 	uuidS, err := uuid.Parse(ID)
 	if err != nil {
-		return Provider{}, nil
+		return Provider{}, err
 	}
 	if len(signingSecret) <= 0 {
 		return Provider{}, ErrMissingSigningSecret
