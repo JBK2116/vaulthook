@@ -5,15 +5,19 @@
     import { Label } from '$lib/components/ui/label';
     import type { Provider } from '$lib/utils/types';
     import { Check, Eye, EyeOff, Pencil, X } from '@lucide/svelte';
+    import { toast } from 'svelte-sonner';
 
     interface Props {
-        provider: Provider;
+        data: Provider;
     }
-    let { provider }: Props = $props();
+    let { data }: Props = $props();
+    // svelte-ignore state_referenced_locally
+    let provider: Provider = $state(data);
     // card state management
     let editing = $state(false);
     let showSecret = $state(false);
     let draft = $state({ signing_secret: '', destination_url: '' });
+    let savingData = $state(false);
     // editing and view management
     function startEdit() {
         draft = {
@@ -22,15 +26,52 @@
         };
         editing = true;
     }
-
     function cancel() {
         editing = false;
     }
-
-    function save() {
-        // TODO: Call the backend from here
-        provider = { ...provider, ...draft };
+    async function save() {
+        if (savingData) {
+            return;
+        }
+        savingData = true;
+        const body = draft;
+        // minor body validation
+        if (body.destination_url.length <= 0) {
+            toast.error('Destination URL is required', { position: 'top-center' });
+            savingData = false;
+            return;
+        }
+        if (body.signing_secret.length <= 0) {
+            toast.error('Signing Secret is required', { position: 'top-center' });
+            savingData = false;
+            return;
+        }
+        if (
+            body.signing_secret === provider.signing_secret &&
+            body.destination_url === provider.destination_url
+        ) {
+            toast.warning('No changes detected', { position: 'top-center' });
+            savingData = false;
+            return;
+        }
+        // update the provider in the database
+        const url = `/api/providers/${provider.id}`;
+        const res = await fetch(url, {
+            method: 'PATCH',
+            body: JSON.stringify(body),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            toast.error('Unable to update provider', { position: 'top-center' });
+            savingData = false;
+            return;
+        }
+        const updatedProvider: Provider = await res.json();
+        provider = updatedProvider;
         editing = false;
+        savingData = false;
+        toast.success('Provider updated!', { position: 'top-center' });
     }
 </script>
 
@@ -59,9 +100,18 @@
         <div class="space-y-1">
             <Label class="text-muted-foreground text-xs">Destination URL</Label>
             {#if editing}
-                <Input bind:value={draft.destination_url} placeholder="https://..." />
+                <Input
+                    bind:value={draft.destination_url}
+                    placeholder={`https://your-domain.com/webhooks/${provider.name.toLowerCase()}`}
+                />
             {:else}
-                <p class="font-mono text-sm truncate">{provider.destination_url}</p>
+                <p class="font-mono text-sm truncate">
+                    {#if !provider.destination_url}
+                        {`https://your-domain.com/webhooks/${provider.name.toLowerCase()}`}
+                    {:else}
+                        {provider.destination_url}
+                    {/if}
+                </p>
             {/if}
         </div>
         <div class="space-y-1">
@@ -93,7 +143,7 @@
             <Button variant="ghost" size="sm" onclick={cancel}>
                 <X class="mr-1 h-4 w-4" /> Cancel
             </Button>
-            <Button size="sm" onclick={save}>
+            <Button size="sm" onclick={save} disabled={savingData}>
                 <Check class="mr-1 h-4 w-4" /> Save
             </Button>
         </Card.Footer>

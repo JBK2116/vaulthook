@@ -18,6 +18,7 @@ export interface Provider {
     signing_secret: string; // signing_secret of the provider to validate webhooks
     destination_url: string; // destination address to forward webhooks
     is_configured: boolean; // boolean indicating if the user has configured this provider fully
+    created_at: string; // time indicating when the provider was created at (ISO861 Format)
 }
 
 export enum DeliveryStatusTypes {
