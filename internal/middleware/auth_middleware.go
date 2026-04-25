@@ -16,7 +16,7 @@ func Jwt(s *auth.AuthService) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := r.Cookie("access_token")
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 			_, err = s.ValidateAccessToken(token.Value)

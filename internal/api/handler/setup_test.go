@@ -11,6 +11,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/logger"
+	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -18,9 +19,16 @@ import (
 
 var testDB *pgxpool.Pool
 var testLogger *zerolog.Logger
-var testRepo *auth.RefreshTokenRepo
-var testService *auth.AuthService
-var testHandler *authHandler
+
+// AUTH
+var testAuthRepo *auth.RefreshTokenRepo
+var testAuthService *auth.AuthService
+var testAuthHandler *authHandler
+
+// PROVIDERS
+var testProviderRepo *providers.ProviderRepo
+var testProviderService *providers.ProviderService
+var testProviderHandler *providerHandler
 
 func TestMain(m *testing.M) {
 	if err := godotenv.Load("../../../.env.test"); err != nil {
@@ -38,19 +46,27 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	testLogger = l
-	r := auth.NewRefreshTokenRepo(testDB)
-	testRepo = r
-	s := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, r, l)
-	testService = s
-	h := NewAuthHandler(l, s)
-	testHandler = h
+	// configure the auth variables
+	authR := auth.NewRefreshTokenRepo(testDB)
+	testAuthRepo = authR
+	authS := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, authR, l)
+	testAuthService = authS
+	authH := NewAuthHandler(l, authS)
+	testAuthHandler = authH
+	// configure the provider variables
+	providerR := providers.NewProviderRepo(db.DB)
+	testProviderRepo = providerR
+	providerS := providers.NewProviderService(providerR)
+	testProviderService = providerS
+	providerH := NewProviderHandler(l, providerS)
+	testProviderHandler = providerH
 	code := m.Run()
 	os.Exit(code)
 }
 
 // beforeEach acts as a setup function responsible for running code before each test begins
 func beforeEach(t *testing.T) {
-	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events, providers RESTART IDENTITY CASCADE")
+	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events RESTART IDENTITY")
 	if err != nil {
 		t.Fatalf("failed to reset tables: %v", err)
 	}
@@ -60,7 +76,7 @@ func beforeEach(t *testing.T) {
 // afterEach acts as a teardown function responsible for running code after each test ends
 func afterEach(t *testing.T) {
 	t.Helper()
-	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events, providers RESTART IDENTITY CASCADE")
+	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events RESTART IDENTITY")
 	if err != nil {
 		t.Fatalf("failed to cleanup tables: %v", err)
 	}
@@ -78,7 +94,7 @@ func createAccessToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Duration(config.Envs.AccessTokenTTL) * time.Minute)
-	token, err := testService.GenerateAccessToken(email, exp, now)
+	token, err := testAuthService.GenerateAccessToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +106,7 @@ func createExpiredAccessToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Minute * -1)
-	token, err := testService.GenerateAccessToken(email, exp, now)
+	token, err := testAuthService.GenerateAccessToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,12 +118,12 @@ func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
-	token, err := testService.GenerateRefreshToken(email, exp, now)
+	token, err := testAuthService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	tokenStruct, err := testRepo.Create(ctx, token, exp, now)
+	tokenStruct, err := testAuthRepo.Create(ctx, token, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,14 +135,25 @@ func createExpiredRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
 	exp := now.Add(time.Minute * -1)
-	token, err := testService.GenerateRefreshToken(email, exp, now)
+	token, err := testAuthService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	tokenStruct, err := testRepo.Create(ctx, token, exp, now)
+	tokenStruct, err := testAuthRepo.Create(ctx, token, exp, now)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return tokenStruct.Token
+}
+
+// getProviderID retrieves the uuid of the passed in provider name
+func getProviderID(ctx context.Context, t *testing.T, name string) string {
+	query := `SELECT id FROM providers WHERE name = $1`
+	var id string
+	err := testDB.QueryRow(ctx, query, name).Scan(&id)
+	if err != nil {
+		t.Errorf("error getting provider ID of %s: %v", name, err)
+	}
+	return id
 }

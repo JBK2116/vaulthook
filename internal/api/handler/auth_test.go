@@ -27,7 +27,7 @@ func TestLoginHandler(t *testing.T) {
 			t.Cleanup(func() { afterEach(t) })
 			r := httptest.NewRequest("POST", "http://localhost:8080/api/login", bytes.NewBuffer(test.input))
 			w := httptest.NewRecorder()
-			testHandler.login(w, r)
+			testAuthHandler.login(w, r)
 			res := w.Result()
 			if res.StatusCode != test.statusCode {
 				t.Fatalf("expected status code: %d, received: %d", test.statusCode, res.StatusCode)
@@ -66,7 +66,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 				r.AddCookie(&cookie)
 			}
 			w := httptest.NewRecorder()
-			testHandler.refreshToken(w, r)
+			testAuthHandler.refreshToken(w, r)
 			res := w.Result()
 			if res.StatusCode != test.statusCode {
 				t.Fatalf("expected status code: %d, received: %d", test.statusCode, res.StatusCode)
@@ -102,7 +102,7 @@ func TestMeHandler(t *testing.T) {
 				r.AddCookie(&cookie)
 			}
 			w := httptest.NewRecorder()
-			testHandler.me(w, r)
+			testAuthHandler.me(w, r)
 			res := w.Result()
 			if res.StatusCode != test.statusCode {
 				t.Fatalf("expected status code: %d, received: %d", test.statusCode, res.StatusCode)

@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 
 // beforeEach acts as a setup function responsible for running code before each test begins
 func beforeEach(t *testing.T) {
-	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events, providers RESTART IDENTITY CASCADE")
+	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events RESTART IDENTITY")
 	if err != nil {
 		t.Fatalf("failed to reset tables: %v", err)
 	}
@@ -55,9 +55,9 @@ func beforeEach(t *testing.T) {
 // afterEach acts as a teardown function responsible for running code after each test ends
 func afterEach(t *testing.T) {
 	t.Helper()
-	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events, providers RESTART IDENTITY CASCADE")
+	_, err := testDB.Exec(context.Background(), "TRUNCATE refresh_tokens, webhook_events RESTART IDENTITY")
 	if err != nil {
-		t.Fatalf("failed to cleanup tables: %v", err)
+		t.Fatalf("failed to reset tables: %v", err)
 	}
 }
 
