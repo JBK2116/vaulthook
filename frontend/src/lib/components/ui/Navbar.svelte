@@ -33,10 +33,22 @@
     </a>
     {#if !isLogin}
         <div class="flex items-center gap-2">
-            <Button variant="link" type="button" class="text-sm cursor-pointer" size="lg" onclick={gotoProviders}>
+            <Button
+                variant="link"
+                type="button"
+                class="text-sm cursor-pointer"
+                size="lg"
+                onclick={gotoProviders}
+            >
                 Providers
             </Button>
-            <Button variant="link" type="button" class="text-sm cursor-pointer" size="lg" onclick={logout}>
+            <Button
+                variant="link"
+                type="button"
+                class="text-sm cursor-pointer"
+                size="lg"
+                onclick={logout}
+            >
                 Logout
             </Button>
         </div>
