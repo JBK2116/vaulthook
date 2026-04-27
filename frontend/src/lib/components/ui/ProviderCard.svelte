@@ -70,8 +70,8 @@
         const updatedProvider: Provider = await res.json();
         provider = updatedProvider;
         editing = false;
-        savingData = false;
-        toast.success('Provider updated!', { position: 'top-center' });
+        savingData = false
+       toast.success('Provider updated', { position: 'top-center' });
     }
 </script>
 
