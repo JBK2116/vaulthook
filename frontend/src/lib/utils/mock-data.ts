@@ -9,12 +9,16 @@ export const MOCK_DATA: WebHookEvent[] = (
     [
         {
             id: 'evt_01j9k2m3n4p5q6r7s8t9u0v1',
+            provider_id: 'pvdr_001',
             provider: 'stripe',
+            event_id: 'evt_1OwXyZ2eZvKYlo2C1nBkQ9Ab',
             event_type: 'payment_intent.succeeded',
             received_at: '2026-03-25T14:32:01Z',
+            created_at: '2026-03-25T14:32:01Z',
             delivery_status: DeliveryStatusTypes.Delivered,
             response_code: 200,
             retry_count: 0,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/stripe',
             last_error: null,
             headers: {
@@ -33,12 +37,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_02j9k2m3n4p5q6r7s8t9u0v2',
+            provider_id: 'pvdr_002',
             provider: 'github',
+            event_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             event_type: 'push',
             received_at: '2026-03-25T14:28:44Z',
+            created_at: '2026-03-25T14:28:44Z',
             delivery_status: DeliveryStatusTypes.Failed,
             response_code: 502,
             retry_count: 3,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/github',
             last_error: '502 Bad Gateway — upstream connection refused',
             headers: {
@@ -55,12 +63,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_03j9k2m3n4p5q6r7s8t9u0v3',
+            provider_id: 'pvdr_001',
             provider: 'stripe',
+            event_id: 'evt_1Ow9Zx2eZvKYlo2CmNpQrStU',
             event_type: 'customer.subscription.updated',
             received_at: '2026-03-25T14:21:09Z',
+            created_at: '2026-03-25T14:21:09Z',
             delivery_status: DeliveryStatusTypes.Retrying,
             response_code: 503,
             retry_count: 1,
+            next_retry_at: '2026-03-25T14:36:09Z',
             forwarded_to: 'https://api.myapp.com/webhooks/stripe',
             last_error: '503 Service Unavailable — destination timeout',
             headers: {
@@ -76,12 +88,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_04j9k2m3n4p5q6r7s8t9u0v4',
+            provider_id: 'pvdr_003',
             provider: 'sns',
+            event_id: '22b80b92-fdea-4c2c-8f9d-bdfb0c7bf324',
             event_type: 'Notification',
             received_at: '2026-03-25T14:18:33Z',
+            created_at: '2026-03-25T14:18:33Z',
             delivery_status: DeliveryStatusTypes.Delivered,
             response_code: 200,
             retry_count: 0,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/sns',
             last_error: null,
             headers: {
@@ -98,12 +114,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_05j9k2m3n4p5q6r7s8t9u0v5',
+            provider_id: 'pvdr_001',
             provider: 'stripe',
+            event_id: 'evt_1Ow8Wx2eZvKYlo2CpQrSt3Uv',
             event_type: 'invoice.payment_failed',
             received_at: '2026-03-25T14:17:55Z',
+            created_at: '2026-03-25T14:17:55Z',
             delivery_status: DeliveryStatusTypes.Queued,
             response_code: null,
             retry_count: 0,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/stripe',
             last_error: null,
             headers: {
@@ -121,12 +141,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_06j9k2m3n4p5q6r7s8t9u0v6',
+            provider_id: 'pvdr_002',
             provider: 'github',
+            event_id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
             event_type: 'pull_request',
             received_at: '2026-03-25T14:11:02Z',
+            created_at: '2026-03-25T14:11:02Z',
             delivery_status: DeliveryStatusTypes.Delivered,
             response_code: 200,
             retry_count: 0,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/github',
             last_error: null,
             headers: {
@@ -148,12 +172,16 @@ export const MOCK_DATA: WebHookEvent[] = (
         },
         {
             id: 'evt_07j9k2m3n4p5q6r7s8t9u0v7',
+            provider_id: 'pvdr_001',
             provider: 'stripe',
+            event_id: 'evt_3OwVwX2eZvKYlo2C0StuVwXy',
             event_type: 'charge.refunded',
             received_at: '2026-03-25T13:58:22Z',
+            created_at: '2026-03-25T13:58:22Z',
             delivery_status: DeliveryStatusTypes.Delivered,
             response_code: 200,
             retry_count: 0,
+            next_retry_at: null,
             forwarded_to: 'https://api.myapp.com/webhooks/stripe',
             last_error: null,
             headers: {
@@ -179,6 +207,7 @@ export const MOCK_PROVIDERS: Provider[] = [
         signing_secret: 'whsec_abc123xyz456',
         destination_url: 'https://api.myapp.com/webhooks/stripe',
         is_configured: false,
+        created_at: '2026-03-25T13:58:22Z',
     },
     {
         id: 'pvdr_002',
@@ -186,6 +215,7 @@ export const MOCK_PROVIDERS: Provider[] = [
         signing_secret: 'ghsec_def789uvw012',
         destination_url: 'https://api.myapp.com/webhooks/github',
         is_configured: false,
+        created_at: '2026-03-25T13:58:22Z',
     },
     {
         id: 'pvdr_003',
@@ -193,5 +223,6 @@ export const MOCK_PROVIDERS: Provider[] = [
         signing_secret: 'snssec_ghi345rst678',
         destination_url: 'https://api.myapp.com/webhooks/sns',
         is_configured: false,
+        created_at: '2026-03-25T13:58:22Z',
     },
 ];

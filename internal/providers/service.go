@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -23,16 +22,6 @@ func NewProviderService(repo *ProviderRepo) *ProviderService {
 	return &ProviderService{
 		repo: repo,
 	}
-}
-
-// Provider represents a webhook provider.
-type Provider struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	SigningSecret  string    `json:"signing_secret"`
-	DestinationURL string    `json:"destination_url"`
-	IsConfigured   bool      `json:"is_configured"`
-	CreatedAt      time.Time `json:"created_at"`
 }
 
 // GetAll retrieves all providers.
