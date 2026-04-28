@@ -3,6 +3,9 @@
 # Type: bool | Accepted values: "true" | "false"
 IS_DEVELOPMENT=true
 
+# MASTER SECRET KEY
+MASTER_KEY=sg72gc49gc23n0f23ijr83hnrkjn03h1fub1u91231bnhb20
+
 # User Credentials
 # Type: string | USER_PASSWORD should be a cryptographically strong value, not a plain text password.
 USER_EMAIL=johndoe@gmail.com
