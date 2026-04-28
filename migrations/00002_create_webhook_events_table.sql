@@ -20,3 +20,4 @@ CREATE TABLE IF NOT EXISTS webhook_events (
 
 -- +goose Down
 DROP TABLE IF EXISTS webhook_events;
+DROP TYPE IF EXISTS delivery_status;
