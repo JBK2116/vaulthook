@@ -20,7 +20,7 @@
         activeTabIsPayload
             ? navigator.clipboard.writeText(JSON.stringify(currentSelectedEvent.payload, null, 2))
             : navigator.clipboard.writeText(JSON.stringify(currentSelectedEvent.headers, null, 2));
-        toast('Copied to clipboard', { position: 'top-center' });
+        toast.info('Copied to clipboard', { position: 'top-center' });
     };
 
     const copyEventId: () => void = () => {
@@ -28,7 +28,7 @@
             return;
         }
         navigator.clipboard.writeText(currentSelectedEvent.id);
-        toast('Event ID copied', { description: currentSelectedEvent.id, position: 'top-center' });
+        toast.info('Copied to clipboard', { position: 'top-center' });
     };
 </script>
 
