@@ -46,7 +46,7 @@ export const MOCK_DATA: WebHookEvent[] = (
             delivery_status: DeliveryStatusTypes.Failed,
             response_code: 502,
             retry_count: 3,
-            next_retry_at: null,
+            next_retry_at: '2026-03-25T14:36:09Z',
             forwarded_to: 'https://api.myapp.com/webhooks/github',
             last_error: '502 Bad Gateway — upstream connection refused',
             headers: {
