@@ -36,16 +36,27 @@
         savingData = true;
         const body = draft;
         // minor body validation
-        if (body.destination_url.length <= 0) {
-            toast.error('Destination URL is required', { position: 'top-center' });
-            savingData = false;
-            return;
+        if (!provider.is_configured) {
+            // both fields must change
+            if (body.destination_url.length <= 0) {
+                toast.error('Destination URL is required', { position: 'top-center' });
+                savingData = false;
+                return;
+            }
+            if (body.signing_secret.length <= 0) {
+                toast.error('Signing Secret is required', { position: 'top-center' });
+                savingData = false;
+                return;
+            }
+        } else {
+            // at least one field must change
+            if (body.destination_url.length <= 0 || body.signing_secret.length <= 0) {
+                toast.error('At least one field required', { position: 'top-center' });
+                savingData = false;
+                return;
+            }
         }
-        if (body.signing_secret.length <= 0) {
-            toast.error('Signing Secret is required', { position: 'top-center' });
-            savingData = false;
-            return;
-        }
+        // prevent empty changes
         if (
             body.signing_secret === provider.signing_secret &&
             body.destination_url === provider.destination_url
@@ -70,8 +81,8 @@
         const updatedProvider: Provider = await res.json();
         provider = updatedProvider;
         editing = false;
-        savingData = false
-       toast.success('Provider updated', { position: 'top-center' });
+        savingData = false;
+        toast.success('Provider updated', { position: 'top-center' });
     }
 </script>
 
