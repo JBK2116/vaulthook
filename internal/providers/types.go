@@ -7,6 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// ProviderName Enum represents the name of a provider in the database.
+type ProviderName string
+
+const (
+	Github ProviderName = "Github"
+	Stripe ProviderName = "Stripe"
+	SNS    ProviderName = "SNS"
+)
+
+// DeliveryStatus Enum represents the current delivery status of a webhook event.
 type DeliveryStatus string
 
 const (
