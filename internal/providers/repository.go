@@ -77,3 +77,18 @@ func (r *ProviderRepo) configure(
 	}
 	return p, nil
 }
+
+// GetProviderRouting retrieves the routing configuration for a given provider.
+// It looks up the provider by name and returns its unique identifier along with
+// the destination URL where incoming webhooks should be forwarded.
+//
+// Returns an error if the provider cannot be found or if the query fails.
+func (r *ProviderRepo) GetProviderRouting(ctx context.Context, providerName string) (ProviderRouting, error) {
+	query := `SELECT id, destination_url FROM providers WHERE name = $1`
+	var providerRouting ProviderRouting
+	err := r.db.QueryRow(ctx, query, providerName).Scan(&providerRouting.ID, &providerRouting.ForwardedTo)
+	if err != nil {
+		return ProviderRouting{}, err
+	}
+	return providerRouting, nil
+}

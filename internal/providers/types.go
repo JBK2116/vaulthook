@@ -27,6 +27,26 @@ const (
 	DeliveryStatusFailed     DeliveryStatus = "failed"
 )
 
+// ProviderRouting represents the routing configuration for a webhook provider.
+// It contains the provider's unique identifier and the destination address
+// where incoming webhooks should be forwarded.
+type ProviderRouting struct {
+	ID          uuid.UUID
+	ForwardedTo string
+}
+
+// CreateWebhookParams contains only fields required to insert a webhook.
+type CreateWebhookParams struct {
+	ProviderID  uuid.UUID
+	Provider    string
+	EventID     *string
+	EventType   string
+	Headers     json.RawMessage
+	Payload     json.RawMessage
+	ForwardedTo string
+	ReceivedAt  time.Time
+}
+
 // Provider represents a webhook provider.
 type Provider struct {
 	ID             uuid.UUID `json:"id"`

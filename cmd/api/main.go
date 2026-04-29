@@ -16,6 +16,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -55,6 +56,10 @@ func main() {
 	providerRepo := providers.NewProviderRepo(db.DB)
 	providerService := providers.NewProviderService(providerRepo)
 	providerHandler := handler.NewProviderHandler(logger, providerService)
+	// Wire stripe dependencies
+	stripeRepo := stripe.NewStripeRepo(db.DB)
+	stripeService := stripe.NewStripeService(logger, stripeRepo, providerRepo)
+	stripeHandler := handler.NewStripeHandler(logger, stripeService)
 	// Configure the router with global middleware.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
@@ -66,6 +71,9 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		// User Authentication related routes.
 		authHandler.RegisterRoutes(r)
+		// Stripe related routes
+		stripeHandler.RegisterRoutes(r)
+		// Protected routes.
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Jwt(authService))
 			providerHandler.RegisterRoutes(r)
