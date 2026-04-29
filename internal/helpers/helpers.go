@@ -1,6 +1,7 @@
-// This file stores helper functions and variables to be used throughout the backend application
-
-package internal
+// Package helpers provides shared utility functions used across the backend.
+// It includes HTTP request parsing, JSON decoding, and input validation helpers
+// designed to reduce boilerplate in handler code.
+package helpers
 
 import (
 	"encoding/json"
@@ -11,15 +12,30 @@ import (
 	"strings"
 )
 
+// malformedRequest represents an HTTP request that failed validation or decoding.
+// It carries both a human-readable message and the appropriate HTTP status code
+// so handlers can respond without additional error translation logic.
 type malformedRequest struct {
 	Status  int
 	Message string
 }
 
+// Error implements the error interface for malformedRequest.
 func (mr *malformedRequest) Error() string {
 	return mr.Message
 }
 
+// DecodeBodyJSON decodes a JSON request body into the provided destination struct.
+//
+// It enforces the following constraints:
+//   - Content-Type must be application/json if provided
+//   - Body must not exceed 1MB
+//   - Body must contain valid, well-formed JSON
+//   - Body must not contain unknown fields
+//   - Body must contain exactly one JSON object
+//
+// Returns a *malformedRequest error with the appropriate HTTP status code
+// and a descriptive message if any constraint is violated, or nil on success.
 func DecodeBodyJSON(writer http.ResponseWriter, request *http.Request, destination any) *malformedRequest {
 	contentType := request.Header.Get("Content-Type")
 	if contentType != "" {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal"
+	"github.com/JBK2116/vaulthook/internal/helpers"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -61,7 +61,7 @@ func (h *providerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 func (h *providerHandler) configure(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body configureRequestBody
-	if err := internal.DecodeBodyJSON(w, r, &body); err != nil {
+	if err := helpers.DecodeBodyJSON(w, r, &body); err != nil {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}

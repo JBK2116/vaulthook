@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal"
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
+	"github.com/JBK2116/vaulthook/internal/helpers"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
@@ -42,7 +42,7 @@ func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *authHand
 // containing an access token and a refresh token on success.
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequestBody
-	if err := internal.DecodeBodyJSON(w, r, &body); err != nil {
+	if err := helpers.DecodeBodyJSON(w, r, &body); err != nil {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}
