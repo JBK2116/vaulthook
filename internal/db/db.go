@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/JBK2116/vaulthook/internal/config"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,8 +21,9 @@ type postgres struct {
 }
 
 var (
-	pgInstance *postgres // singleton postgres instance.
-	pgOnce     sync.Once // guards pool initialization.
+	pgInstance *postgres       // singleton postgres instance.
+	pgOnce     sync.Once       // guards pool initialization.
+	PgErr      *pgconn.PgError // represents all possible pgx errors
 )
 
 // NewPG constructs and returns a singleton postgres instance backed by a
