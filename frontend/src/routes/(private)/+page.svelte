@@ -49,7 +49,6 @@
 
     // SSE Handling
     onMount(() => {
-        const base = import.meta.env.DEV ? 'http://localhost:8080' : '';
         let es: EventSource;
         let authCheckTimeout: any;
         (async () => {
