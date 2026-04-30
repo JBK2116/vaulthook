@@ -11,6 +11,7 @@ import (
 
 	crypto "github.com/JBK2116/vaulthook/internal/crpyto"
 	"github.com/JBK2116/vaulthook/internal/db"
+	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	stripeProvider "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/go-chi/chi/v5"
@@ -24,15 +25,17 @@ var (
 
 // stripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
 type stripeHandler struct {
-	logger  *zerolog.Logger
-	service *stripeProvider.StripeService
+	logger       *zerolog.Logger
+	service      *stripeProvider.StripeService
+	eventService *events.EventService
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService) *stripeHandler {
+func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService) *stripeHandler {
 	return &stripeHandler{
-		logger:  logger,
-		service: service,
+		logger:       logger,
+		service:      service,
+		eventService: eventService,
 	}
 }
 
@@ -77,8 +80,7 @@ func (h *stripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// TODO: At this point. Send the webhook to the frontend.
-	print(stripeWebhook.EventID)
+	h.eventService.Send(stripeWebhook)
 	w.WriteHeader(http.StatusOK)
 }
 

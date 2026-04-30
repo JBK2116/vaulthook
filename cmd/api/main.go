@@ -13,6 +13,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/db"
+	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/JBK2116/vaulthook/internal/providers"
@@ -56,10 +57,14 @@ func main() {
 	providerRepo := providers.NewProviderRepo(db.DB)
 	providerService := providers.NewProviderService(providerRepo)
 	providerHandler := handler.NewProviderHandler(logger, providerService)
+	// Wire events & sse dependencies.
+	eventRepo := events.NewEventRepo(db.DB)
+	eventService := events.NewEventService(logger, eventRepo)
+	eventHandler := handler.NewEventsHandler(logger, eventService)
 	// Wire stripe dependencies
 	stripeRepo := stripe.NewStripeRepo(db.DB)
 	stripeService := stripe.NewStripeService(logger, stripeRepo, providerRepo)
-	stripeHandler := handler.NewStripeHandler(logger, stripeService)
+	stripeHandler := handler.NewStripeHandler(logger, stripeService, eventService)
 	// Configure the router with global middleware.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)
@@ -77,6 +82,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Jwt(authService))
 			providerHandler.RegisterRoutes(r)
+			eventHandler.RegisterRoutes(r)
 		})
 	})
 	// Start the HTTP server.
