@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
     import EventSheet from '$lib/components/ui/EventSheet.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
@@ -44,6 +45,7 @@
     // SSE Handling
     onMount(() => {
         let es: EventSource;
+        let authCheckTimeout: any;
         (async () => {
             try {
                 // load all events first
@@ -61,7 +63,31 @@
                     events = [event, ...events.filter((ev) => ev.id !== event.id)];
                 };
                 es.onerror = () => {
+                    clearTimeout(authCheckTimeout);
                     isConnectedToBackend = false;
+                    authCheckTimeout = setTimeout(async () => {
+                        // check access token status
+                        const me = await fetch('/api/me', {
+                            credentials: 'include',
+                            method: 'GET',
+                        });
+                        if (me.ok) {
+                            isConnectedToBackend = true;
+                            return;
+                        }
+                        // check refresh token status
+                        const refresh = await fetch('/api/refresh', {
+                            credentials: 'include',
+                            method: 'POST',
+                        });
+                        if (refresh.ok) {
+                            isConnectedToBackend = true;
+                            return;
+                        }
+                        // user is unauthenticated
+                        es.close();
+                        goto('/login');
+                    }, 1000);
                 };
             } catch (err: any) {
                 toast.error(err.message, { position: 'top-center' });
