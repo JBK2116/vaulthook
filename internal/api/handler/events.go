@@ -38,19 +38,41 @@ func NewEventsHandler(logger *zerolog.Logger, service *events.EventService) *eve
 func (h *eventsHandler) sse(w http.ResponseWriter, r *http.Request) {
 	// sse headers
 	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	// client disconncection handling
 	clientGone := r.Context().Done()
 	// subscriber handling
 	ch, unsub := h.service.Subscribe()
 	rc := http.NewResponseController(w)
+	// needs to be sent immediately to confirm connection and keep it running
+	if _, err := fmt.Fprintf(w, "event: connected\ndata: {}\n\n"); err != nil {
+		h.logger.Error().Err(err).Msg("failed to send initial connection string to frontend via sse")
+	}
+	if err := rc.Flush(); err != nil {
+		h.logger.Error().Err(err).Msg("failed to flush sse buffer")
+	}
+	h.logger.Info().Msg("client sse connected")
+
+	// heartbeat for sse to keep it running
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-clientGone:
 			h.logger.Error().Err(ErrClientDisconnected).Msg(ErrClientDisconnected.Error())
 			unsub()
 			return
+		case <-ticker.C:
+			// heartbeat (comment line in SSE spec)
+			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
+				h.logger.Error().Err(err).Msg("failed to send heartbeat")
+				continue
+			}
+			if err := rc.Flush(); err != nil {
+				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
+				continue
+			}
 		case event := <-ch:
 			data, err := json.Marshal(event)
 			if err != nil {

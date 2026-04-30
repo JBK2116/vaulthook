@@ -8,11 +8,12 @@
     import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
     import * as functions from '$lib/utils/functions';
-    import { MOCK_DATA } from '$lib/utils/mock-data';
     import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '$lib/utils/types';
+    import { onMount } from 'svelte';
+    import { toast } from 'svelte-sonner';
 
-    // Data Manipulation
-    let events: WebHookEvent[] = $state(MOCK_DATA); // TODO: Replace this with data from the backend
+    // Event Manipulation
+    let events: WebHookEvent[] = $state([]);
     let totalEvents = $derived(functions.getTotalEvents(events));
     let totalDeliveredEvents = $derived(functions.getTotalDeliveredEvents(events));
     let totalRetryingEvents = $derived(functions.getTotalRetryingEvents(events));
@@ -20,7 +21,7 @@
     let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
 
     // Connection State
-    let isConnectedToBackend: boolean = $state(true); // TODO: replace this with data from the backend
+    let isConnectedToBackend: boolean = $state(false);
 
     // Select & Search Handling
     let currentSelectedOption: SelectTypes = $state(SelectTypes.All);
@@ -38,6 +39,35 @@
         if (currentSelectedEvent && window.innerWidth < 768) {
             isSheetOpen = true;
         }
+    });
+
+    // SSE Handling
+    onMount(() => {
+        let es: EventSource;
+        (async () => {
+            try {
+                // load all events first
+                const res = await fetch('/api/events', { credentials: 'include' });
+                if (!res.ok) throw new Error('Failed to load events');
+                events = (await res.json()) ?? [];
+                // sse logic
+                es = new EventSource('/api/events/stream', { withCredentials: true });
+                es.onopen = () => {
+                    isConnectedToBackend = true;
+                };
+                // each message comes in the form of {"data": "<webhook object>"}
+                es.onmessage = (e) => {
+                    const event: WebHookEvent = JSON.parse(e.data);
+                    events = [event, ...events.filter((ev) => ev.id !== event.id)];
+                };
+                es.onerror = () => {
+                    isConnectedToBackend = false;
+                };
+            } catch (err: any) {
+                toast.error(err.message, { position: 'top-center' });
+            }
+        })();
+        return () => es?.close();
     });
 </script>
 
