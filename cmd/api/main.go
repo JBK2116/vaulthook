@@ -71,9 +71,9 @@ func main() {
 	r.Use(chimiddleware.CleanPath)
 	r.Use(chimiddleware.StripSlashes)
 	r.Use(chimiddleware.ThrottleBacklog(config.Envs.ThrottleMaxConcurrent, config.Envs.ThrottleMaxBacklog, time.Duration(config.Envs.ThrottleBacklogTimeout)*time.Second))
-	r.Use(chimiddleware.Timeout(time.Duration(config.Envs.MaxRequestTime) * time.Second))
 	// Register API routes.
 	r.Route("/api", func(r chi.Router) {
+		r.Use(chimiddleware.Timeout(time.Duration(config.Envs.MaxRequestTime) * time.Second))
 		// User Authentication related routes.
 		authHandler.RegisterRoutes(r)
 		// Stripe related routes
@@ -85,6 +85,8 @@ func main() {
 			eventHandler.RegisterRoutes(r)
 		})
 	})
+	r.With(middleware.Jwt(authService)).
+		Get("/api/events/stream", eventHandler.SSE)
 	// Start the HTTP server.
 	err = http.ListenAndServe(":8080", r)
 	if err != nil {

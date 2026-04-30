@@ -1,4 +1,5 @@
 import {
+    ConnState,
     DeliveryStatusColors,
     DeliveryStatusTypes,
     ProviderTypes,
@@ -170,4 +171,12 @@ export function formatReceivedAtTimeForSidebar(received_at: string, timezone: st
         second: '2-digit',
     };
     return utcDate.toLocaleString('en-us', options);
+}
+
+// getConnColor returns the appropriate color to display the current sse connection state
+export function getConnColor(state: ConnState) {
+    if (state === ConnState.Connected) return 'bg-[#66FF99]';
+    if (state === ConnState.Connecting) return 'bg-yellow-400';
+    if (state === ConnState.Disconnected) return 'bg-red-500';
+    return 'bg-orange-500'; // Unauthenticated
 }

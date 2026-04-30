@@ -9,7 +9,12 @@
     import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
     import * as functions from '$lib/utils/functions';
-    import { DeliveryStatusColors, SelectTypes, type WebHookEvent } from '$lib/utils/types';
+    import {
+        ConnState,
+        DeliveryStatusColors,
+        SelectTypes,
+        type WebHookEvent,
+    } from '$lib/utils/types';
     import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
 
@@ -22,7 +27,7 @@
     let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
 
     // Connection State
-    let isConnectedToBackend: boolean = $state(false);
+    let connState: ConnState = $state(ConnState.Connecting);
 
     // Select & Search Handling
     let currentSelectedOption: SelectTypes = $state(SelectTypes.All);
@@ -44,6 +49,7 @@
 
     // SSE Handling
     onMount(() => {
+        const base = import.meta.env.DEV ? 'http://localhost:8080' : '';
         let es: EventSource;
         let authCheckTimeout: any;
         (async () => {
@@ -53,9 +59,11 @@
                 if (!res.ok) throw new Error('Failed to load events');
                 events = (await res.json()) ?? [];
                 // sse logic
+                toast.info('Connecting ...', { position: 'top-center' });
                 es = new EventSource('/api/events/stream', { withCredentials: true });
                 es.onopen = () => {
-                    isConnectedToBackend = true;
+                    toast.info('Connected', { position: 'top-center' });
+                    connState = ConnState.Connected;
                 };
                 // each message comes in the form of {"data": "<webhook object>"}
                 es.onmessage = (e) => {
@@ -64,7 +72,8 @@
                 };
                 es.onerror = () => {
                     clearTimeout(authCheckTimeout);
-                    isConnectedToBackend = false;
+                    toast.warning('Reconnecting ...');
+                    connState = ConnState.Disconnected;
                     authCheckTimeout = setTimeout(async () => {
                         // check access token status
                         const me = await fetch('/api/me', {
@@ -72,7 +81,7 @@
                             method: 'GET',
                         });
                         if (me.ok) {
-                            isConnectedToBackend = true;
+                            connState = ConnState.Connected;
                             return;
                         }
                         // check refresh token status
@@ -81,13 +90,15 @@
                             method: 'POST',
                         });
                         if (refresh.ok) {
-                            isConnectedToBackend = true;
+                            connState = ConnState.Connected;
                             return;
                         }
                         // user is unauthenticated
-                        es.close();
+                        if (es) {
+                            es.close();
+                        }
                         goto('/login');
-                    }, 1000);
+                    }, 3000);
                 };
             } catch (err: any) {
                 toast.error(err.message, { position: 'top-center' });
@@ -124,7 +135,7 @@
                     valueNumberColor={DeliveryStatusColors.queued}
                 />
             </div>
-            <ConnIndicator {isConnectedToBackend}></ConnIndicator>
+            <ConnIndicator {connState}></ConnIndicator>
         </div>
         <div
             class="border-border flex shrink-0 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b px-4 py-2.5"

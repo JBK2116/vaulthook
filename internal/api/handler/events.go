@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -35,11 +36,16 @@ func NewEventsHandler(logger *zerolog.Logger, service *events.EventService) *eve
 // It subscribes to the event service hub and streams incoming webhook events
 // to the connected client in real time. The connection is closed when the
 // client disconnects.
-func (h *eventsHandler) sse(w http.ResponseWriter, r *http.Request) {
+func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	// sse headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
+	if config.Envs.IsDevelopment {
+		// needed since client sse doesn't work optimally through vite proxy
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
 	// client disconncection handling
 	clientGone := r.Context().Done()
 	// subscriber handling
@@ -55,7 +61,7 @@ func (h *eventsHandler) sse(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info().Msg("client sse connected")
 
 	// heartbeat for sse to keep it running
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -64,7 +70,7 @@ func (h *eventsHandler) sse(w http.ResponseWriter, r *http.Request) {
 			unsub()
 			return
 		case <-ticker.C:
-			// heartbeat (comment line in SSE spec)
+			// heartbeat
 			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
 				h.logger.Error().Err(err).Msg("failed to send heartbeat")
 				continue
@@ -117,11 +123,11 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 
 // RegisterRoutes mounts the webhook event related endpoints onto the provided router
 //
+// NOTE: SSE mounting is handled explicitly in main as it requires special configuration.
+//
 // Endpoints:
 //
-//	GET /api/events/stream
 //	GET /api/events
 func (h *eventsHandler) RegisterRoutes(r chi.Router) {
-	r.Get("/events/stream", h.sse)
 	r.Get("/events", h.getAll)
 }

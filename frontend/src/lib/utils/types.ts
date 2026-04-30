@@ -49,7 +49,14 @@ export enum SelectTypes {
 }
 
 export enum ProviderTypes {
-    Stripe = 'stripe',
-    Github = 'github',
-    Sns = 'sns',
+    Stripe = 'Stripe',
+    Github = 'Github',
+    Sns = 'SNS',
+}
+
+export enum ConnState {
+    Connected = 'connected',
+    Connecting = 'connecting',
+    Disconnected = 'disconnected',
+    Unauthenticated = 'unauthenticated',
 }
