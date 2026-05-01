@@ -61,6 +61,9 @@ func EncryptSigningKey(plaintext string) (string, error) {
 // Returns an error if the input is malformed, the MasterKey does not match,
 // or the ciphertext has been tampered with.
 func DecryptSigningKey(encoded string) (string, error) {
+	if encoded == "" {
+		return "", nil
+	}
 	decodedCipherText, err := hex.DecodeString(encoded)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrDecryption, err)

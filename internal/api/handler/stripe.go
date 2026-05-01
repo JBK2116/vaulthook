@@ -56,8 +56,9 @@ func (h *stripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 	signatureHeader := r.Header.Get("Stripe-Signature")
 	event, err := h.service.ValidateSecret(ctx, signatureHeader, payload)
 	if err != nil {
+		h.logger.Error().Err(err).Msg("failed to validate stripe webhook secret")
 		if errors.Is(err, crypto.ErrDecryption) {
-			h.logger.Error().Err(err).Msg(fmt.Sprintf("failed to decrypt signing key for provider: %s", providers.Github))
+			h.logger.Error().Err(err).Msg(fmt.Sprintf("failed to decrypt signing key for provider: %s", providers.Stripe))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -69,10 +70,12 @@ func (h *stripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	h.logger.Debug().Msgf("stripe event validated: %s", event.ID)
 	headersJSON, err := json.Marshal(r.Header)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to marshal stripe webhook request headers")
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	stripeWebhook, err := h.service.InsertWebhook(ctx, headersJSON, payload, event)
 	if err != nil {
