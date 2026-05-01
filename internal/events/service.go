@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// This service provides the main universal business logic for handling webhook events pertaining to all providers.
+// EventService provides the main universal business logic for handling webhook events pertaining to all providers.
 type EventService struct {
 	logger      *zerolog.Logger
 	mu          sync.Mutex

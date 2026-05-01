@@ -3,7 +3,7 @@
 //
 // Encrypted values are stored as hex-encoded strings with the nonce prepended
 // to the ciphertext, allowing safe storage in PostgreSQL without a separate
-// nonce column. The encryption key is sourced from MASTER_KEY in the
+// nonce column. The encryption key is sourced from MasterKey in the
 // application config and must be exactly 32 bytes.
 package crypto
 
@@ -28,12 +28,12 @@ var (
 // the nonce prepended to the AES-256-GCM ciphertext.
 //
 // A unique nonce is generated per call, ensuring that encrypting the same
-// plaintext twice produces different ciphertext. The MASTER_KEY from config
+// plaintext twice produces different ciphertext. The MasterKey from config
 // must be exactly 32 bytes or an error is returned.
 func EncryptSigningKey(plaintext string) (string, error) {
 	plaintextBytes := []byte(plaintext)
 	// create the encryption key and iv key used for AES encrpytion
-	keyBytes := []byte(config.Envs.MASTER_KEY) // MASTER_KEY is 32 bytes
+	keyBytes := []byte(config.Envs.MasterKey) // MasterKey is 32 bytes
 	// block serves as the lock for keeping the plaintext data secure
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
@@ -58,14 +58,14 @@ func EncryptSigningKey(plaintext string) (string, error) {
 // original plaintext string.
 //
 // The nonce is extracted from the first 12 bytes of the decoded ciphertext.
-// Returns an error if the input is malformed, the MASTER_KEY does not match,
+// Returns an error if the input is malformed, the MasterKey does not match,
 // or the ciphertext has been tampered with.
 func DecryptSigningKey(encoded string) (string, error) {
 	decodedCipherText, err := hex.DecodeString(encoded)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrDecryption, err)
 	}
-	keyBytes := []byte(config.Envs.MASTER_KEY)
+	keyBytes := []byte(config.Envs.MasterKey)
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrDecryption, err)

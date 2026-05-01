@@ -53,8 +53,8 @@ type Config struct {
 	ThrottleBacklogTimeout int
 	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
 	MaxRequestTime int
-	// MASTER_KEY is the AES secret used to handle signing key encryption for providers.
-	MASTER_KEY string
+	// MasterKey is the AES secret used to handle signing key encryption for providers.
+	MasterKey string
 	// IsDevelopment indicates whether the application is running in a development environment.
 	IsDevelopment bool
 }
@@ -82,7 +82,7 @@ func initConfig() Config {
 		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
-		MASTER_KEY:             getEnvString("MASTER_KEY"),
+		MasterKey:              getEnvString("MASTER_KEY"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
 	}
 }

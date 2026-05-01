@@ -11,7 +11,7 @@ import (
 	"github.com/stripe/stripe-go/v85/webhook"
 )
 
-// This service provides the main business logic for handling webhook events pertaining to the stripe provider
+// StripeService provides the main business logic for handling webhook events pertaining to the stripe provider
 type StripeService struct {
 	logger       *zerolog.Logger
 	repo         *StripeRepo
