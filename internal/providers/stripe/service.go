@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	crypto "github.com/JBK2116/vaulthook/internal/crpyto"
+	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v85"

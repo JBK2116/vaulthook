@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	crypto "github.com/JBK2116/vaulthook/internal/crpyto"
+	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/google/uuid"
 )
 

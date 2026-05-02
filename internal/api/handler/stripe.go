@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	crypto "github.com/JBK2116/vaulthook/internal/crpyto"
+	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
