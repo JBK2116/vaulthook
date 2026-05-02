@@ -5,6 +5,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -28,7 +29,7 @@ type WorkerRepository interface {
 	// GetEvent queries the database for the next event in the queue.
 	GetEvent(ctx context.Context) (*providers.Webhook, error)
 	// UpdateEventStatus updates the necessary values of the provided webhook event.
-	UpdateEventStatus(ctx context.Context, event *providers.Webhook) (*providers.Webhook, error)
+	UpdateEventStatus(ctx context.Context, event UpdateEvent) (*providers.Webhook, error)
 }
 
 // QueueWorker struct is responsible for processing events that are queued.
@@ -59,4 +60,16 @@ type QueueWorkerRepo struct {
 // Implementing the WorkerRepository interface
 type RetryWorkerRepo struct {
 	db *pgxpool.Pool
+}
+
+// UpdateEvent provides all the fields necessary to update a webhook in the database.
+type UpdateEvent struct {
+	// Webhook ID
+	ID uuid.UUID
+	// Webhook Delivery Status Enum
+	DeliveryStatus providers.DeliveryStatus
+	// Webhook Forwarded To Response Code
+	ResponseCode *int
+	// Webhook Last Error Message (NULLABLE)
+	LastError *string
 }
