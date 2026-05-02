@@ -5,10 +5,11 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Worker interface represents an asynchronous goroutine worker. Responsible for handling webhook events.
-type Worker interface {
+// worker interface represents an asynchronous goroutine worker. Responsible for handling webhook events.
+type worker interface {
 	// Run kicks off the Worker to begin working on webhooks.
 	Run(ctx context.Context) error
 	// QueryLatest retrieves the latest webhook event required for processing.
@@ -44,4 +45,18 @@ type RetryWorker struct {
 	evt      *providers.Webhook
 	svc      *events.EventService
 	repo     *WorkerRepository
+}
+
+// QueueWorkerRepo struct is responsible for processing events that are queued.
+//
+// Implementing the WorkerRepository interface
+type QueueWorkerRepo struct {
+	db *pgxpool.Pool
+}
+
+// RetryWorkerRepo struct is responsible for processing events that need to be retried.
+//
+// Implementing the WorkerRepository interface
+type RetryWorkerRepo struct {
+	db *pgxpool.Pool
 }
