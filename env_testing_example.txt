@@ -26,6 +26,10 @@ THROTTLE_MAX_CONCURRENT=100
 THROTTLE_MAX_BACKLOG=50
 THROTTLE_BACKLOG_TIMEOUT=10
 
+# EVENT CONFIGURATION
+MAX_RETRIES = 3
+RETRY_INTERVAL_SECONDS=60
+
 # Database
 # Type: string | DB_TYPE is the driver name, e.g. "postgres".
 # Type: int    | DB_PORT is the database port, e.g. 5432.

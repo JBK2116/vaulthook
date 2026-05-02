@@ -51,6 +51,10 @@ type Config struct {
 	ThrottleMaxBacklog int
 	// ThrottleBacklogTimeout is the number of seconds a queued request may wait before timing out.
 	ThrottleBacklogTimeout int
+	// MaxRetries is the max number of times a webhook can be forwarded upon failure before giving up.
+	MaxRetries int
+	// RetryIntervalSeconds is the number of seconds a previously failed webhook must be awaited before another forwarding attempt.
+	RetryIntervalSeconds int
 	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
 	MaxRequestTime int
 	// MasterKey is the AES secret used to handle signing key encryption for providers.
@@ -81,6 +85,8 @@ func initConfig() Config {
 		ThrottleMaxConcurrent:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
 		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
+		MaxRetries:             getEnvInt("MAX_RETRIES"),
+		RetryIntervalSeconds:   getEnvInt("RetryIntervalSeconds"),
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		MasterKey:              getEnvString("MASTER_KEY"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
