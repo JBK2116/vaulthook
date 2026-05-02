@@ -23,16 +23,16 @@ var (
 	ErrStripeWebhookParsing = errors.New("error parsing webhook JSON")
 )
 
-// stripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
-type stripeHandler struct {
+// StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
+type StripeHandler struct {
 	logger       *zerolog.Logger
 	service      *stripeProvider.StripeService
 	eventService *events.EventService
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService) *stripeHandler {
-	return &stripeHandler{
+func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService) *StripeHandler {
+	return &StripeHandler{
 		logger:       logger,
 		service:      service,
 		eventService: eventService,
@@ -42,7 +42,7 @@ func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeServ
 // receive handles /api/webhooks/stripe. It receives the incoming webhook,
 // validates it using the signing key, saves it to the database if necessary and
 // sets it's status for processing
-func (h *stripeHandler) receive(w http.ResponseWriter, r *http.Request) {
+func (h *StripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
 	const maxBodyBytes = int64(65539)
@@ -92,6 +92,6 @@ func (h *stripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 // Endpoints:
 //
 //	POST /api/webhooks/stripe
-func (h *stripeHandler) RegisterRoutes(r chi.Router) {
+func (h *StripeHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/webhooks/stripe", h.receive)
 }

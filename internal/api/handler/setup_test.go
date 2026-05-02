@@ -40,12 +40,12 @@ var testAuthHandler *authHandler
 // PROVIDERS
 var testProviderRepo *providers.ProviderRepo
 var testProviderService *providers.ProviderService
-var testProviderHandler *providerHandler
+var testProviderHandler *ProviderHandler
 
 // STRIPE
 var stripeRepo *stripe.StripeRepo
 var stripeService *stripe.StripeService
-var stripeHandle *stripeHandler
+var stripeHandle *StripeHandler
 
 func TestMain(m *testing.M) {
 	if err := godotenv.Load("../../../.env.test"); err != nil {

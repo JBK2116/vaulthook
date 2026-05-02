@@ -18,22 +18,22 @@ type configureRequestBody struct {
 	DestinationURL string `json:"destination_url"`
 }
 
-// providerHandler handles HTTP requests for provider operations.
-type providerHandler struct {
+// ProviderHandler handles HTTP requests for provider operations.
+type ProviderHandler struct {
 	logger  *zerolog.Logger
 	service *providers.ProviderService
 }
 
 // NewProviderHandler returns a new providerHandler with the given logger and service.
-func NewProviderHandler(logger *zerolog.Logger, service *providers.ProviderService) *providerHandler {
-	return &providerHandler{
+func NewProviderHandler(logger *zerolog.Logger, service *providers.ProviderService) *ProviderHandler {
+	return &ProviderHandler{
 		logger:  logger,
 		service: service,
 	}
 }
 
 // GetAll handles GET /providers, returning all providers as JSON.
-func (h *providerHandler) getAll(w http.ResponseWriter, r *http.Request) {
+func (h *ProviderHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
 	defer cancel()
 	providers, err := h.service.GetAll(ctx)
@@ -58,7 +58,7 @@ func (h *providerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 
 // Configure handles PATCH /providers/{id}, updating a provider's signing secret
 // and destination URL, setting is_configured to true on success.
-func (h *providerHandler) configure(w http.ResponseWriter, r *http.Request) {
+func (h *ProviderHandler) configure(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body configureRequestBody
 	if err := helpers.DecodeBodyJSON(w, r, &body); err != nil {
@@ -97,7 +97,7 @@ func (h *providerHandler) configure(w http.ResponseWriter, r *http.Request) {
 //
 //	GET /api/providers
 //	PATCH /api/providers/{id}
-func (h *providerHandler) RegisterRoutes(r chi.Router) {
+func (h *ProviderHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/providers", h.getAll)
 	r.Patch("/providers/{id}", h.configure)
 }
