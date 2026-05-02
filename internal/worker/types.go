@@ -21,22 +21,13 @@ type Worker interface {
 	Send(ctx context.Context, event *providers.Webhook) error
 }
 
-// QueueWorkerRepository interface represents a repository
-// that handles dataabase events for queued events.
-type QueueWorkerRepository interface {
-	// GetQueuedEvent queries the database for the next event in the queue.
-	GetQueuedEvent(ctx context.Context) (*providers.Webhook, error)
+// WorkerRepository interface represents a repository
+// that handles database events for webhooks.
+type WorkerRepository interface {
+	// GetEvent queries the database for the next event in the queue.
+	GetEvent(ctx context.Context) (*providers.Webhook, error)
 	// UpdateEventStatus updates the necessary values of the provided webhook event.
 	UpdateEventStatus(ctx context.Context, event *providers.Webhook) (*providers.Webhook, error)
-}
-
-// RetryWorkerRepository interface represents a repository
-// that handles dataabase events for retrying/failed events.
-type RetryWorkerRepository interface {
-	// GetRetryEvent queries the database for the next event in the queue.
-	GetRetryEvent(ctx context.Context) (*providers.Webhook, error)
-	// UpdateEventStatus updates the necessary values of the provided webhook event.
-	UpdateEventStatus(ctx context.Context, event *providers.Webhook) error
 }
 
 // QueueWorker struct is responsible for processing events that are queued.
@@ -44,7 +35,7 @@ type QueueWorker struct {
 	interval int
 	evt      *providers.Webhook
 	svc      *events.EventService
-	repo     *QueueWorkerRepository
+	repo     *WorkerRepository
 }
 
 // RetryWorker struct is responsible for processing events that have failed.
@@ -52,5 +43,5 @@ type RetryWorker struct {
 	interval int
 	evt      *providers.Webhook
 	svc      *events.EventService
-	repo     *RetryWorkerRepository
+	repo     *WorkerRepository
 }
