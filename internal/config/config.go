@@ -86,7 +86,7 @@ func initConfig() Config {
 		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
 		MaxRetries:             getEnvInt("MAX_RETRIES"),
-		RetryIntervalSeconds:   getEnvInt("RetryIntervalSeconds"),
+		RetryIntervalSeconds:   getEnvInt("RETRY_INTERVAL_SECONDS"),
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		MasterKey:              getEnvString("MASTER_KEY"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
