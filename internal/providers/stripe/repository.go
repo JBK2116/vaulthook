@@ -22,12 +22,12 @@ func NewStripeRepo(db *pgxpool.Pool) *StripeRepo {
 // getSigningKey returns the signing_key associated from the provider with the matching name
 func (r *StripeRepo) getSigningKey(ctx context.Context, provider string) (string, error) {
 	query := `SELECT signing_secret FROM providers WHERE name = $1`
-	var signingKey string
-	err := r.db.QueryRow(ctx, query, provider).Scan(&signingKey)
+	var key string
+	err := r.db.QueryRow(ctx, query, provider).Scan(&key)
 	if err != nil {
 		return "", err
 	}
-	return signingKey, nil
+	return key, nil
 }
 
 // insertWebhook saves a webhook to the database and returns the stored record.

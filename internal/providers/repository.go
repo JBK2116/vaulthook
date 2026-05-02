@@ -28,7 +28,7 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]Provider, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var providers []Provider
+	var provs []Provider
 	for rows.Next() {
 		var p Provider
 		err := rows.Scan(
@@ -40,14 +40,14 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]Provider, error) {
 			&p.CreatedAt,
 		)
 		if err != nil {
-			return providers, err
+			return provs, err
 		}
-		providers = append(providers, p)
+		provs = append(provs, p)
 	}
 	if err = rows.Err(); err != nil {
-		return providers, err
+		return provs, err
 	}
-	return providers, nil
+	return provs, nil
 }
 
 // Update modifies a provider's signing secret and destination URL, and
@@ -55,8 +55,8 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]Provider, error) {
 func (r *ProviderRepo) configure(
 	ctx context.Context,
 	id uuid.UUID,
-	signingSecret string,
-	destinationURL string,
+	sec string,
+	des string,
 ) (Provider, error) {
 	query := `
 		UPDATE providers
@@ -64,7 +64,7 @@ func (r *ProviderRepo) configure(
 		WHERE id = $4
 		RETURNING id, name, signing_secret, destination_url, is_configured, created_at`
 	var p Provider
-	err := r.db.QueryRow(ctx, query, signingSecret, destinationURL, true, id).Scan(
+	err := r.db.QueryRow(ctx, query, sec, des, true, id).Scan(
 		&p.ID,
 		&p.Name,
 		&p.SigningSecret,
@@ -83,12 +83,12 @@ func (r *ProviderRepo) configure(
 // the destination URL where incoming webhooks should be forwarded.
 //
 // Returns an error if the provider cannot be found or if the query fails.
-func (r *ProviderRepo) GetProviderRouting(ctx context.Context, providerName string) (ProviderRouting, error) {
+func (r *ProviderRepo) GetProviderRouting(ctx context.Context, name string) (ProviderRouting, error) {
 	query := `SELECT id, destination_url FROM providers WHERE name = $1`
-	var providerRouting ProviderRouting
-	err := r.db.QueryRow(ctx, query, providerName).Scan(&providerRouting.ID, &providerRouting.ForwardedTo)
+	var pr ProviderRouting
+	err := r.db.QueryRow(ctx, query, name).Scan(&pr.ID, &pr.ForwardedTo)
 	if err != nil {
 		return ProviderRouting{}, err
 	}
-	return providerRouting, nil
+	return pr, nil
 }

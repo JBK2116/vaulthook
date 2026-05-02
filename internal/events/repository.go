@@ -27,7 +27,7 @@ func (r *EventRepo) getAll(ctx context.Context) ([]providers.Webhook, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var webhooks []providers.Webhook
+	var hooks []providers.Webhook
 	for rows.Next() {
 		var w providers.Webhook
 		err := rows.Scan(
@@ -50,10 +50,10 @@ func (r *EventRepo) getAll(ctx context.Context) ([]providers.Webhook, error) {
 		if err != nil {
 			return nil, err
 		}
-		webhooks = append(webhooks, w)
+		hooks = append(hooks, w)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return webhooks, nil
+	return hooks, nil
 }
