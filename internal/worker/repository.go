@@ -73,6 +73,8 @@ func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, evt UpdateEvent
 }
 
 // GetEvent queries the database for the next event in the queue.
+//
+// GetEvent
 func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, error) {
 	query := `
     UPDATE webhook_events
