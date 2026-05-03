@@ -38,7 +38,7 @@ func TestStripeReceive(t *testing.T) {
 			r.Header.Set("Content-Type", "application/json")
 			r.Header.Set("Stripe-Signature", test.secret)
 			w := httptest.NewRecorder()
-			stripeHandle.receive(w, r)
+			stripeHandle.Receive(w, r)
 			if test.statusCode != w.Result().StatusCode {
 				t.Fatalf("expected %d, received %d", test.statusCode, w.Result().StatusCode)
 			}

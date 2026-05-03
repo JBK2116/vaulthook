@@ -39,10 +39,10 @@ func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeServ
 	}
 }
 
-// receive handles /api/webhooks/stripe. It receives the incoming webhook,
+// Receive handles /api/webhooks/stripe. It receives the incoming webhook,
 // validates it using the signing key, saves it to the database if necessary and
 // sets it's status for processing
-func (h *StripeHandler) receive(w http.ResponseWriter, r *http.Request) {
+func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
 	const maxBodyBytes = int64(65539)
@@ -93,5 +93,5 @@ func (h *StripeHandler) receive(w http.ResponseWriter, r *http.Request) {
 //
 //	POST /api/webhooks/stripe
 func (h *StripeHandler) RegisterRoutes(r chi.Router) {
-	r.Post("/webhooks/stripe", h.receive)
+	r.Post("/webhooks/stripe", h.Receive)
 }
