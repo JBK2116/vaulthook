@@ -1,5 +1,7 @@
 main_package_path = ./cmd/api
 binary_name = vaulthook
+mock_package_path = ./cmd/api-mock
+mock_binary_name = vaulthookmock
 
 ## help: print this help message
 .PHONY: help
@@ -46,15 +48,21 @@ test/cover:
 	go test -v -race -buildvcs -p 1 -coverprofile=/tmp/coverage.out ./... 
 	go tool cover -html=/tmp/coverage.out
 
-## build: build the application
-.PHONY: build
+## build: build the applications
+.PHONY: build build/mock
 build:
 	go build -o=./bin/${binary_name} ${main_package_path}
 
+build/mock:
+	go build -o=./bin/${mock_binary_name} ${mock_package_path}
+
 ## run: run the application
-.PHONY: run
+.PHONY: run run/mock
 run: build
 	./bin/${binary_name}
+
+run/mock: build/mock
+	./bin/${mock_binary_name}
 
 ## run/live : run the application with reloading on file changes
 .PHONY: run/live
