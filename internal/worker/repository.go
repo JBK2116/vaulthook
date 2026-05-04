@@ -74,7 +74,7 @@ func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, evt UpdateEvent
 
 // GetEvent queries the database for the next event in the queue.
 //
-// GetEvent
+// GetEvent updates next_retry_at and retry_count automatically and automatically
 func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, error) {
 	query := `
     UPDATE webhook_events
@@ -86,7 +86,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, err
         WHERE delivery_status = 'retrying'
         AND next_retry_at <= NOW()
 		AND retry_count < $2
-        ORDER BY next_retry_at ASC
+        ORDER BY next_retry_at ASC, id ASC
         LIMIT 1
         FOR UPDATE SKIP LOCKED
     )

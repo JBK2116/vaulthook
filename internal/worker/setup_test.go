@@ -47,6 +47,7 @@ var stripeHandle *handler.StripeHandler
 
 // WORKER
 var QWorkerRepo WorkerRepository
+var RWorkerRepo WorkerRepository
 
 func TestMain(m *testing.M) {
 	if err := godotenv.Load("../../.env.test"); err != nil {
@@ -86,6 +87,8 @@ func TestMain(m *testing.M) {
 	// configure the worker variables
 	QueueWorkerRepo := NewQueueWorkerRepo(db.DB)
 	QWorkerRepo = QueueWorkerRepo
+	RetrWorkerRepo := NewRetryWorkerRepo(db.DB)
+	RWorkerRepo = RetrWorkerRepo
 	// run the code
 	code := m.Run()
 	os.Exit(code)
@@ -154,6 +157,25 @@ func insertStripeConfig(t *testing.T) {
 	query := `UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3`
 	if _, err := testDB.Exec(context.Background(), query, forwardedTo, encrypted, providers.Stripe); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// SetAllAsRetry sets the delivery_status of all webhooks in the database to "retrying"
+func setAllAsRetry(t *testing.T) {
+	ctx := context.Background()
+	query := `
+	UPDATE webhook_events
+	SET 
+		delivery_status = $1,
+		next_retry_at = NOW(),
+		retry_count = 0
+	`
+	res, err := testDB.Exec(ctx, query, providers.DeliveryStatusRetrying)
+	if err != nil {
+		t.Fatalf("error occurred updating database: %v", err)
+	}
+	if res.RowsAffected() == 0 {
+		t.Fatalf("expected rows to be updated")
 	}
 }
 
