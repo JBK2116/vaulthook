@@ -44,7 +44,7 @@ func TestQueueWorkerRepository(t *testing.T) {
 					}
 				}
 			}
-			// retrieve the "first" webhook.
+			// retrieve the first webhook oldest by received_at.
 			hook, err := QWorkerRepo.GetEvent(ctx)
 			if test.shouldAddHooks {
 				if err != nil {
@@ -55,23 +55,24 @@ func TestQueueWorkerRepository(t *testing.T) {
 					t.Fatalf("expected error: %v, got: %v", test.err, err)
 				}
 			}
-			// test uniqueness and fifo.
 			if test.shouldAddHooks {
-				// append the first webhook
 				hooks = append(hooks, hook)
-				// receive and append the "second" webhook
+				// retrieve the second webhook.
 				h, err := QWorkerRepo.GetEvent(ctx)
 				if err != nil {
 					t.Fatalf("unexpected database error: %v", err)
 				}
 				hooks = append(hooks, h)
-				// webhooks must not be the same
+				// webhooks must not be the same.
 				if hooks[0].ID == hooks[1].ID {
-					t.Fatalf("expected webhook IDs to be different. Received different IDs")
+					t.Fatalf("expected different webhook IDs, got same ID: %s", hooks[0].ID)
 				}
-				// first queried webhook must be older than second
-				if !hooks[0].CreatedAt.Before(hooks[1].CreatedAt) {
-					t.Fatalf("expected first webhook to be older than second webhook")
+				// queue worker orders by received_at ASC. If it is equal then ID is the tie breaker.
+				if hooks[0].ReceivedAt.After(hooks[1].ReceivedAt) {
+					t.Fatalf("expected first webhook to have older or equal received_at than second")
+				}
+				if hooks[0].ReceivedAt.Equal(hooks[1].ReceivedAt) && hooks[0].ID.String() > hooks[1].ID.String() {
+					t.Fatalf("expected first webhook ID to be less than second when received_at is equal")
 				}
 			}
 			afterEach(t)
@@ -97,7 +98,7 @@ func TestRetryWorkerRepo(t *testing.T) {
 			insertStripeConfig(t)
 			var hooks []*providers.Webhook
 			if test.shouldAddHooks {
-				// Insert two webhooks into the database
+				// insert two webhooks into the database.
 				for range 2 {
 					url := "http://localhost:8080/api/webhooks/stripe"
 					r := httptest.NewRequest("POST", url, bytes.NewBuffer(validPayload))
@@ -109,12 +110,10 @@ func TestRetryWorkerRepo(t *testing.T) {
 						t.Fatalf("handler call failed: %d", w.Result().StatusCode)
 					}
 				}
-			}
-			// update the status of both webhooks to retrying
-			if test.shouldAddHooks {
+				// mark all inserted webhooks as retrying.
 				setAllAsRetry(t)
 			}
-			// retrieve the "first" webhook
+			// retrieve the first webhook most overdue by next_retry_at.
 			hook, err := RWorkerRepo.GetEvent(ctx)
 			if test.shouldAddHooks {
 				if err != nil {
@@ -125,23 +124,23 @@ func TestRetryWorkerRepo(t *testing.T) {
 					t.Fatalf("expected error: %v, got: %v", test.err, err)
 				}
 			}
-			// test uniqueness and ordering
 			if test.shouldAddHooks {
-				// append the first webhook
 				hooks = append(hooks, hook)
-				// receive and append the "second webhook"
+				// retrieve the second webhook.
 				h, err := RWorkerRepo.GetEvent(ctx)
 				if err != nil {
 					t.Fatalf("unexpected database error: %v", err)
 				}
 				hooks = append(hooks, h)
-				// webhooks must not be the same
+				// webhooks must not be the same.
 				if hooks[0].ID == hooks[1].ID {
-					t.Fatalf("expected webhook IDs to be different. Recevied same IDs")
+					t.Fatalf("expected different webhook IDs, got same ID: %s", hooks[0].ID)
 				}
-				// first queried webhook must be older than second
-				if hooks[0].CreatedAt.After(hooks[1].CreatedAt) {
-					t.Fatalf("expected first webhook to be retried after second")
+				// retry worker orders by next_retry_at ASC first must not be after second.
+				if hooks[0].NextRetryAt != nil && hooks[1].NextRetryAt != nil {
+					if hooks[0].NextRetryAt.After(*hooks[1].NextRetryAt) {
+						t.Fatalf("expected first webhook next_retry_at to be before or equal to second")
+					}
 				}
 			}
 			afterEach(t)
