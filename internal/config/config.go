@@ -55,6 +55,8 @@ type Config struct {
 	MaxRetries int
 	// RetryIntervalSeconds is the number of seconds a previously failed webhook must be awaited before another forwarding attempt.
 	RetryIntervalSeconds int
+	// FORWARD_TIMEOUT_SECONDS is the max number of seconds a webhook request should take when being forwarded to the destination url.
+	ForwardTimeoutSeconds int
 	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
 	MaxRequestTime int
 	// MasterKey is the AES secret used to handle signing key encryption for providers.
@@ -87,6 +89,7 @@ func initConfig() Config {
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
 		MaxRetries:             getEnvInt("MAX_RETRIES"),
 		RetryIntervalSeconds:   getEnvInt("RETRY_INTERVAL_SECONDS"),
+		ForwardTimeoutSeconds:  getEnvInt("FORWARD_TIMEOUT_SECONDS"),
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		MasterKey:              getEnvString("MASTER_KEY"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
