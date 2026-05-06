@@ -5,6 +5,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -54,6 +55,17 @@ func (r *QueueWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, err
 		return nil, err
 	}
 	return &hook, tx.Commit(ctx)
+}
+
+// GetDestinationURL queries the database for the destination_url of the provider with the provided ID
+func (r *QueueWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error) {
+	query := `SELECT destination_url FROM providers WHERE id = $1`
+	var url string
+	err := r.db.QueryRow(ctx, query, provID).Scan(&url)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 // UpdateEventStatus updates the necessary values of the provided webhook event.
@@ -122,6 +134,17 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, err
 		return nil, err
 	}
 	return &hook, tx.Commit(ctx)
+}
+
+// GetDestinationURL queries the database for the destination_url of the provider with the provided ID
+func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error) {
+	query := `SELECT destination_url FROM providers WHERE id = $1`
+	var url string
+	err := r.db.QueryRow(ctx, query, provID).Scan(&url)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 // UpdateEventStatus updates the necessary values of the provided webhook event.
