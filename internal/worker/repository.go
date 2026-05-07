@@ -76,7 +76,7 @@ func (r *QueueWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, evt *providers.Webhook) (*providers.Webhook, error) {
+func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
 	query := `
 		UPDATE webhook_events
 		SET
@@ -88,7 +88,7 @@ func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, evt *providers.
 		RETURNING *`
 
 	var hook providers.Webhook
-	err := r.db.QueryRow(ctx, query, evt.NextRetryAt, evt.DeliveryStatus, evt.ResponseCode, evt.LastError, evt.ID).Scan(
+	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
 		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
@@ -155,7 +155,7 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *RetryWorkerRepo) UpdateEventStatus(ctx context.Context, evt *providers.Webhook) (*providers.Webhook, error) {
+func (r *RetryWorkerRepo) UpdateEventStatus(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
 	query := `
 		UPDATE webhook_events
 		SET
@@ -166,7 +166,7 @@ func (r *RetryWorkerRepo) UpdateEventStatus(ctx context.Context, evt *providers.
 		WHERE id = $5
 		RETURNING *`
 	var hook providers.Webhook
-	err := r.db.QueryRow(ctx, query, evt.NextRetryAt, evt.DeliveryStatus, evt.ResponseCode, evt.LastError, evt.ID).Scan(
+	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
 		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
