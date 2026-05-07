@@ -2,25 +2,22 @@ package worker
 
 import (
 	"context"
+	"time"
 
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 )
 
-// worker interface represents an asynchronous goroutine worker. Responsible for handling webhook events.
-type worker interface {
-	// Run kicks off the Worker to begin working on webhooks.
-	Run(ctx context.Context) error
-	// QueryLatest retrieves the latest webhook event required for processing.
-	QueryLatest(context.Context) (*providers.Webhook, error)
-	// ForwardEvent attempts to forward the received webhook event to its destination.
-	ForwardEvent(context.Context, *providers.Webhook) (*providers.Webhook, error)
-	// UpdateEvent updates the received events data in the database.
-	UpdateEvent(ctx context.Context, event *providers.Webhook) (*providers.Webhook, error)
-	// Send pushes the received updated event to the frontend via the sse pipeline.
-	Send(ctx context.Context, event *providers.Webhook) error
+// updateWebhook is a struct representing all the necessary fields that may be used to update a webhook following a forwarding attempt.
+type updateWebhook struct {
+	id             uuid.UUID
+	nextRetryAt    *time.Time
+	deliveryStatus providers.DeliveryStatus
+	responseCode   *int
+	lastError      *string
 }
 
 // WorkerRepository interface represents a repository
@@ -28,24 +25,17 @@ type worker interface {
 type WorkerRepository interface {
 	// GetEvent queries the database for the next event in the queue.
 	GetEvent(ctx context.Context) (*providers.Webhook, error)
-	// UpdateEventStatus updates the necessary values of the provided webhook event.
-	UpdateEventStatus(ctx context.Context, event UpdateEvent) (*providers.Webhook, error)
+	// GetDestinationURL queries the database for the destination_url of the provider with the provided ID.
+	GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error)
+	// UpdateEvent updates the necessary values of the provided webhook event.
+	UpdateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error)
 }
 
-// QueueWorker struct is responsible for processing events that are queued.
-type QueueWorker struct {
-	interval int
-	evt      *providers.Webhook
-	svc      *events.EventService
-	repo     *WorkerRepository
-}
-
-// RetryWorker struct is responsible for processing events that have failed.
-type RetryWorker struct {
-	interval int
-	evt      *providers.Webhook
-	svc      *events.EventService
-	repo     *WorkerRepository
+// Worker struct is responsible for processing all webhook events that are stored in the database.
+type Worker struct {
+	sse    *events.EventService
+	repo   WorkerRepository
+	logger *zerolog.Logger
 }
 
 // QueueWorkerRepo struct is responsible for processing events that are queued.
@@ -60,16 +50,4 @@ type QueueWorkerRepo struct {
 // Implementing the WorkerRepository interface
 type RetryWorkerRepo struct {
 	db *pgxpool.Pool
-}
-
-// UpdateEvent provides all the fields necessary to update a webhook in the database.
-type UpdateEvent struct {
-	// Webhook ID
-	ID uuid.UUID
-	// Webhook Delivery Status Enum
-	DeliveryStatus providers.DeliveryStatus
-	// Webhook Forwarded To Response Code
-	ResponseCode *int
-	// Webhook Last Error Message (NULLABLE)
-	LastError *string
 }
