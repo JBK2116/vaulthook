@@ -68,7 +68,7 @@ func (r *QueueWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 	return url, nil
 }
 
-// UpdateEventStatus updates the necessary values of the provided webhook event.
+// UpdateEvent updates the necessary values of the provided webhook event.
 //
 // Updated values include
 //
@@ -76,7 +76,7 @@ func (r *QueueWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *QueueWorkerRepo) UpdateEventStatus(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
+func (r *QueueWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
 	query := `
 		UPDATE webhook_events
 		SET
@@ -147,7 +147,7 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 	return url, nil
 }
 
-// UpdateEventStatus updates the necessary values of the provided webhook event.
+// UpdateEvent updates the necessary values of the provided webhook event.
 //
 // Updated values include
 //
@@ -155,7 +155,7 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *RetryWorkerRepo) UpdateEventStatus(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
+func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
 	query := `
 		UPDATE webhook_events
 		SET
