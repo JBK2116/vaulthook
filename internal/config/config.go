@@ -51,14 +51,18 @@ type Config struct {
 	ThrottleMaxBacklog int
 	// ThrottleBacklogTimeout is the number of seconds a queued request may wait before timing out.
 	ThrottleBacklogTimeout int
+	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
+	MaxRequestTime int
 	// MaxRetries is the max number of times a webhook can be forwarded upon failure before giving up.
 	MaxRetries int
 	// RetryIntervalSeconds is the number of seconds a previously failed webhook must be awaited before another forwarding attempt.
 	RetryIntervalSeconds int
 	// FORWARD_TIMEOUT_SECONDS is the max number of seconds a webhook request should take when being forwarded to the destination url.
 	ForwardTimeoutSeconds int
-	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
-	MaxRequestTime int
+	// TotalQueueWorkers is the max number of queue workers that may be processing webhooks on first forwarding attempt.
+	TotalQueueWorkers int
+	// TotalRetryWorkers is the max number of queue workers that may be processing webhooks that have previously failed a forwarding attempt.
+	TotalRetryWorkers int
 	// MasterKey is the AES secret used to handle signing key encryption for providers.
 	MasterKey string
 	// IsDevelopment indicates whether the application is running in a development environment.
@@ -87,10 +91,12 @@ func initConfig() Config {
 		ThrottleMaxConcurrent:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
 		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
+		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		MaxRetries:             getEnvInt("MAX_RETRIES"),
 		RetryIntervalSeconds:   getEnvInt("RETRY_INTERVAL_SECONDS"),
 		ForwardTimeoutSeconds:  getEnvInt("FORWARD_TIMEOUT_SECONDS"),
-		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
+		TotalQueueWorkers:      getEnvInt("TOTAL_QUEUE_WORKERS"),
+		TotalRetryWorkers:      getEnvInt("TOTAL_RETRY_WORKERS"),
 		MasterKey:              getEnvString("MASTER_KEY"),
 		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
 	}
