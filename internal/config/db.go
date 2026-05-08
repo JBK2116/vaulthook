@@ -1,15 +1,10 @@
-// Package db manages the application's database connection pool.
-//
-// It handles pool initialization and exposes a postgres instance
-// that is passed throughout the application.
-package db
+package config
 
 import (
 	"context"
 	"fmt"
 	"sync"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -34,12 +29,12 @@ var (
 // be created, an error is returned and pgInstance remains nil.
 func NewPG(ctx context.Context) (*postgres, error) {
 	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s",
-		config.Envs.DBType,
-		config.Envs.DBUser,
-		config.Envs.DBPassword,
-		config.Envs.DBHost,
-		config.Envs.DBPort,
-		config.Envs.DBName,
+		Envs.DBType,
+		Envs.DBUser,
+		Envs.DBPassword,
+		Envs.DBHost,
+		Envs.DBPort,
+		Envs.DBName,
 	)
 	var err error
 	pgOnce.Do(func() {

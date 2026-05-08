@@ -15,9 +15,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
-	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
@@ -58,12 +56,12 @@ func TestMain(m *testing.M) {
 	}
 	config.Init()
 	ctx := context.Background()
-	db, err := db.NewPG(ctx)
+	db, err := config.NewPG(ctx)
 	if err != nil {
 		panic(err)
 	}
 	testDB = db.DB
-	l, err := logger.NewLogger()
+	l, err := config.NewLogger()
 	if err != nil {
 		panic(err)
 	}

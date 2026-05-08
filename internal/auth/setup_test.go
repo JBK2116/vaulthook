@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/config"
-	"github.com/JBK2116/vaulthook/internal/db"
-	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -25,12 +23,12 @@ func TestMain(m *testing.M) {
 	}
 	config.Init()
 	ctx := context.Background()
-	db, err := db.NewPG(ctx)
+	db, err := config.NewPG(ctx)
 	if err != nil {
 		panic(err)
 	}
 	testDB = db.DB
-	l, err := logger.NewLogger()
+	l, err := config.NewLogger()
 	if err != nil {
 		panic(err)
 	}

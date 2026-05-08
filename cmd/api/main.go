@@ -12,9 +12,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/api/handler"
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
-	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/logger"
 	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
@@ -38,7 +36,7 @@ func main() {
 	// Initialize and verify the database connection pool.
 	ctxDB, cancelDB := context.WithTimeout(ctx, time.Second*10)
 	defer cancelDB()
-	db, err := db.NewPG(ctxDB)
+	db, err := config.NewPG(ctxDB)
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +44,7 @@ func main() {
 		panic(err)
 	}
 	// Initialize the application-wide logger.
-	logger, err := logger.NewLogger()
+	logger, err := config.NewLogger()
 	if err != nil {
 		panic(err)
 	}

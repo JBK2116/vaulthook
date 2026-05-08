@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/JBK2116/vaulthook/internal/config"
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
-	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	stripeProvider "github.com/JBK2116/vaulthook/internal/providers/stripe"
@@ -65,7 +65,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if errors.As(err, &db.PgErr) {
+		if errors.As(err, &config.PgErr) {
 			h.logger.Error().Err(err).Msg("database error validating webhook")
 			w.WriteHeader(http.StatusInternalServerError)
 			return

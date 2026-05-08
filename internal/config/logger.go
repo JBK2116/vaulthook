@@ -1,9 +1,4 @@
-// Package logger configures and exposes the application-wide structured logger.
-//
-// The logger is initialized once and passed throughout the application.
-// It is backed by zerolog with console output, structured timestamps,
-// and stack trace support for error reporting.
-package logger
+package config
 
 import (
 	"fmt"
@@ -13,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 )
@@ -57,7 +51,7 @@ func NewLogger() (*zerolog.Logger, error) {
 				break
 			}
 		}
-		logger = zerolog.New(output).Level(zerolog.Level(config.Envs.LogLevel)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
+		logger = zerolog.New(output).Level(zerolog.Level(Envs.LogLevel)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
 	})
 	return &logger, err
 }
