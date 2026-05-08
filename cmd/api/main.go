@@ -13,7 +13,6 @@ import (
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
@@ -83,12 +82,12 @@ func main() {
 		stripeHandler.RegisterRoutes(r)
 		// Protected routes.
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Jwt(authService))
+			r.Use(auth.Jwt(authService))
 			providerHandler.RegisterRoutes(r)
 			eventHandler.RegisterRoutes(r)
 		})
 	})
-	r.With(middleware.Jwt(authService)).
+	r.With(auth.Jwt(authService)).
 		Get("/api/events/stream", eventHandler.SSE)
 	// Start the HTTP server.
 	err = http.ListenAndServe(":8080", r)

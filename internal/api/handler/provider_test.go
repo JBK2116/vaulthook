@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/config"
-	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -42,7 +42,7 @@ func TestGetAll(t *testing.T) {
 				}
 				r.AddCookie(&cookie)
 			}
-			h := middleware.Jwt(testAuthService)(http.HandlerFunc(testProviderHandler.getAll))
+			h := auth.Jwt(testAuthService)(http.HandlerFunc(testProviderHandler.getAll))
 			h.ServeHTTP(w, r)
 			res := w.Result()
 			if res.StatusCode != test.statusCode {
@@ -95,7 +95,7 @@ func TestConfigureHandler(t *testing.T) {
 				}
 				r.AddCookie(&cookie)
 			}
-			h := middleware.Jwt(testAuthService)(http.HandlerFunc(testProviderHandler.configure))
+			h := auth.Jwt(testAuthService)(http.HandlerFunc(testProviderHandler.configure))
 			h.ServeHTTP(w, r)
 			res := w.Result()
 			if res.StatusCode != test.statusCode {
