@@ -2,8 +2,10 @@ package events
 
 import (
 	"context"
+	"time"
 
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,9 +22,24 @@ func NewEventRepo(db *pgxpool.Pool) *EventRepo {
 }
 
 // getAll retreives all webhook events from the database.
-func (r *EventRepo) getAll(ctx context.Context) ([]model.Webhook, error) {
-	query := `SELECT * FROM webhook_events`
-	rows, err := r.db.Query(ctx, query)
+func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
+	var query string
+	var rows pgx.Rows
+	var err error
+	if createdAt != nil {
+		query = `
+            SELECT * FROM webhook_events
+            WHERE created_at < $1
+            ORDER BY created_at DESC
+            LIMIT 50`
+		rows, err = r.db.Query(ctx, query, createdAt)
+	} else {
+		query = `
+            SELECT * FROM webhook_events
+            ORDER BY created_at DESC
+            LIMIT 50`
+		rows, err = r.db.Query(ctx, query)
+	}
 	if err != nil {
 		return nil, err
 	}

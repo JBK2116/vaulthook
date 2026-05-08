@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/rs/zerolog"
@@ -53,8 +54,8 @@ func (s *EventService) Send(event model.Webhook) {
 }
 
 // GetAll returns all the webhook events stored in the database.
-func (s *EventService) GetAll(ctx context.Context) ([]model.Webhook, error) {
-	events, err := s.repo.getAll(ctx)
+func (s *EventService) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
+	events, err := s.repo.getAll(ctx, createdAt)
 	if err != nil {
 		return nil, err
 	}

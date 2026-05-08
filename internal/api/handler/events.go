@@ -101,7 +101,16 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	events, err := h.service.GetAll(ctx)
+	var cursor *time.Time
+	if c := r.URL.Query().Get("cursor"); c != "" {
+		t, err := time.Parse(time.RFC3339Nano, c)
+		if err != nil {
+			http.Error(w, "invalid cursor", http.StatusBadRequest)
+			return
+		}
+		cursor = &t
+	}
+	events, err := h.service.GetAll(ctx, cursor)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("error retrieving all webhook events from the database")
 		w.WriteHeader(http.StatusInternalServerError)
