@@ -20,7 +20,7 @@ type WorkerPool struct {
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration
 func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *WorkerPool {
-	signal := make(chan struct{}, 1)
+	signal := make(chan struct{}, config.Envs.TotalQueueWorkers)
 	queueWorkers := make([]*Worker, config.Envs.TotalQueueWorkers)
 	retryWorkers := make([]*Worker, config.Envs.TotalRetryWorkers)
 	// initialize the repo for the workers

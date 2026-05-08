@@ -21,6 +21,7 @@ type Worker struct {
 	sse    *events.EventService
 	repo   WorkerRepository
 	logger *zerolog.Logger
+	client *http.Client
 }
 
 var (
@@ -34,6 +35,11 @@ func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 		sse:    svc,
 		repo:   repo,
 		logger: logger,
+		client: &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns: 5,
+			},
+		},
 	}
 }
 
@@ -140,7 +146,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 		}
 	}
 	// payload and headers are set
-	res, err := http.DefaultClient.Do(req)
+	res, err := w.client.Do(req)
 	if err != nil {
 		// err only contains transport level errors
 		setDefaultUpdateValues(err.Error(), &updates)

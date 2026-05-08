@@ -220,3 +220,14 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+// Simple CURLS to copy and paste for testing manually
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"500"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"503"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"429"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"400"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"timeout"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"slow"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"drop"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"flaky"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"success"}'
