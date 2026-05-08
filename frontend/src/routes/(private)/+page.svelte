@@ -26,6 +26,11 @@
     let totalQueuedEvents = $derived(functions.getTotalQueuedEvents(events));
     let totalFailedEvents = $derived(functions.getTotalFailedEvents(events));
 
+    // Event loading
+    let cursor: string | null = $state(null);
+    let hasMore: boolean = $state(true);
+    let loadingMore: boolean = $state(false);
+
     // Connection State
     let connState: ConnState = $state(ConnState.Connecting);
 
@@ -54,9 +59,7 @@
         (async () => {
             try {
                 // load all events first
-                const res = await fetch('/api/events', { credentials: 'include' });
-                if (!res.ok) throw new Error('Failed to load events');
-                events = (await res.json()) ?? [];
+                await loadEvents();
                 // sse logic
                 toast.info('Connecting ...', { position: 'top-center' });
                 es = new EventSource('/api/events/stream', { withCredentials: true });
@@ -105,6 +108,57 @@
         })();
         return () => es?.close();
     });
+
+    // helper function for fetching webhook events
+    async function loadEvents(cur: string | null = null): Promise<void> {
+        try {
+            const url = cur ? `/api/events?cursor=${cur}` : '/api/events';
+            const res = await fetch(url, { method: 'GET', credentials: 'include' });
+            if (!res.ok && res.status !== 401) {
+                throw new Error('Failed to load events');
+            }
+            if (!res.ok) {
+                const ok = await reAuthenticate();
+                if (!ok) {
+                    goto('/login');
+                }
+            }
+            const data: WebHookEvent[] = (await res.json()) ?? [];
+            events = cur ? [...events, ...data] : data;
+            hasMore = data.length === 50;
+            if (data.length > 0) {
+                cursor = data[data.length - 1].created_at;
+            }
+        } catch (err: any) {
+            toast.error('Failed to load events', { position: 'top-center' });
+        }
+    }
+
+    // helper function to fetch more webhook events according to the user's position in the EventTable
+    async function loadMore(): Promise<void> {
+        if (!hasMore || loadingMore) {
+            return;
+        }
+        loadingMore = true;
+        try {
+            await loadEvents(cursor);
+        } catch (err: any) {
+            toast.error('Failed to load more webhooks', { position: 'top-center' });
+        } finally {
+            loadingMore = false;
+        }
+    }
+
+    // helper function to reauthenticate user
+    async function reAuthenticate(): Promise<boolean> {
+        try {
+            const url = '/api/refresh';
+            const res = await fetch(url, { method: 'POST', credentials: 'include' });
+            return res.ok;
+        } catch (err: any) {
+            return false;
+        }
+    }
 </script>
 
 <Navbar></Navbar>
@@ -144,7 +198,7 @@
         </div>
         <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
             <div class="basis-full md:basis-2/3 h-full overflow-auto border-r border-border">
-                <EventTable bind:currentSelectedEvent {displayedEvents}></EventTable>
+                <EventTable bind:currentSelectedEvent {displayedEvents} {loadMore} {loadingMore} />
             </div>
             <div class="hidden md:block md:basis-1/3 h-full overflow-auto">
                 <Sidebar {currentSelectedEvent}></Sidebar>

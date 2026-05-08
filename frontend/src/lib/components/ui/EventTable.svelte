@@ -2,13 +2,30 @@
     import * as Table from '$lib/components/ui/table/index.js';
     import * as functions from '$lib/utils/functions';
     import type { WebHookEvent } from '$lib/utils/types';
+    import { onMount } from 'svelte';
 
     interface Props {
         currentSelectedEvent: WebHookEvent | null;
         displayedEvents: WebHookEvent[];
+        loadMore: () => Promise<void>;
+        loadingMore: boolean;
     }
-    let { currentSelectedEvent = $bindable(), displayedEvents }: Props = $props();
+    let {
+        currentSelectedEvent = $bindable(),
+        displayedEvents,
+        loadMore,
+        loadingMore,
+    }: Props = $props();
     let userTimeZone: string = $derived(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    let sentinel: HTMLDivElement;
+
+    onMount(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !loadingMore) loadMore();
+        });
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    });
 </script>
 
 <Table.Root class="w-full">
@@ -65,3 +82,7 @@
         {/each}
     </Table.Body>
 </Table.Root>
+<div bind:this={sentinel} class="h-1"></div>
+{#if loadingMore}
+    <div class="text-muted-foreground py-2 text-center text-xs">Loading...</div>
+{/if}
