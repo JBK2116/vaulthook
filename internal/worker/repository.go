@@ -69,21 +69,15 @@ func (r *QueueWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) 
 	}()
 	// id is the tie breaker to selecting events from the db, when they were added sequentially quick
 	query := `
-		UPDATE webhook_events
-		SET delivery_status = 'processing'
-		WHERE id = (
-			SELECT id FROM webhook_events
-			WHERE
-				delivery_status = 'queued'
-				OR (
-					delivery_status = 'processing'
-					AND updated_at < NOW() - INTERVAL '1 minute'
-				)
-			ORDER BY received_at ASC, id ASC
-			LIMIT 1
-			FOR UPDATE SKIP LOCKED
-		) RETURNING *
-	`
+        UPDATE webhook_events
+        SET delivery_status = 'processing'
+        WHERE id = (
+            SELECT id FROM webhook_events
+            WHERE delivery_status = 'queued'
+            ORDER BY received_at ASC, id ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        ) RETURNING *`
 	var hook model.Webhook
 	err = tx.QueryRow(ctx, query).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
@@ -152,7 +146,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) 
 	// id is the tie breaker here if next_retry_at is equal between events
 	query := `
 	UPDATE webhook_events
-	SET delivery_status = 'processing'
+	SET delivery_status = 'retrying'
 	WHERE id = (
 		SELECT id FROM webhook_events
 		WHERE
@@ -162,7 +156,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) 
 				AND retry_count < $1
 			)
 			OR (
-				delivery_status = 'processing'
+				(delivery_status = 'processing' OR delivery_status = 'queued')
 				AND updated_at < NOW() - INTERVAL '1 minute'
 			)
 		ORDER BY next_retry_at ASC, id ASC
@@ -204,15 +198,14 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	last_error
 func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	query := `
-	UPDATE webhook_events
-	SET
-		next_retry_at   = $1,
-		delivery_status = $2,
-		response_code   = $3,
-		last_error      = $4,
-		retry_count     = retry_count + 1
-	WHERE id = $5
-	RETURNING *`
+        UPDATE webhook_events
+        SET
+            next_retry_at   = $1,
+            delivery_status = $2,
+            response_code   = $3,
+            last_error      = $4
+        WHERE id = $5
+        RETURNING *`
 	var hook model.Webhook
 	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,

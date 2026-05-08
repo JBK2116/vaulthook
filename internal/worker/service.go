@@ -36,8 +36,10 @@ func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 		repo:   repo,
 		logger: logger,
 		client: &http.Client{
+			Timeout: time.Second * 10,
 			Transport: &http.Transport{
-				MaxIdleConns: 5,
+				MaxIdleConns:    100,
+				IdleConnTimeout: 90 * time.Second,
 			},
 		},
 	}
@@ -77,11 +79,11 @@ func (w *Worker) startRetry(ctx context.Context) {
 // run kicks off the Worker to begin working on webhooks.
 func (w *Worker) run(ctx context.Context) {
 	for {
-		timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*8)
 		// get the next webhook for processing
-		hook, err := w.getNext(timeoutCtx)
+		getCtx, cancelGet := context.WithTimeout(ctx, 5*time.Second)
+		hook, err := w.getNext(getCtx)
+		cancelGet()
 		if err != nil {
-			cancel()
 			if errors.Is(err, ErrNoHooksToWork) {
 				break
 			}
@@ -89,20 +91,22 @@ func (w *Worker) run(ctx context.Context) {
 			break
 		}
 		// forwarding attempt (updates is valid for use even if error is not nil)
-		updates, err := w.forwardEvent(timeoutCtx, hook)
+		fwdCtx, cancelFwd := context.WithTimeout(ctx, 10*time.Second)
+		updates, err := w.forwardEvent(fwdCtx, hook)
+		cancelFwd()
 		if err != nil {
 			w.logger.Error().Stack().Err(err).Msg("error occurred when forwarding webhook")
 		}
 		// update the webhook accordingly after the forwarding attempt
-		hook, err = w.updateEvent(timeoutCtx, updates)
+		updCtx, cancelUpd := context.WithTimeout(ctx, 5*time.Second)
+		hook, err = w.updateEvent(updCtx, updates)
+		cancelUpd()
 		if err != nil {
 			w.logger.Error().Stack().Err(err).Msg("error occurred when updating webhook")
-			cancel()
 			continue
 		}
 		// send the updated webhook to the frontend
 		w.send(hook)
-		cancel()
 	}
 }
 
