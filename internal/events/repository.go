@@ -31,13 +31,13 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
             SELECT * FROM webhook_events
             WHERE created_at < $1
             ORDER BY created_at DESC
-            LIMIT 50`
+            LIMIT 5`
 		rows, err = r.db.Query(ctx, query, createdAt)
 	} else {
 		query = `
             SELECT * FROM webhook_events
             ORDER BY created_at DESC
-            LIMIT 50`
+            LIMIT 25`
 		rows, err = r.db.Query(ctx, query)
 	}
 	if err != nil {
@@ -47,7 +47,7 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 	var hooks []model.Webhook
 	for rows.Next() {
 		var w model.Webhook
-		err := rows.Scan(
+		err = rows.Scan(
 			&w.ID, &w.ProviderID, &w.Provider, &w.EventID,
 			&w.EventType, &w.Headers, &w.Payload, &w.DeliveryStatus,
 			&w.ForwardedTo, &w.ResponseCode, &w.RetryCount, &w.NextRetryAt,

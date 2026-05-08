@@ -90,6 +90,15 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	h.eventService.Send(stripeWebhook)
 	// alert the workers to begin processing
 	h.workerPool.Notify()
+	// send a response back to stripe
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // Explicitly set 200
+	if err := json.NewEncoder(w).Encode(map[string]string{
+		"status": "queued",
+		"id":     event.ID,
+	}); err != nil {
+		h.logger.Error().Stack().Err(err).Msg("error encoding response to stripe")
+	}
 }
 
 // RegisterRoutes mounts the stripe endpoints onto the provided router.
