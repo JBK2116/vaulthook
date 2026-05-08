@@ -12,8 +12,9 @@ import (
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/model"
 	stripeProvider "github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 )
@@ -28,14 +29,16 @@ type StripeHandler struct {
 	logger       *zerolog.Logger
 	service      *stripeProvider.StripeService
 	eventService *events.EventService
+	workerPool   *worker.WorkerPool
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService) *StripeHandler {
+func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService, workerPool *worker.WorkerPool) *StripeHandler {
 	return &StripeHandler{
 		logger:       logger,
 		service:      service,
 		eventService: eventService,
+		workerPool:   workerPool,
 	}
 }
 
@@ -58,7 +61,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error().Err(err).Msg("failed to validate stripe webhook secret")
 		if errors.Is(err, crypto.ErrDecryption) {
-			h.logger.Error().Err(err).Msg(fmt.Sprintf("failed to decrypt signing key for provider: %s", providers.Stripe))
+			h.logger.Error().Err(err).Msg(fmt.Sprintf("failed to decrypt signing key for provider: %s", model.Stripe))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -83,8 +86,10 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	// notify the frontend
 	h.eventService.Send(stripeWebhook)
-	w.WriteHeader(http.StatusOK)
+	// alert the workers to begin processing
+	h.workerPool.Notify()
 }
 
 // RegisterRoutes mounts the stripe endpoints onto the provided router.

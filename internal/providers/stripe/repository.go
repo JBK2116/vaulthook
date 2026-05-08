@@ -3,7 +3,7 @@ package stripe
 import (
 	"context"
 
-	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,7 +32,7 @@ func (r *StripeRepo) getSigningKey(ctx context.Context, provider string) (string
 
 // insertWebhook saves a webhook to the database and returns the stored record.
 // Fields not provided (e.g., ID, status, timestamps) are set by the database.
-func (r *StripeRepo) insertWebhook(ctx context.Context, p providers.CreateWebhookParams) (providers.Webhook, error) {
+func (r *StripeRepo) insertWebhook(ctx context.Context, p model.CreateWebhookParams) (model.Webhook, error) {
 	query := `
 	INSERT INTO webhook_events (provider_id, provider, event_id, event_type, headers, payload, forwarded_to, received_at)
 	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
@@ -41,7 +41,7 @@ func (r *StripeRepo) insertWebhook(ctx context.Context, p providers.CreateWebhoo
 	          next_retry_at, last_error, received_at, created_at, updated_at
 	`
 
-	var w providers.Webhook
+	var w model.Webhook
 	err := r.db.QueryRow(ctx, query,
 		p.ProviderID, p.Provider, p.EventID, p.EventType,
 		p.Headers, p.Payload, p.ForwardedTo, p.ReceivedAt,
@@ -52,7 +52,7 @@ func (r *StripeRepo) insertWebhook(ctx context.Context, p providers.CreateWebhoo
 		&w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
 	)
 	if err != nil {
-		return providers.Webhook{}, err
+		return model.Webhook{}, err
 	}
 
 	return w, nil

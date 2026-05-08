@@ -11,10 +11,17 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 )
+
+// Worker struct is responsible for processing all webhook events that are stored in the database.
+type Worker struct {
+	sse    *events.EventService
+	repo   WorkerRepository
+	logger *zerolog.Logger
+}
 
 var (
 	ErrNoHooksToWork = errors.New("no webhooks to work at the moment")
@@ -79,7 +86,7 @@ func (w *Worker) run(ctx context.Context) {
 }
 
 // getNext retrieves the next appropriate webhook event required for processing.
-func (w *Worker) getNext(ctx context.Context) (*providers.Webhook, error) {
+func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 	evt, err := w.repo.GetEvent(ctx)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -92,7 +99,7 @@ func (w *Worker) getNext(ctx context.Context) (*providers.Webhook, error) {
 }
 
 // forwardEvent attempts to forward the webhook event to it's destination url.
-func (w *Worker) forwardEvent(ctx context.Context, hook *providers.Webhook) (updateWebhook, error) {
+func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateWebhook, error) {
 	// alert the frontend that processing has started for this webhook
 	w.sse.Send(*hook)
 	var updates updateWebhook
@@ -111,7 +118,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *providers.Webhook) (upd
 		return updates, err
 	}
 	// set provider specific values
-	if hook.Provider == string(providers.Stripe) {
+	if hook.Provider == string(model.Stripe) {
 		if err := setStripeHeaders(req, hook.Headers); err != nil {
 			setDefaultUpdateValues(err.Error(), &updates)
 			return updates, err
@@ -143,7 +150,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *providers.Webhook) (upd
 }
 
 // UpdateEvent updates the received events data in the database.
-func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
+func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	hook, err := w.repo.UpdateEvent(ctx, updates)
 	if err != nil {
 		return nil, err
@@ -152,7 +159,7 @@ func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*provi
 }
 
 // Send pushes the received updated event to the frontend via the sse pipeline.
-func (w *Worker) send(hook *providers.Webhook) {
+func (w *Worker) send(hook *model.Webhook) {
 	w.sse.Send(*hook)
 }
 
@@ -181,7 +188,7 @@ func setStripeHeaders(r *http.Request, headers []byte) error {
 // setDefaultUpdateValues configures the provided updateWebhook to standard values.
 func setDefaultUpdateValues(err string, updates *updateWebhook) {
 	nextRetry := (time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second))
-	updates.deliveryStatus = providers.DeliveryStatusFailed
+	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.lastError = &err
 	updates.nextRetryAt = &nextRetry
 	updates.responseCode = nil
@@ -189,7 +196,7 @@ func setDefaultUpdateValues(err string, updates *updateWebhook) {
 
 // setSuccessUpdateValues configures the update for a successful delivery (2xx).
 func setSuccessUpdateValues(code int, updates *updateWebhook) {
-	updates.deliveryStatus = providers.DeliveryStatusDelivered
+	updates.deliveryStatus = model.DeliveryStatusDelivered
 	updates.responseCode = &code
 	updates.lastError = nil
 	updates.nextRetryAt = nil
@@ -198,7 +205,7 @@ func setSuccessUpdateValues(code int, updates *updateWebhook) {
 // setFailureUpdateValues configures the update for non-retryable 4xx responses.
 // These require operator intervention, retrying will not resolve them.
 func setFailureUpdateValues(code int, err string, updates *updateWebhook) {
-	updates.deliveryStatus = providers.DeliveryStatusFailed
+	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code
 	updates.lastError = &err
 	updates.nextRetryAt = nil
@@ -208,7 +215,7 @@ func setFailureUpdateValues(code int, err string, updates *updateWebhook) {
 // The worker will retry after the configured interval.
 func setRetryableUpdateValues(code int, err string, updates *updateWebhook) {
 	nextRetry := time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
-	updates.deliveryStatus = providers.DeliveryStatusFailed
+	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code
 	updates.lastError = &err
 	updates.nextRetryAt = &nextRetry
@@ -223,7 +230,7 @@ func setRateLimitedUpdateValues(code int, err, retryAfter string, updates *updat
 	} else {
 		nextRetry = time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
 	}
-	updates.deliveryStatus = providers.DeliveryStatusFailed
+	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code
 	updates.lastError = &err
 	updates.nextRetryAt = &nextRetry

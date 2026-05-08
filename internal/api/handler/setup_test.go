@@ -18,8 +18,10 @@ import (
 	"github.com/JBK2116/vaulthook/internal/db"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/logger"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -36,6 +38,9 @@ var eventService *events.EventService
 var testAuthRepo *auth.RefreshTokenRepo
 var testAuthService *auth.AuthService
 var testAuthHandler *authHandler
+
+// WORKERS
+var workerPool *worker.WorkerPool
 
 // PROVIDERS
 var testProviderRepo *providers.ProviderRepo
@@ -68,6 +73,9 @@ func TestMain(m *testing.M) {
 	eventRepo = eventR
 	eventS := events.NewEventService(l, eventR)
 	eventService = eventS
+	// configure the worker variables
+	workerP := worker.NewWorkerPool(ctx, eventS, l, db.DB)
+	workerPool = workerP
 	// configure the auth variables
 	authR := auth.NewRefreshTokenRepo(testDB)
 	testAuthRepo = authR
@@ -87,7 +95,7 @@ func TestMain(m *testing.M) {
 	stripeRepo = stripeR
 	stripeS := stripe.NewStripeService(l, stripeR, providerR)
 	stripeService = stripeS
-	stripeH := NewStripeHandler(l, stripeS, eventS)
+	stripeH := NewStripeHandler(l, stripeS, eventS, workerPool)
 	stripeHandle = stripeH
 	// run the code
 	code := m.Run()
@@ -100,7 +108,7 @@ func beforeEach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reset tables: %v", err)
 	}
-	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", providers.Stripe)
+	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", model.Stripe)
 	if err != nil {
 		t.Fatalf("failed to reset tables :%v", err)
 	}
@@ -113,7 +121,7 @@ func afterEach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to cleanup tables: %v", err)
 	}
-	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", providers.Stripe)
+	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", model.Stripe)
 	if err != nil {
 		t.Fatalf("failed to reset tables :%v", err)
 	}
@@ -250,7 +258,7 @@ func insertStripeConfig(ctx context.Context, t *testing.T, forwardedTo string, s
 		t.Fatal(err)
 	}
 	query := `UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3`
-	if _, err := testDB.Exec(ctx, query, forwardedTo, encrypted, providers.Stripe); err != nil {
+	if _, err := testDB.Exec(ctx, query, forwardedTo, encrypted, model.Stripe); err != nil {
 		t.Fatal(err)
 	}
 }

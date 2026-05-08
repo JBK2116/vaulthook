@@ -18,6 +18,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/middleware"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
@@ -61,10 +62,14 @@ func main() {
 	eventRepo := events.NewEventRepo(db.DB)
 	eventService := events.NewEventService(logger, eventRepo)
 	eventHandler := handler.NewEventsHandler(logger, eventService)
+	// Wire worker dependencies.
+	ctxWorker, cancelCtxWorker := context.WithCancel(ctx)
+	defer cancelCtxWorker()
+	workerPool := worker.NewWorkerPool(ctxWorker, eventService, logger, db.DB)
 	// Wire stripe dependencies
 	stripeRepo := stripe.NewStripeRepo(db.DB)
 	stripeService := stripe.NewStripeService(logger, stripeRepo, providerRepo)
-	stripeHandler := handler.NewStripeHandler(logger, stripeService, eventService)
+	stripeHandler := handler.NewStripeHandler(logger, stripeService, eventService, workerPool)
 	// Configure the router with global middleware.
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)

@@ -1,4 +1,4 @@
-package providers
+package model
 
 import (
 	"encoding/json"
@@ -6,34 +6,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
-// ProviderName Enum represents the name of a provider in the database.
-type ProviderName string
-
-const (
-	Github ProviderName = "Github"
-	Stripe ProviderName = "Stripe"
-	SNS    ProviderName = "SNS"
-)
-
-// DeliveryStatus Enum represents the current delivery status of a webhook event.
-type DeliveryStatus string
-
-const (
-	DeliveryStatusQueued     DeliveryStatus = "queued"
-	DeliveryStatusProcessing DeliveryStatus = "processing"
-	DeliveryStatusDelivered  DeliveryStatus = "delivered"
-	DeliveryStatusRetrying   DeliveryStatus = "retrying"
-	DeliveryStatusFailed     DeliveryStatus = "failed"
-)
-
-// ProviderRouting represents the routing configuration for a webhook provider.
-// It contains the provider's unique identifier and the destination address
-// where incoming webhooks should be forwarded.
-type ProviderRouting struct {
-	ID          uuid.UUID
-	ForwardedTo string
-}
 
 // CreateWebhookParams contains only fields required to insert a webhook.
 type CreateWebhookParams struct {

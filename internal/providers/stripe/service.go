@@ -5,6 +5,7 @@ import (
 	"time"
 
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v85"
@@ -30,7 +31,7 @@ func NewStripeService(logger *zerolog.Logger, repo *StripeRepo, providerRepo *pr
 // ValidateSecret receives a stripe signature from the `Stripe-Signature` header and ensures that it matches the
 // secret key used for stripe endpoints.
 func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader string, payload []byte) (stripe.Event, error) {
-	endpointSecret, err := s.repo.getSigningKey(ctx, string(providers.Stripe))
+	endpointSecret, err := s.repo.getSigningKey(ctx, string(model.Stripe))
 	if err != nil {
 		return stripe.Event{}, err
 	}
@@ -50,14 +51,14 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 // parameters, and persists the webhook.
 //
 // Returns the stored webhook record or an error if any step fails.
-func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, event stripe.Event) (providers.Webhook, error) {
-	providerRouting, err := s.providerRepo.GetProviderRouting(ctx, string(providers.Stripe))
+func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, event stripe.Event) (model.Webhook, error) {
+	providerRouting, err := s.providerRepo.GetProviderRouting(ctx, string(model.Stripe))
 	if err != nil {
-		return providers.Webhook{}, err
+		return model.Webhook{}, err
 	}
-	params := providers.CreateWebhookParams{
+	params := model.CreateWebhookParams{
 		ProviderID:  providerRouting.ID,
-		Provider:    string(providers.Stripe),
+		Provider:    string(model.Stripe),
 		EventID:     &event.ID,
 		EventType:   string(event.Type),
 		Headers:     headers,
@@ -67,7 +68,7 @@ func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, paylo
 	}
 	stripeWebhook, err := s.repo.insertWebhook(ctx, params)
 	if err != nil {
-		return providers.Webhook{}, err
+		return model.Webhook{}, err
 	}
 	return stripeWebhook, nil
 

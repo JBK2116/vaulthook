@@ -2,12 +2,47 @@ package worker
 
 import (
 	"context"
+	"time"
 
 	"github.com/JBK2116/vaulthook/internal/config"
-	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// updateWebhook is a struct representing all the necessary fields that may be used to update a webhook following a forwarding attempt.
+type updateWebhook struct {
+	id             uuid.UUID
+	nextRetryAt    *time.Time
+	deliveryStatus model.DeliveryStatus
+	responseCode   *int
+	lastError      *string
+}
+
+// WorkerRepository interface represents a repository
+// that handles database events for webhooks.
+type WorkerRepository interface {
+	// GetEvent queries the database for the next event in the queue.
+	GetEvent(ctx context.Context) (*model.Webhook, error)
+	// GetDestinationURL queries the database for the destination_url of the provider with the provided ID.
+	GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error)
+	// UpdateEvent updates the necessary values of the provided webhook event.
+	UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error)
+}
+
+// QueueWorkerRepo struct is responsible for processing events that are queued.
+//
+// Implementing the WorkerRepository interface
+type QueueWorkerRepo struct {
+	db *pgxpool.Pool
+}
+
+// RetryWorkerRepo struct is responsible for processing events that need to be retried.
+//
+// Implementing the WorkerRepository interface
+type RetryWorkerRepo struct {
+	db *pgxpool.Pool
+}
 
 // NewQueueWorkerRepo returns a WorkerRepo backed by the provided database connection.
 func NewQueueWorkerRepo(db *pgxpool.Pool) WorkerRepository {
@@ -24,7 +59,7 @@ func NewRetryWorkerRepo(db *pgxpool.Pool) WorkerRepository {
 }
 
 // GetEvent safely queries the database for the next event in the queue.
-func (r *QueueWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, error) {
+func (r *QueueWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -49,7 +84,7 @@ func (r *QueueWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, err
 			FOR UPDATE SKIP LOCKED
 		) RETURNING *
 	`
-	var hook providers.Webhook
+	var hook model.Webhook
 	err = tx.QueryRow(ctx, query).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
@@ -81,7 +116,7 @@ func (r *QueueWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *QueueWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
+func (r *QueueWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	query := `
 		UPDATE webhook_events
 		SET
@@ -92,7 +127,7 @@ func (r *QueueWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook
 		WHERE id = $5
 		RETURNING *`
 
-	var hook providers.Webhook
+	var hook model.Webhook
 	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
@@ -106,7 +141,7 @@ func (r *QueueWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook
 }
 
 // GetEvent safely queries the database for the next event in the queue.
-func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, error) {
+func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -135,7 +170,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*providers.Webhook, err
 		FOR UPDATE SKIP LOCKED
 	)
 	RETURNING *`
-	var hook providers.Webhook
+	var hook model.Webhook
 	err = tx.QueryRow(ctx, query, config.Envs.MaxRetries).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
@@ -167,7 +202,7 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
-func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*providers.Webhook, error) {
+func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	query := `
 	UPDATE webhook_events
 	SET
@@ -178,7 +213,7 @@ func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook
 		retry_count     = retry_count + 1
 	WHERE id = $5
 	RETURNING *`
-	var hook providers.Webhook
+	var hook model.Webhook
 	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,

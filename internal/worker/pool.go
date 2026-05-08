@@ -45,7 +45,7 @@ func (p *WorkerPool) start(ctx context.Context) {
 	}
 }
 
-// Notify alerts all workers in the pool that webhook has to be processed.
+// Notify alerts all workers in the pool that one or more webhooks need to be processed.
 func (p *WorkerPool) Notify() {
 	select {
 	case p.signal <- struct{}{}:
