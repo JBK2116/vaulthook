@@ -157,7 +157,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) 
 		SELECT id FROM webhook_events
 		WHERE
 			(
-				delivery_status = 'retrying'
+				delivery_status = 'failed'
 				AND next_retry_at <= NOW()
 				AND retry_count < $1
 			)

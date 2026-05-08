@@ -1,7 +1,7 @@
 <script lang="ts">
     import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
     import * as functions from '$lib/utils/functions';
-    import { DeliveryStatusTypes, type WebHookEvent } from '$lib/utils/types';
+    import { type WebHookEvent } from '$lib/utils/types';
     import { toast } from 'svelte-sonner';
 
     import Button from './button/button.svelte';
@@ -68,26 +68,13 @@
                                 currentSelectedEvent.response_code,
                             )}
                         >
-                            {currentSelectedEvent.response_code
-                                ? currentSelectedEvent.response_code
-                                : '-'}
+                            {currentSelectedEvent.response_code ?? '-'}
                         </p>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-muted-foreground">Retries</span>
                         {currentSelectedEvent.retry_count}
                     </div>
-                    {#if currentSelectedEvent.next_retry_at && currentSelectedEvent.delivery_status === DeliveryStatusTypes.Failed}
-                        <div class="flex items-center justify-between">
-                            <span class="text-muted-foreground">Next Retry At</span>
-                            <p class="text-muted-foreground">
-                                {functions.formatReceivedAtTimeForSidebar(
-                                    currentSelectedEvent.next_retry_at,
-                                    userTimeZone,
-                                )}
-                            </p>
-                        </div>
-                    {/if}
                     <div class="flex items-center justify-between">
                         <span class="text-muted-foreground">Received</span>
                         <p class="text-muted-foreground">
