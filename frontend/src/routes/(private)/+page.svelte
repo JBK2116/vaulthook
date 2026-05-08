@@ -54,59 +54,66 @@
 
     // SSE Handling
     onMount(() => {
-        let es: EventSource;
+        let es: EventSource | null = null;
         let authCheckTimeout: any;
-        (async () => {
-            try {
-                // load all events first
-                await loadEvents();
-                // sse logic
-                toast.info('Connecting ...', { position: 'top-center' });
-                es = new EventSource('/api/events/stream', { withCredentials: true });
-                es.onopen = () => {
-                    toast.info('Connected', { position: 'top-center' });
-                    connState = ConnState.Connected;
-                };
-                // each message comes in the form of {"data": "<webhook object>"}
-                es.onmessage = (e) => {
-                    const event: WebHookEvent = JSON.parse(e.data);
-                    events = [event, ...events.filter((ev) => ev.id !== event.id)];
-                };
-                es.onerror = () => {
-                    clearTimeout(authCheckTimeout);
-                    toast.warning('Reconnecting ...');
-                    connState = ConnState.Disconnected;
-                    authCheckTimeout = setTimeout(async () => {
-                        // check access token status
-                        const me = await fetch('/api/me', {
-                            credentials: 'include',
-                            method: 'GET',
-                        });
-                        if (me.ok) {
-                            connState = ConnState.Connected;
-                            return;
-                        }
-                        // check refresh token status
+        let destroyed = false;
+        function connect() {
+            if (destroyed) {
+                return;
+            }
+            es = new EventSource('/api/events/stream', { withCredentials: true });
+            es.onopen = () => {
+                connState = ConnState.Connected;
+                toast.info('Connected', { position: 'top-center' });
+            };
+            es.onmessage = (e) => {
+                const event: WebHookEvent = JSON.parse(e.data);
+                events = [event, ...events.filter((ev) => ev.id !== event.id)];
+            };
+            es.onerror = () => {
+                es?.close();
+                es = null;
+                connState = ConnState.Disconnected;
+                toast.warning('Reconnecting ...');
+                clearTimeout(authCheckTimeout);
+                authCheckTimeout = setTimeout(async () => {
+                    if (destroyed) {
+                        return;
+                    }
+                    let authed = false;
+                    const me = await fetch('/api/me', { credentials: 'include' });
+                    if (me.ok) {
+                        authed = true;
+                    } else {
                         const refresh = await fetch('/api/refresh', {
                             credentials: 'include',
                             method: 'POST',
                         });
-                        if (refresh.ok) {
-                            connState = ConnState.Connected;
-                            return;
-                        }
-                        // user is unauthenticated
-                        if (es) {
-                            es.close();
-                        }
+                        authed = refresh.ok;
+                    }
+                    if (!authed) {
                         goto('/login');
-                    }, 3000);
-                };
+                        return;
+                    }
+                    connect();
+                }, 3000);
+            };
+        }
+        (async () => {
+            try {
+                // load all events first
+                await loadEvents();
+                toast.info('Connecting ...', { position: 'top-center' });
+                connect();
             } catch (err: any) {
                 toast.error(err.message, { position: 'top-center' });
             }
         })();
-        return () => es?.close();
+        return () => {
+            destroyed = true;
+            clearTimeout(authCheckTimeout);
+            es?.close();
+        };
     });
 
     // helper function for fetching webhook events
