@@ -43,7 +43,13 @@ func NewPG(ctx context.Context) (*postgres, error) {
 	)
 	var err error
 	pgOnce.Do(func() {
-		db, pgErr := pgxpool.New(ctx, connString)
+		cfg, cfgErr := pgxpool.ParseConfig(connString)
+		if cfgErr != nil {
+			err = fmt.Errorf("unable to parse connection string: %w", err)
+			return
+		}
+		cfg.MaxConns = 20
+		db, pgErr := pgxpool.NewWithConfig(ctx, cfg)
 		if pgErr != nil {
 			err = fmt.Errorf("unable to create connection pool: %w", pgErr)
 			return
