@@ -21,8 +21,8 @@ var (
 	ErrRateLimited   = errors.New("rate limited")
 )
 
-// NewWorker returns a pointer to a Worker backed by the provided values.
-func NewWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.Logger) *Worker {
+// newWorker returns a pointer to a Worker backed by the provided values.
+func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.Logger) *Worker {
 	return &Worker{
 		sse:    svc,
 		repo:   repo,
@@ -30,12 +30,28 @@ func NewWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 	}
 }
 
-// run kicks off the Worker to begin working on webhooks.
-func (w *Worker) run() {
+// start kicks off a loop that causes the worker to run in the background.
+func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*8)
+		select {
+		case <-signal:
+			w.run(ctx)
+		case <-ticker.C:
+			w.run(ctx)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// run kicks off the Worker to begin working on webhooks.
+func (w *Worker) run(ctx context.Context) {
+	for {
+		timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*8)
 		// get the next webhook for processing
-		hook, err := w.getNext(ctx)
+		hook, err := w.getNext(timeoutCtx)
 		if err != nil {
 			cancel()
 			if errors.Is(err, ErrNoHooksToWork) {
@@ -45,12 +61,12 @@ func (w *Worker) run() {
 			break
 		}
 		// forwarding attempt (updates is valid for use even if error is not nil)
-		updates, err := w.forwardEvent(ctx, hook)
+		updates, err := w.forwardEvent(timeoutCtx, hook)
 		if err != nil {
 			w.logger.Error().Stack().Err(err).Msg("error occurred when forwarding webhook")
 		}
 		// update the webhook accordingly after the forwarding attempt
-		hook, err = w.updateEvent(ctx, updates)
+		hook, err = w.updateEvent(timeoutCtx, updates)
 		if err != nil {
 			w.logger.Error().Stack().Err(err).Msg("error occurred when updating webhook")
 			cancel()
