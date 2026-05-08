@@ -100,6 +100,8 @@ type Webhook struct {
 	LastError *string `json:"last_error"`
 	// Webhook Received At Time
 	ReceivedAt time.Time `json:"received_at"`
+	// Webhook Updated At Time
+	UpdatedAt time.Time `json:"updated_at"`
 	// Webhook Created At Time
 	CreatedAt time.Time `json:"created_at"`
 }

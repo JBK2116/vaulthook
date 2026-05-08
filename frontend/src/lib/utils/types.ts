@@ -13,6 +13,7 @@ export interface WebHookEvent {
     next_retry_at: string | null; // next retry scheduled at time
     last_error: string | null; // last error that occurred with this event
     received_at: string; // received time of the event (ISO861 Format)
+    updated_at: string; // updated at time of the event (ISO861 format)
     created_at: string; // created at time of the event (ISO861 Format)
 }
 

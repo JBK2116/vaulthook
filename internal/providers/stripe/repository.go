@@ -38,7 +38,7 @@ func (r *StripeRepo) insertWebhook(ctx context.Context, p providers.CreateWebhoo
 	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
 	RETURNING id, provider_id, provider, event_id, event_type, headers, payload,
 	          delivery_status, forwarded_to, response_code, retry_count,
-	          next_retry_at, last_error, received_at, created_at
+	          next_retry_at, last_error, received_at, created_at, updated_at
 	`
 
 	var w providers.Webhook
@@ -49,7 +49,7 @@ func (r *StripeRepo) insertWebhook(ctx context.Context, p providers.CreateWebhoo
 		&w.ID, &w.ProviderID, &w.Provider, &w.EventID, &w.EventType,
 		&w.Headers, &w.Payload, &w.DeliveryStatus, &w.ForwardedTo,
 		&w.ResponseCode, &w.RetryCount, &w.NextRetryAt, &w.LastError,
-		&w.ReceivedAt, &w.CreatedAt,
+		&w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
 	)
 	if err != nil {
 		return providers.Webhook{}, err
