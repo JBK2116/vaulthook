@@ -57,6 +57,34 @@
         let es: EventSource | null = null;
         let authCheckTimeout: any;
         let destroyed = false;
+        let flushInterval: ReturnType<typeof setInterval> | null = null;
+        // webhook receiving handling
+        let buffer: WebHookEvent[] = [];
+        const eventMap = new Map<string, WebHookEvent>();
+        // helper function to improve storage of incoming webhook requests
+        function syncMap() {
+            eventMap.clear();
+            for (const event of events) {
+                eventMap.set(event.id, event);
+            }
+        }
+        // helper function to drain the buffer and push events into the events array
+        function flushBuffer() {
+            if (buffer.length === 0) {
+                return;
+            }
+            // drain buffer
+            const incoming = buffer.splice(0, buffer.length);
+            // upsert events
+            for (const event of incoming) {
+                eventMap.set(event.id, event);
+            }
+            // rebuild sorted window
+            events = Array.from(eventMap.values())
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 500);
+        }
+        // helper function to control SSE event lifecycle
         function connect() {
             if (destroyed) {
                 return;
@@ -68,7 +96,7 @@
             };
             es.onmessage = (e) => {
                 const event: WebHookEvent = JSON.parse(e.data);
-                events = [event, ...events.filter((ev) => ev.id !== event.id)];
+                buffer.push(event);
             };
             es.onerror = () => {
                 es?.close();
@@ -103,6 +131,8 @@
             try {
                 // load all events first
                 await loadEvents();
+                syncMap();
+                flushInterval = setInterval(flushBuffer, 300);
                 toast.info('Connecting ...', { position: 'top-center' });
                 connect();
             } catch (err: any) {
@@ -113,6 +143,9 @@
             destroyed = true;
             clearTimeout(authCheckTimeout);
             es?.close();
+            if (flushInterval) {
+                clearInterval(flushInterval);
+            }
         };
     });
 
