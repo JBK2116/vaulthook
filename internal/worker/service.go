@@ -53,6 +53,21 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 	}
 }
 
+// startRetry kicks off a loop that causes the worker to run in the background following an interval.
+func (w *Worker) startRetry(ctx context.Context) {
+	ticker := time.NewTicker(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			w.run(ctx)
+		case <-ctx.Done():
+			return
+		}
+	}
+
+}
+
 // run kicks off the Worker to begin working on webhooks.
 func (w *Worker) run(ctx context.Context) {
 	for {

@@ -13,35 +13,40 @@ import (
 //
 // There must be only one worker pool present throughout the entire application.
 type WorkerPool struct {
-	signal  chan struct{}
-	workers []*Worker
+	signal       chan struct{}
+	queueWorkers []*Worker
+	retryWorkers []*Worker
 }
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration
 func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *WorkerPool {
 	signal := make(chan struct{}, 1)
-	workers := make([]*Worker, config.Envs.TotalQueueWorkers+config.Envs.TotalRetryWorkers)
+	queueWorkers := make([]*Worker, config.Envs.TotalQueueWorkers)
+	retryWorkers := make([]*Worker, config.Envs.TotalRetryWorkers)
 	// initialize the repo for the workers
 	queueRepo := NewQueueWorkerRepo(db)
 	retryRepo := NewRetryWorkerRepo(db)
 	// initialize the QueueWorkers
-	for i := 0; i < config.Envs.TotalQueueWorkers; i++ {
-		workers[i] = newWorker(svc, queueRepo, logger)
+	for i := range len(queueWorkers) {
+		queueWorkers[i] = newWorker(svc, queueRepo, logger)
 	}
 	// initialize the RetryWorkers
-	for i := config.Envs.TotalQueueWorkers; i < len(workers); i++ {
-		workers[i] = newWorker(svc, retryRepo, logger)
+	for i := range len(retryWorkers) {
+		retryWorkers[i] = newWorker(svc, retryRepo, logger)
 	}
 	// initialize the worker pool
-	pool := &WorkerPool{signal: signal, workers: workers}
+	pool := &WorkerPool{signal: signal, queueWorkers: queueWorkers, retryWorkers: retryWorkers}
 	pool.start(ctx)
 	return pool
 }
 
 // start kicks off the worker runtime cycle for each worker in the pool.
 func (p *WorkerPool) start(ctx context.Context) {
-	for _, w := range p.workers {
+	for _, w := range p.queueWorkers {
 		go w.start(ctx, p.signal)
+	}
+	for _, w := range p.retryWorkers {
+		go w.startRetry(ctx)
 	}
 }
 
