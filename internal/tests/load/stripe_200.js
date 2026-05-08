@@ -1,3 +1,5 @@
+// Mode 200
+
 import http from 'k6/http';
 import crypto from 'k6/crypto';
 import { check } from 'k6';

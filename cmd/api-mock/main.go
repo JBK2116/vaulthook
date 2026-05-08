@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -14,162 +15,304 @@ import (
 type Mode string
 
 const (
-	// ModeSuccess — destination accepted the webhook. Proxy should mark delivery as succeeded.
-	ModeSuccess Mode = "success"
-	// Mode500 — destination crashed (unhandled exception, panic, etc.).
-	// Proxy should retry with backoff; this is the most common transient failure.
-	Mode500 Mode = "500"
-	// Mode503 — destination is temporarily unavailable (deploy in progress, overloaded, etc.).
-	// Proxy should retry; well-behaved proxies honour Retry-After if present.
-	Mode503 Mode = "503"
-	// Mode429 — destination is rate-limiting the proxy.
-	// Proxy must back off; aggressive retrying here makes things worse.
-	Mode429 Mode = "429"
-	// Mode400 — destination explicitly rejected the payload (bad signature, schema mismatch, etc.).
-	// Proxy should NOT retry; this is a permanent failure until the payload/config changes.
-	Mode400 Mode = "400"
-	// Mode401 — destination rejected the request as unauthorised (bad secret, expired token, etc.).
-	// Proxy should NOT retry automatically; operator intervention required.
-	Mode401 Mode = "401"
-	// Mode404 — endpoint not found on the destination (misconfigured URL, deleted route, etc.).
-	// Proxy should surface this prominently; retrying is pointless.
-	Mode404 Mode = "404"
-	// ModeTimeout — destination accepts the connection but never responds.
-	// Tests whether the proxy enforces a read-deadline and marks the attempt as failed.
-	ModeTimeout Mode = "timeout"
-	// ModeSlow — destination responds, but only after a long delay (e.g. 8 s).
-	// Tests proxy patience / configurable timeout thresholds.
-	ModeSlow Mode = "slow"
-	// ModeDrop — destination immediately closes the TCP connection without sending anything.
-	// Tests proxy resilience to connection-reset errors (no HTTP response at all).
-	ModeDrop Mode = "drop"
-	// ModeFlaky — alternates success / 500 on every request.
-	// Simulates an unstable destination; tests retry idempotency and deduplication.
-	ModeFlaky Mode = "flaky"
+	ModeSuccess       Mode = "success"
+	Mode500           Mode = "500"
+	Mode503           Mode = "503"
+	Mode429           Mode = "429"
+	Mode400           Mode = "400"
+	Mode401           Mode = "401"
+	Mode404           Mode = "404"
+	ModeTimeout       Mode = "timeout"
+	ModeSlow          Mode = "slow"
+	ModeDrop          Mode = "drop"
+	ModeFlaky         Mode = "flaky"
+	ModeRecovery      Mode = "recovery"       // Fails for first N requests, then succeeds — simulates a service coming back up
+	ModeRandomFailure Mode = "random_failure" // Fails at a configurable probability
 )
 
 var (
 	mu          sync.RWMutex
 	currentMode = ModeSuccess
-	flakyToggle bool // tracks flaky alternation state
+
+	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Flaky: probability of failure (0.0–1.0), default 0.5
+	flakyFailRate float64 = 0.5
+
+	// Recovery: how many requests fail before switching to success permanently
+	recoveryFailCount int = 10
+	recoveryCounter   int = 0
+
+	// RandomFailure: probability of failure (0.0–1.0), default 0.3
+	randomFailRate float64 = 0.3
+
+	// Stats
+	stats = &ModeStats{}
 )
 
-// Control handler — switch mode at runtime without restarting
+type ModeStats struct {
+	mu        sync.Mutex
+	Requests  int `json:"requests"`
+	Successes int `json:"successes"`
+	Failures  int `json:"failures"`
+}
+
+func (s *ModeStats) record(success bool) {
+	s.mu.Lock()
+	s.Requests++
+	if success {
+		s.Successes++
+	} else {
+		s.Failures++
+	}
+	s.mu.Unlock()
+}
+
+func (s *ModeStats) reset() {
+	s.mu.Lock()
+	s.Requests = 0
+	s.Successes = 0
+	s.Failures = 0
+	s.mu.Unlock()
+}
+
+func (s *ModeStats) snapshot() (int, int, int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.Requests, s.Successes, s.Failures
+}
+
+// randomRetryAfter returns a realistic Retry-After value between 5–30s
+func randomRetryAfter() string {
+	return fmt.Sprintf("%d", 5+rng.Intn(26))
+}
+
+// Control handler
 //
-//	POST /control   body: {"mode": "503"}
-//	GET  /control   returns current mode
+//	GET  /control              — get current mode + config
+//	POST /control              — set mode and optional config
+//
+// Body options:
+//
+//	{"mode":"recovery","recovery_fail_count":5}
+//	{"mode":"flaky","flaky_fail_rate":0.7}
+//	{"mode":"random_failure","random_fail_rate":0.3}
 func controlHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		mu.RLock()
-		mode := currentMode
+		resp := map[string]any{
+			"mode":                string(currentMode),
+			"flaky_fail_rate":     flakyFailRate,
+			"recovery_fail_count": recoveryFailCount,
+			"recovery_counter":    recoveryCounter,
+			"random_fail_rate":    randomFailRate,
+		}
 		mu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]string{"mode": string(mode)}); err != nil {
-			log.Printf("error encoding control response: %v", err)
-		}
+		json.NewEncoder(w).Encode(resp)
+
 	case http.MethodPost:
 		var body struct {
-			Mode Mode `json:"mode"`
+			Mode              Mode    `json:"mode"`
+			FlakyFailRate     float64 `json:"flaky_fail_rate"`
+			RecoveryFailCount int     `json:"recovery_fail_count"`
+			RandomFailRate    float64 `json:"random_fail_rate"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Mode == "" {
-			http.Error(w, `{"error":"invalid body — send {\"mode\":\"<mode>\"}"}`, http.StatusBadRequest)
+			http.Error(w, `{"error":"invalid body"}`, http.StatusBadRequest)
 			return
 		}
 		mu.Lock()
 		currentMode = body.Mode
-		flakyToggle = false
+		recoveryCounter = 0
+		if body.FlakyFailRate > 0 {
+			flakyFailRate = body.FlakyFailRate
+		}
+		if body.RecoveryFailCount > 0 {
+			recoveryFailCount = body.RecoveryFailCount
+		}
+		if body.RandomFailRate > 0 {
+			randomFailRate = body.RandomFailRate
+		}
 		mu.Unlock()
+		stats.reset()
 		log.Printf("[control] mode switched to: %s", body.Mode)
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]string{"mode": string(body.Mode)}); err != nil {
-			log.Printf("error encoding control response: %v", err)
-		}
+		json.NewEncoder(w).Encode(map[string]string{"mode": string(body.Mode)})
+
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// Webhook handler
-//
-//	POST /api/webhooks/stripe
-func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
+// Stats handler — GET /stats
+func statsHandler(w http.ResponseWriter, r *http.Request) {
+	req, succ, fail := stats.snapshot()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{
+		"requests":  req,
+		"successes": succ,
+		"failures":  fail,
+	})
+}
+
+// Reset handler — POST /control/reset
+func resetHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	mu.Lock()
-	mode := currentMode
-	if mode == ModeFlaky {
-		flakyToggle = !flakyToggle
-	}
-	toggle := flakyToggle
+	recoveryCounter = 0
 	mu.Unlock()
-	log.Printf("[stripe] mode=%-10s  %s %s", mode, r.Method, r.URL.Path)
+	stats.reset()
+	log.Printf("[control] stats + counters reset")
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintln(w, `{"reset":true}`)
+}
+
+// Webhook handler — POST /api/webhooks/stripe
+func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	mu.Lock()
+	mode := currentMode
+	var shouldFail bool
+	switch mode {
+	case ModeFlaky:
+		shouldFail = rng.Float64() < flakyFailRate
+	case ModeRecovery:
+		shouldFail = recoveryCounter < recoveryFailCount
+		if shouldFail {
+			recoveryCounter++
+		}
+	case ModeRandomFailure:
+		shouldFail = rng.Float64() < randomFailRate
+	}
+	mu.Unlock()
+
+	log.Printf("[stripe] mode=%-14s  %s %s", mode, r.Method, r.URL.Path)
+
+	respond := func(success bool, fn func()) {
+		stats.record(success)
+		fn()
+	}
+
 	switch mode {
 	case ModeSuccess:
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if _, err := fmt.Fprintln(w, `{"received":true}`); err != nil {
-			log.Printf("error sending mode response: %v", err)
-		}
+		respond(true, func() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, `{"received":true}`)
+		})
+
 	case Mode500:
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		respond(false, func() {
+			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		})
+
 	case Mode503:
-		w.Header().Set("Retry-After", "30")
-		http.Error(w, `{"error":"service unavailable"}`, http.StatusServiceUnavailable)
+		respond(false, func() {
+			w.Header().Set("Retry-After", randomRetryAfter())
+			http.Error(w, `{"error":"service unavailable"}`, http.StatusServiceUnavailable)
+		})
+
 	case Mode429:
-		w.Header().Set("Retry-After", "60")
-		http.Error(w, `{"error":"too many requests"}`, http.StatusTooManyRequests)
+		respond(false, func() {
+			w.Header().Set("Retry-After", randomRetryAfter())
+			http.Error(w, `{"error":"too many requests"}`, http.StatusTooManyRequests)
+		})
+
 	case Mode400:
-		http.Error(w, `{"error":"bad request — invalid payload or signature"}`, http.StatusBadRequest)
+		respond(false, func() {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+		})
+
 	case Mode401:
-		w.Header().Set("WWW-Authenticate", `Bearer realm="webhook"`)
-		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		respond(false, func() {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="webhook"`)
+			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		})
+
 	case Mode404:
-		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		respond(false, func() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		})
+
 	case ModeTimeout:
-		// Hold the connection open forever; the proxy must time out on its own.
+		stats.record(false)
 		select {}
+
 	case ModeSlow:
-		// Respond after 8s set this just above/below the sender's configured timeout.
 		time.Sleep(8 * time.Second)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if _, err := fmt.Fprintln(w, `{"received":true,"note":"slow response"}`); err != nil {
-			log.Printf("error sending mode response: %v", err)
-		}
+		respond(true, func() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, `{"received":true,"note":"slow response"}`)
+		})
+
 	case ModeDrop:
-		// Hijack and immediately close the TCP connection.
-		// The sender receives a connection-reset / EOF with no HTTP response.
+		stats.record(false)
 		hj, ok := w.(http.Hijacker)
 		if !ok {
 			http.Error(w, "hijack unsupported", http.StatusInternalServerError)
 			return
 		}
 		conn, _, _ := hj.Hijack()
-		if err := conn.Close(); err != nil {
-			log.Printf("error closing http connection: %v", err)
-		}
-		log.Println("[stripe] connection dropped (no HTTP response sent)")
+		conn.Close()
+		log.Println("[stripe] connection dropped")
+
 	case ModeFlaky:
-		// Alternates 200 / 500 on each successive request.
-		// Use this to verify the proxy retries correctly and doesn't double-deliver on success.
-		if toggle {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			if _, err := fmt.Fprintln(w, `{"received":true,"note":"flaky — this one succeeded"}`); err != nil {
-				log.Printf("error sending mode response: %v", err)
-			}
+		if shouldFail {
+			respond(false, func() {
+				http.Error(w, `{"error":"flaky — failed"}`, http.StatusInternalServerError)
+			})
 		} else {
-			http.Error(w, `{"error":"flaky — this one failed"}`, http.StatusInternalServerError)
+			respond(true, func() {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprintln(w, `{"received":true,"note":"flaky — succeeded"}`)
+			})
 		}
+
+	case ModeRecovery:
+		// Fails for the first N requests, then succeeds permanently
+		if shouldFail {
+			respond(false, func() {
+				http.Error(w, `{"error":"service recovering"}`, http.StatusServiceUnavailable)
+			})
+		} else {
+			respond(true, func() {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprintln(w, `{"received":true,"note":"recovered"}`)
+			})
+		}
+
+	case ModeRandomFailure:
+		// Fails at a random probability — more realistic than flaky
+		if shouldFail {
+			respond(false, func() {
+				http.Error(w, `{"error":"random failure"}`, http.StatusInternalServerError)
+			})
+		} else {
+			respond(true, func() {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprintln(w, `{"received":true}`)
+			})
+		}
+
 	default:
-		log.Printf("[stripe] unknown mode %q, falling back to 200", mode)
-		w.WriteHeader(http.StatusOK)
-		if _, err := fmt.Fprintln(w, `{"received":true}`); err != nil {
-			log.Printf("error sending mode response: %v", err)
-		}
+		respond(true, func() {
+			log.Printf("[stripe] unknown mode %q, falling back to 200", mode)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, `{"received":true}`)
+		})
 	}
 }
 
@@ -178,40 +321,42 @@ func modesHandler(w http.ResponseWriter, r *http.Request) {
 	modes := []map[string]string{
 		{"mode": string(ModeSuccess), "description": "200 — happy path"},
 		{"mode": string(Mode500), "description": "500 — destination crash; proxy should retry"},
-		{"mode": string(Mode503), "description": "503 — destination unavailable; proxy should honour Retry-After"},
-		{"mode": string(Mode429), "description": "429 — rate limited; proxy must back off"},
-		{"mode": string(Mode400), "description": "400 — bad payload/signature; proxy should NOT retry"},
+		{"mode": string(Mode503), "description": "503 — unavailable; randomised Retry-After 5–30s"},
+		{"mode": string(Mode429), "description": "429 — rate limited; randomised Retry-After 5–30s"},
+		{"mode": string(Mode400), "description": "400 — bad payload; proxy should NOT retry"},
 		{"mode": string(Mode401), "description": "401 — unauthorised; operator action required"},
 		{"mode": string(Mode404), "description": "404 — wrong URL; retrying is pointless"},
-		{"mode": string(ModeTimeout), "description": "no response — tests proxy read-deadline enforcement"},
-		{"mode": string(ModeSlow), "description": "8 s delay — tests proxy timeout threshold"},
-		{"mode": string(ModeDrop), "description": "TCP drop — tests proxy connection-reset handling"},
-		{"mode": string(ModeFlaky), "description": "alternates 200/500 — tests retry idempotency"},
+		{"mode": string(ModeTimeout), "description": "no response — tests proxy read-deadline"},
+		{"mode": string(ModeSlow), "description": "8s delay — tests proxy timeout threshold"},
+		{"mode": string(ModeDrop), "description": "TCP drop — tests connection-reset handling"},
+		{"mode": string(ModeFlaky), "description": "random probability failure — set flaky_fail_rate (default 0.5)"},
+		{"mode": string(ModeRecovery), "description": "fails first N requests then succeeds — set recovery_fail_count (default 10)"},
+		{"mode": string(ModeRandomFailure), "description": "random failure rate — set random_fail_rate (default 0.3)"},
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(modes); err != nil {
-		log.Printf("error encoding modes: %v", err)
-	}
+	json.NewEncoder(w).Encode(modes)
 }
 
 func main() {
-	// configure the server
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/webhooks/stripe", stripeWebhookHandler)
 	mux.HandleFunc("/control", controlHandler)
+	mux.HandleFunc("/control/reset", resetHandler)
+	mux.HandleFunc("/stats", statsHandler)
 	mux.HandleFunc("/modes", modesHandler)
+
 	addr := ":8081"
-	addrFull := fmt.Sprintf("http://localhost%s/", addr)
-	log.Printf("Webhook simulator listening on %s", addrFull)
-	log.Printf("  POST /api/webhooks/stripe  — target endpoint")
-	log.Printf("  GET  /control              — get current mode")
-	log.Printf("  POST /control              — set mode  e.g. {\"mode\":\"503\"}")
-	log.Printf("  GET  /modes                — list all modes")
+	log.Printf("Webhook simulator listening on http://localhost%s/", addr)
+	log.Printf("  POST /api/webhooks/stripe          — target endpoint")
+	log.Printf("  GET  /control                      — get current mode + config")
+	log.Printf("  POST /control                      — set mode + config")
+	log.Printf("  POST /control/reset                — reset stats + counters")
+	log.Printf("  GET  /stats                        — request/success/failure counts")
+	log.Printf("  GET  /modes                        — list all modes")
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: mux,
-		// Keep WriteTimeout high so ModeTimeout / ModeSlow don't get cut short server-side.
+		Addr:         addr,
+		Handler:      mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -221,7 +366,7 @@ func main() {
 	}
 }
 
-// Simple CURLS to copy and paste for testing manually
+// CURLs
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"500"}'
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"503"}'
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"429"}'
@@ -229,5 +374,9 @@ func main() {
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"timeout"}'
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"slow"}'
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"drop"}'
-// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"flaky"}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"flaky","flaky_fail_rate":0.7}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"recovery","recovery_fail_count":20}'
+// curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"random_failure","random_fail_rate":0.4}'
 // curl -X POST http://localhost:8081/control -H "Content-Type: application/json" -d '{"mode":"success"}'
+// curl -X POST http://localhost:8081/control/reset
+// curl http://localhost:8081/stats

@@ -39,8 +39,27 @@ tidy:
 test:
 	go test -v -race -buildvcs -p 1 ./...
 
-test/load/stripe/ingestion: # load test stripe webhook ingestion
-	k6 run internal/tests/load/stripe_ingestion.js
+test/load/stripe/200: # load test stripe webhook ingestion
+	k6 run internal/tests/load/stripe_200.js
+
+test/load/stripe/429: # load test stripe rate limiting/backpressure
+	k6 run internal/tests/load/stripe_429.js
+
+test/load/stripe/503: # load test stripe temporary service failures
+	k6 run internal/tests/load/stripe_503.js
+
+test/load/stripe/random: # load test random intermittent failures
+	k6 run internal/tests/load/stripe_random.js
+
+test/load/stripe/recover: # load test recovery/backlog draining
+	k6 run internal/tests/load/stripe_recover.js
+
+test/load/stripe/soak: # long-running soak/stability test
+	k6 run internal/tests/load/stripe_soak.js
+
+test/load/stripe/timeout: # load test timeout resilience
+	k6 run internal/tests/load/stripe_timeout.js
+
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
