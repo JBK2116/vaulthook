@@ -14,7 +14,9 @@ type EventService struct {
 	logger      *zerolog.Logger
 	mu          sync.Mutex
 	repo        *EventRepo
-	subscribers map[chan model.Webhook]struct{}
+	buffer      []model.Webhook
+	broadcast   chan model.Webhook
+	subscribers map[chan []model.Webhook]struct{}
 }
 
 // NewEventService returns a EventService configured with the provided logger and repo.
@@ -22,19 +24,60 @@ func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
 	return &EventService{
 		logger:      logger,
 		repo:        repo,
-		subscribers: make(map[chan model.Webhook]struct{}),
+		buffer:      make([]model.Webhook, 0),
+		broadcast:   make(chan model.Webhook, 10000),
+		subscribers: make(map[chan []model.Webhook]struct{}),
 	}
 }
 
-// Subscribe creates a buffered webhook channel and adds it to the `subscribers` map.
-// Each webhook channel is protected by a mutex, ensuring that it is concurrency safe.
-// An `unsub` function is provided to delete the created buffered webhook channel when needed.
-func (s *EventService) Subscribe() (<-chan model.Webhook, func()) {
-	ch := make(chan model.Webhook, 20)
+// Start kicks off the background batching loop for processing webhooks
+func (s *EventService) Start(ctx context.Context) {
+	ticker := time.NewTicker(100 * time.Millisecond) // 10 flushes per second. Update as necessary.
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-s.broadcast:
+			s.mu.Lock()
+			s.buffer = append(s.buffer, event)
+			s.mu.Unlock()
+		case <-ticker.C:
+			s.flush()
+		}
+	}
+}
+
+// flush resets the current buffer and flushes all webhooks to the frontend sse
+func (s *EventService) flush() {
+	s.mu.Lock()
+	if len(s.buffer) == 0 {
+		s.mu.Unlock()
+		return
+	}
+	// Capture current buffer and reset it
+	batch := s.buffer
+	s.buffer = make([]model.Webhook, 0)
+	s.mu.Unlock()
+	// Broadcast the batch to all subscribers
+	s.mu.Lock()
+	for ch := range s.subscribers {
+		select {
+		case ch <- batch:
+		default:
+			// subscriber is too slow, drop the batch for them to avoid blocking the hub
+		}
+	}
+	s.mu.Unlock()
+}
+
+// Subscribe now returns a channel that receives SLICES of webhooks
+func (s *EventService) Subscribe() (<-chan []model.Webhook, func()) {
+	ch := make(chan []model.Webhook, 100)
 	s.mu.Lock()
 	s.subscribers[ch] = struct{}{}
 	s.mu.Unlock()
-	// delete channel function
+
 	unsub := func() {
 		s.mu.Lock()
 		delete(s.subscribers, ch)
@@ -44,21 +87,11 @@ func (s *EventService) Subscribe() (<-chan model.Webhook, func()) {
 	return ch, unsub
 }
 
-// Send inserts the provided webhook event into all subcriber channels.
+// Send is now non-blocking and concurrency-safe without a long-held mutex
 func (s *EventService) Send(event model.Webhook) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for ch := range s.subscribers {
-		ch <- event
-	}
+	s.broadcast <- event
 }
 
-// GetAll returns all the webhook events stored in the database.
 func (s *EventService) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
-	events, err := s.repo.getAll(ctx, createdAt)
-	if err != nil {
-		return nil, err
-	}
-	return events, nil
-
+	return s.repo.getAll(ctx, createdAt)
 }

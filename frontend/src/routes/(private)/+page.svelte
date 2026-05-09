@@ -22,7 +22,7 @@
     // Extend WebHookEvent locally to cache parsed timestamp avoids repeated Date.parse in hot sort path
     type CachedEvent = WebHookEvent & { _ts: number };
 
-    // Primary source of truth — keyed by event id for O(1) dedup + update
+    // Primary source of truth keyed by event id for O(1) dedup + update
     const eventMap = new Map<string, CachedEvent>();
     const eventCap = 100;
 
@@ -208,42 +208,39 @@
         let es: EventSource | null = null;
         let destroyed = false;
         let authCheckTimeout: ReturnType<typeof setTimeout> | null = null;
-        let flushInterval: ReturnType<typeof setInterval> | null = null;
-
-        // Incoming SSE events buffer drained every 300ms to batch DOM updates
-        let buffer: WebHookEvent[] = [];
-
-        function flushBuffer() {
-            if (buffer.length === 0) return;
-            const incoming = buffer.splice(0, buffer.length);
-            for (const event of incoming) {
-                upsertEvent(event);
-            }
-            // Single array rebuild + filter schedule per flush regardless of batch size
-            rebuildEventsArray();
-        }
 
         function connect() {
             if (destroyed) return;
-
             es = new EventSource('/api/events/stream', { withCredentials: true });
             es.onopen = () => {
                 connState = ConnState.Connected;
                 toast.info('Connected', { position: 'top-center' });
             };
             es.onmessage = (e) => {
-                // Just buffer — never touch reactive state inside onmessage
-                buffer.push(JSON.parse(e.data));
+                try {
+                    // parse the batch array
+                    const batch: WebHookEvent[] = JSON.parse(e.data);
+                    // ignore the heartbeat message
+                    if (!Array.isArray(batch) || batch.length === 0) return;
+                    // process the batch
+                    for (const event of batch) {
+                        upsertEvent(event);
+                    }
+                    // trigger one single UI update for the entire batch
+                    rebuildEventsArray();
+                } catch (err) {
+                    console.error('Failed to parse SSE batch:', err);
+                }
             };
             es.onerror = () => {
                 es?.close();
                 es = null;
                 connState = ConnState.Disconnected;
                 toast.warning('Reconnecting ...');
+
                 if (authCheckTimeout) clearTimeout(authCheckTimeout);
                 authCheckTimeout = setTimeout(async () => {
                     if (destroyed) return;
-                    // Check session, try refresh, redirect if unrecoverable
                     const me = await fetch('/api/me', { credentials: 'include' });
                     if (!me.ok) {
                         const ok = await reAuthenticate();
@@ -259,7 +256,6 @@
         (async () => {
             try {
                 await loadEvents();
-                flushInterval = setInterval(flushBuffer, 300);
                 toast.info('Connecting ...', { position: 'top-center' });
                 connect();
             } catch (err: any) {
@@ -270,7 +266,6 @@
         return () => {
             destroyed = true;
             if (authCheckTimeout) clearTimeout(authCheckTimeout);
-            if (flushInterval) clearInterval(flushInterval);
             if (filterThrottle) clearTimeout(filterThrottle);
             es?.close();
         };

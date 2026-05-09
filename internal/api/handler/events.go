@@ -48,8 +48,9 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	}
 	// client disconncection handling
 	clientGone := r.Context().Done()
-	// subscriber handling
+	// subcriber handling
 	ch, unsub := h.service.Subscribe()
+	defer unsub()
 	rc := http.NewResponseController(w)
 	// needs to be sent immediately to confirm connection and keep it running
 	if _, err := fmt.Fprintf(w, "event: connected\ndata: {}\n\n"); err != nil {
@@ -59,39 +60,38 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error().Err(err).Msg("failed to flush sse buffer")
 	}
 	h.logger.Info().Msg("client sse connected")
-
-	// heartbeat for sse to keep it running
+	// heartbeat for sse to keep it running when no events are coming in
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-clientGone:
 			h.logger.Error().Err(ErrClientDisconnected).Msg(ErrClientDisconnected.Error())
-			unsub()
 			return
 		case <-ticker.C:
 			// heartbeat
 			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
 				h.logger.Error().Err(err).Msg("failed to send heartbeat")
-				continue
+				return
 			}
 			if err := rc.Flush(); err != nil {
 				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
-				continue
+				return
 			}
-		case event := <-ch:
-			data, err := json.Marshal(event)
+		case batch := <-ch:
+			data, err := json.Marshal(batch)
 			if err != nil {
-				h.logger.Error().Err(err).Msg("failed to marshal event to send to frontend")
+				h.logger.Error().Err(err).Msg("failed to marshal batch")
 				continue
 			}
+			// send the entire array under one 'data:' identifier
 			if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
-				h.logger.Error().Err(err).Msg("failed to send webhook event to frontend via sse")
-				continue
+				h.logger.Error().Err(err).Msg("failed to send batch to frontend")
+				return
 			}
 			if err := rc.Flush(); err != nil {
 				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
-				continue
+				return
 			}
 		}
 	}
