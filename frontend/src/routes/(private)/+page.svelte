@@ -51,28 +51,25 @@
 
     // Throttled derived view recomputes at most every 100ms
     let displayedEvents: WebHookEvent[] = $state([]);
-    let filterThrottle: ReturnType<typeof setTimeout> | null = null;
+    let rebuildPending = false;
 
-    function scheduleFilterUpdate() {
-        if (filterThrottle) return;
-        filterThrottle = setTimeout(() => {
-            displayedEvents = functions.getDisplayedEvents(
-                currentSelectedOption,
-                currentSearchString,
-                events,
-            );
-            filterThrottle = null;
+    function scheduleRebuild() {
+        if (rebuildPending) return;
+        rebuildPending = true;
+        setTimeout(() => {
+            rebuildEventsArray();
+            rebuildPending = false;
         }, 100);
     }
 
     // Re-run filter when user changes search/select
     $effect(() => {
-        currentSelectedOption;
-        currentSearchString;
+        // Explicitly reference events so Svelte tracks it
+        const currentEvents = events;
         displayedEvents = functions.getDisplayedEvents(
             currentSelectedOption,
             currentSearchString,
-            events,
+            currentEvents,
         );
     });
 
@@ -124,22 +121,21 @@
     // Called after bulk loads and after each SSE flush
     function rebuildEventsArray() {
         const sorted = Array.from(eventMap.values()).sort((a, b) => b._ts - a._ts);
-
-        // Evict events beyond the event cap and correct stat counters for removed entries. Update this limit as necessary when needed.
         if (sorted.length > eventCap) {
             for (let i = eventCap; i < sorted.length; i++) {
                 decrementStat(sorted[i].delivery_status);
                 eventMap.delete(sorted[i].id);
             }
         }
+        // This assignment triggers the $effect above automatically
         events = sorted.slice(0, eventCap);
-        // Flush incremental counters to reactive state in one pass
         totalDeliveredEvents = counts.delivered;
         totalRetryingEvents = counts.retrying;
         totalQueuedEvents = counts.queued;
         totalFailedEvents = counts.failed;
         totalEvents = events.length;
-        scheduleFilterUpdate();
+
+        // Remove scheduleFilterUpdate() - the $effect is now the single source of truth
     }
 
     // Fetches a page of events. Upserts into map but does NOT rebuild array mid-load
@@ -218,18 +214,14 @@
             };
             es.onmessage = (e) => {
                 try {
-                    // parse the batch array
                     const batch: WebHookEvent[] = JSON.parse(e.data);
-                    // ignore the heartbeat message
                     if (!Array.isArray(batch) || batch.length === 0) return;
-                    // process the batch
                     for (const event of batch) {
                         upsertEvent(event);
                     }
-                    // trigger one single UI update for the entire batch
-                    rebuildEventsArray();
+                    scheduleRebuild(); // was rebuildEventsArray()
                 } catch (err) {
-                    console.error('Failed to parse SSE batch:', err);
+                    // Ignore heartbeats
                 }
             };
             es.onerror = () => {
@@ -266,7 +258,7 @@
         return () => {
             destroyed = true;
             if (authCheckTimeout) clearTimeout(authCheckTimeout);
-            if (filterThrottle) clearTimeout(filterThrottle);
+            rebuildPending = false;
             es?.close();
         };
     });

@@ -58,6 +58,9 @@ func main() {
 	// Wire events & sse dependencies.
 	eventRepo := events.NewEventRepo(db.DB)
 	eventService := events.NewEventService(logger, eventRepo)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go eventService.Start(ctx)
 	eventHandler := handler.NewEventsHandler(logger, eventService)
 	// Wire worker dependencies.
 	ctxWorker, cancelCtxWorker := context.WithCancel(ctx)
