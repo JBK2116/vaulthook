@@ -39,8 +39,11 @@ tidy:
 test:
 	go test -v -race -buildvcs -p 1 ./...
 
-test/load/stripe/200: # load test stripe webhook ingestion
-	k6 run internal/tests/load/stripe_ingestion.js
+test/load/stripe/base: # load test stripe webhook ingestion baseline
+	k6 run internal/tests/load/stripe_ingestion_baseline.js
+
+test/load/stripe/max: # load test stripe webhook max
+	k6 run internal/tests/load/stripe_ingestion_max.js
 
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
