@@ -30,6 +30,28 @@
         navigator.clipboard.writeText(currentSelectedEvent.id);
         toast.info('Copied to clipboard', { position: 'top-center' });
     };
+    // helper function to improve the display of JSON in the sidebar
+    function prettifyJSON(obj: unknown): string {
+        const json = JSON.stringify(obj, null, 2)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        return json.replace(
+            /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+            (match) => {
+                let cls = 'text-blue-400';
+                if (/^"/.test(match)) {
+                    cls = /:$/.test(match) ? 'text-zinc-300 font-medium' : 'text-green-400';
+                } else if (/true|false/.test(match)) {
+                    cls = 'text-yellow-400';
+                } else if (/null/.test(match)) {
+                    cls = 'text-red-400';
+                }
+                return `<span class="${cls}">${match}</span>`;
+            },
+        );
+    }
 </script>
 
 {#if currentSelectedEvent}
@@ -111,16 +133,12 @@
                 class="border-border overflow-auto rounded-sm border mx-5 p-3 max-h-32 md:max-h-64"
             >
                 {#if activeTabIsPayload}
-                    <pre class="text-xs whitespace-pre">{JSON.stringify(
+                    <pre class="text-xs whitespace-pre">{@html prettifyJSON(
                             currentSelectedEvent.payload,
-                            null,
-                            2,
                         )}</pre>
                 {:else}
-                    <pre class="text-xs whitespace-pre">{JSON.stringify(
+                    <pre class="text-xs whitespace-pre">{@html prettifyJSON(
                             currentSelectedEvent.headers,
-                            null,
-                            2,
                         )}</pre>
                 {/if}
             </div>
