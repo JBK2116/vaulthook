@@ -45,17 +45,16 @@
 <!-- Sticky header -->
 <div class="border-border bg-background sticky top-0 z-10 border-b">
     <div
-        class="text-muted-foreground grid h-10 grid-cols-[1fr_1fr_2fr_1fr_1fr_1fr] items-center px-4 text-xs font-medium"
+        class="text-muted-foreground grid h-10 grid-cols-[1fr_1fr_2fr] lg:grid-cols-[1fr_1fr_2fr_1fr_1fr_1fr] items-center px-4 text-xs font-medium"
     >
         <span>Provider</span>
         <span>Status</span>
         <span>Event Type</span>
-        <span>Received</span>
-        <span>Response</span>
-        <span>Retries</span>
+        <span class="hidden lg:block">Received</span>
+        <span class="hidden lg:block">Response</span>
+        <span class="hidden lg:block">Retries</span>
     </div>
 </div>
-
 <!-- Virtual scroll container -->
 <div bind:this={scrollEl} class="relative h-full overflow-auto" style="overflow-anchor: none;">
     <div style="height: {$virtualizer.getTotalSize()}px; position: relative;">
@@ -63,7 +62,7 @@
             {@const event = displayedEvents[row.index]}
             <div
                 style="position: absolute; top: 0; left: 0; width: 100%; height: {ROW_HEIGHT}px; transform: translateY({row.start}px);"
-                class="border-border grid cursor-pointer grid-cols-[1fr_1fr_2fr_1fr_1fr_1fr] items-center border-b px-4 text-sm transition-colors
+                class="border-border grid cursor-pointer grid-cols-[1fr_1fr_2fr] lg:grid-cols-[1fr_1fr_2fr_1fr_1fr_1fr] items-center border-b px-4 text-sm transition-colors
            {currentSelectedEvent?.id === event.id ? 'bg-muted' : 'hover:bg-muted/50'}"
                 role="button"
                 tabindex="0"
@@ -79,7 +78,6 @@
                 >
                     {event.provider}
                 </span>
-
                 <!-- Status -->
                 <span
                     class="flex items-center gap-1.5 text-xs font-medium {functions.getDeliveryStatusTextColor(
@@ -89,26 +87,27 @@
                     <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
                     {functions.capitalize(event.delivery_status)}
                 </span>
-
                 <!-- Event Type -->
                 <span class="text-xs text-muted-foreground truncate">{event.event_type}</span>
-
                 <!-- Received -->
-                <span class="text-xs text-muted-foreground">
+                <span class="hidden lg:block text-xs text-muted-foreground">
                     {functions.formatReceivedAtTimeForTable(event.received_at, userTimeZone)}
                 </span>
-
                 <!-- Response -->
-                <span class="text-xs {functions.getResponseCodeColor(event.response_code)}">
+                <span
+                    class="hidden lg:block text-xs {functions.getResponseCodeColor(
+                        event.response_code,
+                    )}"
+                >
                     {event.response_code ?? '-'}
                 </span>
-
                 <!-- Retries -->
-                <span class="text-xs text-muted-foreground">{event.retry_count}</span>
+                <span class="hidden lg:block text-xs text-muted-foreground"
+                    >{event.retry_count}</span
+                >
             </div>
         {/each}
     </div>
-
     {#if loadingMore}
         <div class="text-muted-foreground py-2 text-center text-xs">Loading...</div>
     {/if}

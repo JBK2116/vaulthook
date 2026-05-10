@@ -88,7 +88,7 @@
     let currentSelectedEvent: WebHookEvent | null = $state(null);
     let isSheetOpen: boolean = $state(false);
     $effect(() => {
-        if (currentSelectedEvent && window.innerWidth < 768) {
+        if (currentSelectedEvent && window.innerWidth < 1024) {
             isSheetOpen = true;
         }
     });
@@ -280,38 +280,44 @@
 <Navbar></Navbar>
 <div>
     <div class="flex h-[calc(100vh-4rem)] flex-col">
-        <div class="border-border flex flex-row items-center justify-between border-b">
-            <div class="border-border flex shrink-0">
-                <StatCard label="Total (7days)" valueNumber={totalEvents} valueNumberColor={''} />
-                <StatCard
-                    label="Delivered"
-                    valueNumber={totalDeliveredEvents}
-                    valueNumberColor={DeliveryStatusColors.delivered}
-                />
-                <StatCard
-                    label="Failed"
-                    valueNumber={totalFailedEvents}
-                    valueNumberColor={DeliveryStatusColors.failed}
-                />
-                <StatCard
-                    label="Retrying"
-                    valueNumber={totalRetryingEvents}
-                    valueNumberColor={DeliveryStatusColors.retrying}
-                />
-                <StatCard
-                    label="Queued"
-                    valueNumber={totalQueuedEvents}
-                    valueNumberColor={DeliveryStatusColors.queued}
-                />
-            </div>
-            <div class="flex items-center gap-2">
-                <button
-                    onclick={togglePause}
-                    class="px-3 py-1 text-sm rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
-                >
-                    {isPaused ? 'Resume' : 'Pause'}
-                </button>
-                <ConnIndicator {connState} />
+        <div class="border-border flex flex-col border-b">
+            <div class="flex flex-row items-center justify-between">
+                <div class="border-border flex shrink-0 overflow-x-auto">
+                    <StatCard
+                        label="Total (7days)"
+                        valueNumber={totalEvents}
+                        valueNumberColor={''}
+                    />
+                    <StatCard
+                        label="Delivered"
+                        valueNumber={totalDeliveredEvents}
+                        valueNumberColor={DeliveryStatusColors.delivered}
+                    />
+                    <StatCard
+                        label="Failed"
+                        valueNumber={totalFailedEvents}
+                        valueNumberColor={DeliveryStatusColors.failed}
+                    />
+                    <StatCard
+                        label="Retrying"
+                        valueNumber={totalRetryingEvents}
+                        valueNumberColor={DeliveryStatusColors.retrying}
+                    />
+                    <StatCard
+                        label="Queued"
+                        valueNumber={totalQueuedEvents}
+                        valueNumberColor={DeliveryStatusColors.queued}
+                    />
+                </div>
+                <div class="flex shrink-0 items-center gap-2 px-3">
+                    <button
+                        onclick={togglePause}
+                        class="px-3 py-1 text-sm rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    >
+                        {isPaused ? 'Resume' : 'Pause'}
+                    </button>
+                    <ConnIndicator {connState} />
+                </div>
             </div>
         </div>
         <div
@@ -322,7 +328,7 @@
         </div>
         <div class="flex flex-1 flex-col md:flex-row overflow-hidden min-h-0">
             <div
-                class="basis-full md:basis-2/3 h-full overflow-hidden border-r border-border min-h-0"
+                class="basis-full lg:basis-2/3 h-full overflow-hidden border-r border-border min-h-0"
             >
                 <EventTable
                     bind:currentSelectedEvent
@@ -332,7 +338,7 @@
                     {hasMore}
                 />
             </div>
-            <div class="hidden md:block md:basis-1/3 h-full overflow-auto">
+            <div class="hidden lg:block lg:basis-1/3 h-full overflow-auto">
                 <Sidebar {currentSelectedEvent}></Sidebar>
             </div>
         </div>
