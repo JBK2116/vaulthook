@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TYPE delivery_status AS ENUM ('queued', 'processing', 'delivered', 'retrying', 'failed');
+CREATE TYPE delivery_status AS ENUM ('queued', 'processing', 'delivered', 'retrying', 'failed', 'replaying');
 
 CREATE TABLE IF NOT EXISTS webhook_events (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Webhook ID Generated In Database

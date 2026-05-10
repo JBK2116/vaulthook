@@ -76,6 +76,20 @@ func (w *Worker) startRetry(ctx context.Context) {
 
 }
 
+// startReplay kicks off a loop that causes the worker to run in the background following an interval.
+func (w *Worker) startReplay(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 2)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			w.run(ctx)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 // run kicks off the Worker to begin working on webhooks.
 func (w *Worker) run(ctx context.Context) {
 	for {

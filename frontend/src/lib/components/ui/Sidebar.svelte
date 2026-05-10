@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
     import * as functions from '$lib/utils/functions';
     import { type WebHookEvent } from '$lib/utils/types';
@@ -58,13 +59,40 @@
         try {
             const res = await fetch(url, { method: 'POST', credentials: 'include' });
             if (!res.ok) {
-                throw new Error('Error replaying event');
+                // reauthenticate the user
+                if (res.status === 401) {
+                    const ok = await reAuthenticate();
+                    if (!ok) {
+                        goto('/login');
+                        return;
+                    }
+                    // try again
+                    const retryRes = await fetch(url, { method: 'POST', credentials: 'include' });
+                    if (!retryRes.ok) {
+                        const msg = await retryRes.text();
+                        throw new Error(msg);
+                    }
+                    toast.info('Replaying Event', { position: 'top-center' });
+                    return;
+                }
+                const msg = await res.text();
+                throw new Error(msg);
             }
-            toast.info('Replaying Event');
+            toast.info('Replaying Event', { position: 'top-center' });
+            return;
         } catch (err: any) {
-            toast.error('Error replaying event', { position: 'top-center' });
+            toast.error(err.message, { position: 'top-center' });
         }
     };
+
+    async function reAuthenticate(): Promise<boolean> {
+        try {
+            const res = await fetch('/api/refresh', { method: 'POST', credentials: 'include' });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }
 </script>
 
 {#if currentSelectedEvent}

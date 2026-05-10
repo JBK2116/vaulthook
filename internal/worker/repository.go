@@ -44,6 +44,13 @@ type RetryWorkerRepo struct {
 	db *pgxpool.Pool
 }
 
+// ReplayWorkerRepo struct is responsible for processing events that need to be replayed.
+//
+// Implementing the WorkerRepository interface
+type ReplayWorkerRepo struct {
+	db *pgxpool.Pool
+}
+
 // NewQueueWorkerRepo returns a WorkerRepo backed by the provided database connection.
 func NewQueueWorkerRepo(db *pgxpool.Pool) WorkerRepository {
 	return &QueueWorkerRepo{
@@ -54,6 +61,12 @@ func NewQueueWorkerRepo(db *pgxpool.Pool) WorkerRepository {
 // NewRetryWorkerRepo returns a WorkerRepository backed by the provided database connection.
 func NewRetryWorkerRepo(db *pgxpool.Pool) WorkerRepository {
 	return &RetryWorkerRepo{
+		db: db,
+	}
+}
+
+func NewReplayWorkerRepo(db *pgxpool.Pool) WorkerRepository {
+	return &ReplayWorkerRepo{
 		db: db,
 	}
 }
@@ -156,7 +169,7 @@ func (r *RetryWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) 
 				AND retry_count < $1
 			)
 			OR (
-				(delivery_status = 'processing' OR delivery_status = 'queued')
+				(delivery_status = 'processing' OR delivery_status = 'queued' OR delivery_status = 'replaying')
 				AND updated_at < NOW() - INTERVAL '1 minute'
 			)
 		ORDER BY next_retry_at ASC, id ASC
@@ -196,6 +209,7 @@ func (r *RetryWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUI
 //	delivery_status
 //	response_code
 //	last_error
+//	retry_count
 func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	query := `
         UPDATE webhook_events
@@ -205,6 +219,80 @@ func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook
             response_code   = $3,
             last_error      = $4,
 			retry_count     = retry_count + 1
+        WHERE id = $5
+        RETURNING *`
+	var hook model.Webhook
+	err := r.db.QueryRow(ctx, query, updates.nextRetryAt, updates.deliveryStatus, updates.responseCode, updates.lastError, updates.id).Scan(
+		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
+		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
+		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
+		&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &hook, nil
+}
+
+// GetEvent safely queries the database for the next event to be replayed.
+func (r *ReplayWorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+	query := `
+        UPDATE webhook_events
+        SET delivery_status = 'replaying'
+        WHERE id = (
+            SELECT id FROM webhook_events
+            WHERE delivery_status = 'replaying'
+            ORDER BY received_at ASC, id ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        ) RETURNING *`
+	var hook model.Webhook
+	err = tx.QueryRow(ctx, query).Scan(
+		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
+		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
+		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
+		&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &hook, tx.Commit(ctx)
+}
+
+// GetDestinationURL queries the database for the destination_url of the provider with the provided ID.
+func (r *ReplayWorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error) {
+	query := `SELECT destination_url FROM providers WHERE id = $1`
+	var url string
+	err := r.db.QueryRow(ctx, query, provID).Scan(&url)
+	if err != nil {
+		return "", err
+	}
+	return url, nil
+}
+
+// UpdateEvent updates the necessary values of the provided webhook event.
+//
+// Updated values include
+//
+//	next_retry_at
+//	delivery_status
+//	response_code
+//	last_error
+func (r *ReplayWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
+	query := `
+        UPDATE webhook_events
+        SET
+            next_retry_at   = $1,
+            delivery_status = $2,
+            response_code   = $3,
+            last_error      = $4
         WHERE id = $5
         RETURNING *`
 	var hook model.Webhook

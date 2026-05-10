@@ -121,6 +121,13 @@
                 decrementStat(existing.delivery_status);
                 incrementStat(event.delivery_status);
             }
+            // if the display is currently paused patch the events array only for this specific event since it already exists
+            if (isPaused) {
+                const idx = events.findIndex((e) => e.id === event.id);
+                if (idx !== -1) {
+                    events[idx] = event;
+                }
+            }
         } else {
             incrementStat(event.delivery_status);
         }

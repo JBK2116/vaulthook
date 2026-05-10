@@ -141,7 +141,7 @@ func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logger.Error().Stack().Err(err).Msg("error replaying event")
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
