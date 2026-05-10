@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -62,4 +63,15 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 		return nil, err
 	}
 	return hooks, nil
+}
+
+// replayEvent sets the delivery_status of the webhook with the provided ID to "queued",
+// allowing it to be picked by queue workers to be replayed.
+func (r *EventRepo) replayEvent(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE webhook_events SET delivery_status = 'queued' WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

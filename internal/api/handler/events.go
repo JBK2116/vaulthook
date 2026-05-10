@@ -130,6 +130,23 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// replayEvent sets the webhook with the provided id to status 'queued' allowing it to be replayed by queue workers
+func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
+	if err := h.service.ReplayEvent(ctx, id); err != nil {
+		if errors.Is(err, events.ErrInvalidUUID) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		h.logger.Error().Stack().Err(err).Msg("error replaying event")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // RegisterRoutes mounts the webhook event related endpoints onto the provided router
 //
 // NOTE: SSE mounting is handled explicitly in main as it requires special configuration.
@@ -139,4 +156,5 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 //	GET /api/events
 func (h *eventsHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/events", h.getAll)
+	r.Post("/events/{id}/replay", h.replayEvent)
 }

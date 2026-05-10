@@ -2,11 +2,17 @@ package events
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+)
+
+var (
+	ErrInvalidUUID = errors.New("invalid uuid received")
 )
 
 // EventService provides the main universal business logic for handling webhook events pertaining to all providers.
@@ -94,4 +100,17 @@ func (s *EventService) Send(event model.Webhook) {
 
 func (s *EventService) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
 	return s.repo.getAll(ctx, createdAt)
+}
+
+// ReplayEvent marks the webhook event as "queued", allowing it to be picked by up workers to be replayed
+func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
+	uuidS, err := uuid.Parse(id)
+	if err != nil {
+		return ErrInvalidUUID
+	}
+	err = s.repo.replayEvent(ctx, uuidS)
+	if err != nil {
+		return err
+	}
+	return nil
 }

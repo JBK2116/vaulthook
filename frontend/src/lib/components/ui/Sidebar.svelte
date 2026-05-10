@@ -52,6 +52,19 @@
             },
         );
     }
+
+    const replayEvent = async (): Promise<void> => {
+        const url = `/api/events/${currentSelectedEvent?.id}/replay`;
+        try {
+            const res = await fetch(url, { method: 'POST', credentials: 'include' });
+            if (!res.ok) {
+                throw new Error('Error replaying event');
+            }
+            toast.info('Replaying Event');
+        } catch (err: any) {
+            toast.error('Error replaying event', { position: 'top-center' });
+        }
+    };
 </script>
 
 {#if currentSelectedEvent}
@@ -144,7 +157,7 @@
             </div>
         </ScrollArea>
         <div class="border-border flex gap-2 border-t px-5 pt-3 pb-4">
-            <Button variant="outline" size="sm">Replay</Button>
+            <Button variant="outline" size="sm" onclick={replayEvent}>Replay</Button>
             <Button variant="outline" size="sm" onclick={copyEventId}>Copy ID</Button>
             <Button variant="outline" size="sm" onclick={copyEventJSON}
                 >Copy {#if activeTabIsPayload}

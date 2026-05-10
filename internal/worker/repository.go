@@ -203,7 +203,8 @@ func (r *RetryWorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook
             next_retry_at   = $1,
             delivery_status = $2,
             response_code   = $3,
-            last_error      = $4
+            last_error      = $4,
+			retry_count     = retry_count + 1
         WHERE id = $5
         RETURNING *`
 	var hook model.Webhook
