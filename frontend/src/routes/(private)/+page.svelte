@@ -37,6 +37,9 @@
     let totalQueuedEvents = $state(0);
     let totalFailedEvents = $state(0);
 
+    // Pause functionality
+    let isPaused: boolean = $state(false);
+
     // Pagination
     let cursor: string | null = $state(null);
     let hasMore: boolean = $state(false);
@@ -52,6 +55,14 @@
     // Throttled derived view recomputes at most every 100ms
     let displayedEvents: WebHookEvent[] = $state([]);
     let rebuildPending = false;
+
+    // helper function to handle pause functionality
+    function togglePause() {
+        isPaused = !isPaused;
+        if (!isPaused) {
+            rebuildEventsArray();
+        }
+    }
 
     function scheduleRebuild() {
         if (rebuildPending) return;
@@ -219,7 +230,9 @@
                     for (const event of batch) {
                         upsertEvent(event);
                     }
-                    scheduleRebuild(); // was rebuildEventsArray()
+                    if (!isPaused) {
+                        scheduleRebuild();
+                    }
                 } catch (err) {
                     // Ignore heartbeats
                 }
@@ -291,7 +304,15 @@
                     valueNumberColor={DeliveryStatusColors.queued}
                 />
             </div>
-            <ConnIndicator {connState}></ConnIndicator>
+            <div class="flex items-center gap-2">
+                <button
+                    onclick={togglePause}
+                    class="px-3 py-1 text-sm rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                >
+                    {isPaused ? 'Resume' : 'Pause'}
+                </button>
+                <ConnIndicator {connState} />
+            </div>
         </div>
         <div
             class="border-border flex shrink-0 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b px-4 py-2.5"
