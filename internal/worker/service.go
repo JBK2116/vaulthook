@@ -158,9 +158,9 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 	}
 	// set provider specific values
 	if hook.Provider == string(model.Stripe) {
-		if err := setStripeHeaders(req, hook.Headers); err != nil {
-			setDefaultUpdateValues(err.Error(), &updates)
-			return updates, err
+		if headerErr := setStripeHeaders(req, hook.Headers); headerErr != nil {
+			setDefaultUpdateValues(headerErr.Error(), &updates)
+			return updates, headerErr
 		}
 	}
 	// payload and headers are set

@@ -18,7 +18,7 @@ var testRepo *RefreshTokenRepo
 var testService *AuthService
 
 func TestMain(m *testing.M) {
-	if err := godotenv.Load("../../.env.test"); err != nil {
+	if err := godotenv.Load("../../.env"); err != nil {
 		panic(err)
 	}
 	config.Init()

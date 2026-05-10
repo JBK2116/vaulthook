@@ -31,8 +31,8 @@ func TestExists(t *testing.T) {
 		t.Fatalf("expected token %s, found nothing", token)
 	}
 	// delete the token
-	if err := testRepo.Delete(ctx, token); err != nil {
-		t.Fatal(err)
+	if repoErr := testRepo.Delete(ctx, token); repoErr != nil {
+		t.Fatal(repoErr)
 	}
 	// token should not exist in the database anymore
 	exists, err = testRepo.Exists(ctx, token)

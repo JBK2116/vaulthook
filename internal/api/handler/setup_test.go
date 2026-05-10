@@ -51,7 +51,7 @@ var stripeService *stripe.StripeService
 var stripeHandle *StripeHandler
 
 func TestMain(m *testing.M) {
-	if err := godotenv.Load("../../../.env.test"); err != nil {
+	if err := godotenv.Load("../../../.env"); err != nil {
 		panic(err)
 	}
 	config.Init()
