@@ -17,6 +17,7 @@ type WorkerPool struct {
 	queueWorkers []*Worker
 	retryWorkers []*Worker
 	replayWorker *Worker
+	cleanup      *cleanupWorker
 }
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration
@@ -38,8 +39,16 @@ func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolo
 	}
 	// initialize the replayWorker
 	replayWorker := newWorker(svc, replayRepo, logger)
+	// initialize the cleanupWorker
+	cleanupW := NewCleanupWorker(logger, db)
 	// initialize the worker pool
-	pool := &WorkerPool{signal: signal, queueWorkers: queueWorkers, retryWorkers: retryWorkers, replayWorker: replayWorker}
+	pool := &WorkerPool{
+		signal:       signal,
+		queueWorkers: queueWorkers,
+		retryWorkers: retryWorkers,
+		replayWorker: replayWorker,
+		cleanup:      cleanupW,
+	}
 	pool.start(ctx)
 	return pool
 }
@@ -53,6 +62,7 @@ func (p *WorkerPool) start(ctx context.Context) {
 		go w.startRetry(ctx)
 	}
 	go p.replayWorker.startReplay(ctx)
+	go p.cleanup.startCleanup(ctx)
 }
 
 // Notify alerts all workers in the pool that one or more webhooks need to be processed.
