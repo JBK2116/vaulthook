@@ -18,7 +18,7 @@ import (
  * Slow Recover: curl -X POST http://localhost:8081/control -d '{"mode":"slow_recover", "fail_count": 500}'
  * Fatal:        curl -X POST http://localhost:8081/control -d '{"mode":"fatal", "fail_count": 50000}'
  * Chaos:        curl -X POST http://localhost:8081/control -d '{"mode":"chaos", "fail_count": 1000}'
- * Flaky:        curl -X POST http://localhost:8081/control -d '{"mode":"flaky", "fail_rate": 0.5}'
+ * Flaky:        curl -X POST http://localhost:8081/control -d '{"mode":"flaky", "fail_rate": 0.2}'
  *
  * Check Stats:  curl http://localhost:8081/stats
  * Check Mode:   curl http://localhost:8081/control

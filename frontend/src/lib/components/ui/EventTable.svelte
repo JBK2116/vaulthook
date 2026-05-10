@@ -23,6 +23,23 @@
 
     let scrollEl: HTMLDivElement;
 
+    let prevTopItemId: string | null = null;
+
+    $effect(() => {
+        const currentEvents = displayedEvents;
+        // Only apply scroll correction if the user has actively scrolled down past the live-feed threshold
+        if (prevTopItemId && scrollEl && scrollEl.scrollTop > 5) {
+            // Find how many new items were prepended by locating the previous first item
+            const shiftAmount = currentEvents.findIndex((e) => e.id === prevTopItemId);
+            if (shiftAmount > 0) {
+                // Push the scroll position down by the exact height of the newly inserted items
+                scrollEl.scrollTop += shiftAmount * ROW_HEIGHT;
+            }
+        }
+        // Update the tracker for the next batch cycle
+        prevTopItemId = currentEvents.length > 0 ? currentEvents[0].id : null;
+    });
+
     let virtualizer = $derived(
         createVirtualizer<HTMLDivElement, HTMLDivElement>({
             count: displayedEvents.length,
@@ -41,6 +58,8 @@
         }
     });
 </script>
+
+<!-- HTML template remains completely unchanged -->
 
 <!-- Sticky header -->
 <div class="border-border bg-background sticky top-0 z-10 border-b">
