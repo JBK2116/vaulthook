@@ -1,0 +1,51 @@
+services:
+    app:
+        build:
+            context: ..
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        env_file: ../.env
+        depends_on:
+            db:
+                condition: service_healthy
+        networks:
+            - internal
+
+    caddy:
+        build:
+            context: ..
+            dockerfile: Dockerfile.caddy
+        restart: unless-stopped
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - caddy_data:/data
+            - caddy_config:/config
+        depends_on:
+            - app
+        networks:
+            - internal
+
+    db:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        env_file: ../.env
+        volumes:
+            - pg_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U postgres -d vaulthook']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - internal
+
+volumes:
+    pg_data:
+    caddy_data:
+    caddy_config:
+
+networks:
+    internal:
+        driver: bridge

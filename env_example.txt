@@ -33,14 +33,19 @@ TOTAL_RETRY_WORKERS=12
 DB_TYPE=postgres
 DB_USER=
 DB_PASSWORD=
-DB_HOST=localhost
+DB_HOST=db
 DB_PORT=5432
 DB_NAME=vaulthook
+
+# Docker Database Configuration
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=vaulthook
 
 # Logging (0=debug, 1=info, 2=warn, 3=error)
 LOG_LEVEL=1
 
 # Goose Migrations
 GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgres://<user>:<password>@<host>:<port>/<dbname>
+GOOSE_DBSTRING=postgres://<user>:<password>@db:<port>/<dbname>
 GOOSE_MIGRATION_DIR=./migrations
