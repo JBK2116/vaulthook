@@ -7,7 +7,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/api/handler"
@@ -28,9 +27,7 @@ import (
 // from accepting traffic.
 func main() {
 	// initialize the environment variables
-	if os.Getenv("IS_DEVELOPMENT") == "true" {
-		godotenv.Load()
-	}
+	godotenv.Load()
 	config.Init()
 	ctx := context.Background()
 	// Initialize and verify the database connection pool.

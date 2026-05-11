@@ -18,7 +18,7 @@
 </script>
 
 <svelte:head>
-    <title>Login - VaultHook</title>
+    <title>Login</title>
     <meta name="Login" content="Login to VaultHook to begin monitoring your webhooks" />
 </svelte:head>
 <Navbar></Navbar>

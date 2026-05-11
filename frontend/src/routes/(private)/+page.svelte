@@ -284,6 +284,11 @@
     });
 </script>
 
+<svelte:head>
+    <title>Dashboard</title>
+    <meta name="description" content="Self-hostable webhook gateway" />
+</svelte:head>
+
 <Navbar></Navbar>
 <div>
     <div class="flex h-[calc(100vh-4rem)] flex-col">
