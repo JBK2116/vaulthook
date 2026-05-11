@@ -2,7 +2,7 @@
 
 **A self-hostable webhook gateway. Own your data, inspect everything, replay anything.**
 
-![HookVault Demo](./demo.gif)
+![HookVault Demo](./assets/output.gif)
 
 ---
 
