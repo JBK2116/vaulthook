@@ -2,13 +2,13 @@
 
 **A self-hostable webhook gateway. Own your data, inspect everything, replay anything.**
 
-![HookVault Demo](./assets/output.gif)
+![Vaulthook Demo](./assets/output.gif)
 
 ---
 
 ## What is it?
 
-HookVault sits between your webhook providers and your application. It receives every inbound webhook, cryptographically verifies the signature, logs the full payload and headers to your database, and forwards it to your destination. If delivery fails, background workers retry automatically. If you need to re-send an event, replay it from the dashboard in one click.
+Vaulthook sits between your webhook providers and your application. It receives every inbound webhook, cryptographically verifies the signature, logs the full payload and headers to your database, and forwards it to your destination. If delivery fails, background workers retry automatically. If you need to re-send an event, replay it from the dashboard in one click.
 
 No managed service. No third party sees your data. Deploy it on your VPS, point your providers at it, and log in from anywhere.
 
@@ -33,7 +33,7 @@ No managed service. No third party sees your data. Deploy it on your VPS, point 
      └── /api/* → Go binary :8080
           │
           ▼
-  [HookVault — Go :8080]
+  [Vaulthook — Go :8080]
     ├── /api/webhooks/:provider   ← Inbound receiver
     └── /api/*                   ← Dashboard API (JWT protected)
           │
@@ -45,7 +45,7 @@ No managed service. No third party sees your data. Deploy it on your VPS, point 
 ```
 
 ```
-hookvault/
+vaulthook/
 ├── cmd/
 │   ├── api/              ← Entry point
 │   └── api-mock/         ← Stripe simulator for testing
@@ -82,14 +82,14 @@ hookvault/
 ## Quick Start
 
 ```bash
-git clone https://github.com/JBK2116/hookvault
-cd hookvault/deploy
+git clone https://github.com/JBK2116/vaulthook
+cd vaulthook/deploy
 cp ../env_example.txt .env
 # Fill in your .env values
 add your domain into Caddyfile
 docker compose up -d
 ```
-HookVault is running behind Caddy with automatic TLS. 
+Vaulthook is running behind Caddy with automatic TLS. 
 Point your providers at `https://yourdomain.com/api/webhooks/:provider`.
 
 ---
@@ -146,9 +146,9 @@ Load tests are in `internal/tests/load/`.
 
 ## Deployment
 
-HookVault ships as a single Docker image behind Caddy. All config lives in your `.env`. The `deploy/` folder contains:
+Vaulthook ships as a single Docker image behind Caddy. All config lives in your `.env`. The `deploy/` folder contains:
 
-- `docker-compose.yml` - HookVault + PostgreSQL + Caddy
+- `docker-compose.yml` - Vaulthook + PostgreSQL + Caddy
 - `Caddyfile` - TLS termination and reverse proxy config
 - `entrypoint.sh` - runs migrations then starts the binary
 
