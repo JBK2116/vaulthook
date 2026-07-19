@@ -1,0 +1,17 @@
+:80 {
+    root * /srv/frontend
+    
+    handle /api/* {
+        reverse_proxy app:8080 {
+            # Critical for SSE
+            flush_interval -1
+        }
+    }
+
+    file_server
+
+    # This only runs if the path doesn't start with /api/
+    handle {
+        try_files {path} /index.html
+    }
+}

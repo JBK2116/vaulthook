@@ -1,0 +1,51 @@
+# Environment
+IS_DEVELOPMENT=false
+IS_TESTING=false
+
+# Master Secret Key (32-byte hex — used to encrypt provider signing secrets)
+MASTER_KEY=
+
+# Admin Credentials
+USER_EMAIL=
+USER_PASSWORD=
+
+# JWT Configuration
+TOKEN_SECRET=                  # 64-byte hex recommended
+ACCESS_TOKEN_TTL=10            # minutes
+REFRESH_TOKEN_TTL=24           # hours
+
+# Router Configuration
+THROTTLE_MAX_CONCURRENT=100
+THROTTLE_MAX_BACKLOG=50
+THROTTLE_BACKLOG_TIMEOUT=10    # seconds
+MAX_REQUEST_TIME_LENGTH=60     # seconds
+
+# Event Configuration
+MAX_RETRIES=3
+RETRY_INTERVAL_SECONDS=15
+FORWARD_TIMEOUT_SECONDS=6
+
+# Worker Configuration
+TOTAL_QUEUE_WORKERS=8
+TOTAL_RETRY_WORKERS=12
+
+# Database
+DB_TYPE=postgres
+DB_USER=
+DB_PASSWORD=
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=vaulthook
+
+# Docker Database Configuration
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=vaulthook
+
+# Logging (0=debug, 1=info, 2=warn, 3=error)
+LOG_LEVEL=1
+
+# Goose Migrations
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://<user>:<password>@db:<port>/<dbname>
+GOOSE_MIGRATION_DIR=./migrations
