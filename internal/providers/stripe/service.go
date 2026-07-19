@@ -12,6 +12,14 @@ import (
 	"github.com/stripe/stripe-go/v85/webhook"
 )
 
+// safePrefix returns a truncated version of s safe for logging.
+func safePrefix(s string) string {
+	if len(s) <= 6 {
+		return s
+	}
+	return s[:6]
+}
+
 // StripeService provides the main business logic for handling webhook events pertaining to the stripe provider
 type StripeService struct {
 	logger       *zerolog.Logger
@@ -41,6 +49,13 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 	}
 	event, err := webhook.ConstructEvent(payload, signatureHeader, decrytedSecret)
 	if err != nil {
+		s.logger.Error().
+			Err(err).
+			Int("secret_len", len(decrytedSecret)).
+			Str("secret_prefix", safePrefix(decrytedSecret)).
+			Str("sig_prefix", safePrefix(signatureHeader)).
+			Int("payload_len", len(payload)).
+			Msg("failed to validate stripe webhook secret")
 		return stripe.Event{}, err
 	}
 	return event, nil
