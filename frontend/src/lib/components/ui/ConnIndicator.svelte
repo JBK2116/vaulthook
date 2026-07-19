@@ -1,39 +1,31 @@
 <script lang="ts">
     import { ConnState } from '$lib/utils/types';
-    import { LoaderCircle, ShieldAlert, Wifi, WifiOff } from '@lucide/svelte';
 
     interface Props {
         connState: ConnState;
     }
     let { connState }: Props = $props();
 
-    const states: Record<
-        ConnState,
-        { label: string; bg: string; text: string; icon: typeof Wifi }
-    > = {
+    const states: Record<ConnState, { label: string; bg: string; text: string }> = {
         [ConnState.Connected]: {
             label: 'Live',
-            bg: 'bg-emerald-500',
-            text: 'text-emerald-400',
-            icon: Wifi,
+            bg: 'bg-conn-live',
+            text: 'text-conn-live-foreground',
         },
         [ConnState.Connecting]: {
             label: 'Connecting...',
-            bg: 'bg-amber-500',
-            text: 'text-amber-400',
-            icon: LoaderCircle,
+            bg: 'bg-conn-connecting',
+            text: 'text-conn-connecting-foreground',
         },
         [ConnState.Disconnected]: {
             label: 'Disconnected',
-            bg: 'bg-red-500',
-            text: 'text-red-400',
-            icon: WifiOff,
+            bg: 'bg-conn-disconnected',
+            text: 'text-conn-disconnected-foreground',
         },
         [ConnState.Unauthenticated]: {
             label: 'Auth Error',
-            bg: 'bg-orange-500',
-            text: 'text-orange-400',
-            icon: ShieldAlert,
+            bg: 'bg-conn-error',
+            text: 'text-conn-error-foreground',
         },
     };
 

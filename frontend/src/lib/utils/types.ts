@@ -42,10 +42,10 @@ export enum DeliveryStatusTypes {
 }
 
 export enum DeliveryStatusColors {
-    delivered = 'text-emerald-400',
-    failed = 'text-red-400',
-    retrying = 'text-amber-400',
-    queued = 'text-slate-400',
+    delivered = 'text-status-delivered-foreground',
+    failed = 'text-status-failed-foreground',
+    retrying = 'text-status-retrying-foreground',
+    queued = 'text-status-queued-foreground',
 }
 
 export enum SelectTypes {

@@ -80,13 +80,13 @@ export function capitalize(str: string): string {
 export function getProviderBackgroundColor(provider: string): string {
     switch (provider) {
         case ProviderTypes.Stripe:
-            return '#1a1040'; // deep stripe purple
+            return 'var(--provider-stripe)';
         case ProviderTypes.Github:
-            return '#161b22'; // github dark
+            return 'var(--provider-github)';
         case ProviderTypes.Sns:
-            return '#1a2a0a'; // aws green dark
+            return 'var(--provider-sns)';
         default:
-            return '#1a1a1a';
+            return 'var(--provider-default)';
     }
 }
 
@@ -96,13 +96,13 @@ export function getProviderBackgroundColor(provider: string): string {
 export function getProviderTextColor(provider: string): string {
     switch (provider) {
         case ProviderTypes.Stripe:
-            return '#7c6af7'; // stripe purple
+            return 'var(--provider-stripe-foreground)';
         case ProviderTypes.Github:
-            return '#e6edf3'; // github text white
+            return 'var(--provider-github-foreground)';
         case ProviderTypes.Sns:
-            return '#4caf50'; // aws green
+            return 'var(--provider-sns-foreground)';
         default:
-            return '#a3a3a3';
+            return 'var(--provider-default-foreground)';
     }
 }
 

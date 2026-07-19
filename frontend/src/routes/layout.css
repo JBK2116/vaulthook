@@ -43,43 +43,106 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: oklch(0.13 0.02 260);
+    --foreground: oklch(0.98 0 0);
+    --card: oklch(0.17 0.02 260);
+    --card-foreground: oklch(0.98 0 0);
+    --popover: oklch(0.17 0.02 260);
+    --popover-foreground: oklch(0.98 0 0);
+    --primary: oklch(0.62 0.22 255);
+    --primary-foreground: oklch(0.98 0 0);
+    --secondary: oklch(0.22 0.02 260);
+    --secondary-foreground: oklch(0.98 0 0);
+    --muted: oklch(0.22 0.02 260);
+    --muted-foreground: oklch(0.6 0.04 255);
+    --accent: oklch(0.22 0.02 260);
+    --accent-foreground: oklch(0.98 0 0);
+    --destructive: oklch(0.55 0.12 255);
+    --border: oklch(0.3 0.03 260);
+    --input: oklch(0.3 0.03 260);
+    --ring: oklch(0.5 0.15 255);
+    --chart-1: oklch(0.62 0.22 255);
+    --chart-2: oklch(0.55 0.18 255);
+    --chart-3: oklch(0.48 0.14 255);
+    --chart-4: oklch(0.42 0.1 255);
+    --chart-5: oklch(0.35 0.06 255);
+    --sidebar: oklch(0.15 0.02 260);
+    --sidebar-foreground: oklch(0.98 0 0);
+    --sidebar-primary: oklch(0.62 0.22 255);
+    --sidebar-primary-foreground: oklch(0.98 0 0);
+    --sidebar-accent: oklch(0.22 0.02 260);
+    --sidebar-accent-foreground: oklch(0.98 0 0);
+    --sidebar-border: oklch(0.3 0.03 260);
+    --sidebar-ring: oklch(0.5 0.15 255);
+
+    /* Status tokens */
+    --status-delivered: oklch(0.72 0.19 145); /* green */
+    --status-delivered-foreground: oklch(0.72 0.19 145);
+    --status-failed: oklch(0.65 0.22 25); /* red */
+    --status-failed-foreground: oklch(0.65 0.22 25);
+    --status-retrying: oklch(0.75 0.16 70); /* amber */
+    --status-retrying-foreground: oklch(0.75 0.16 70);
+    --status-queued: oklch(0.65 0.02 260); /* neutral gray */
+    --status-queued-foreground: oklch(0.7 0.02 260);
+
+    /* Connection state tokens */
+    --conn-live: oklch(0.72 0.19 145); /* green, matches delivered */
+    --conn-live-foreground: oklch(0.72 0.19 145);
+    --conn-connecting: oklch(0.75 0.16 70); /* amber */
+    --conn-connecting-foreground: oklch(0.75 0.16 70);
+    --conn-disconnected: oklch(0.5 0.02 260); /* neutral gray */
+    --conn-disconnected-foreground: oklch(0.55 0.02 260);
+    --conn-error: oklch(0.65 0.22 25); /* red */
+    --conn-error-foreground: oklch(0.65 0.22 25);
+
+    /* Provider tokens — keep muted/neutral, don't compete with status */
+    --provider-stripe: oklch(0.22 0.02 260);
+    --provider-stripe-foreground: oklch(0.65 0.02 255); /* was blue, now gray */
+    --provider-github: oklch(0.22 0.02 255);
+    --provider-github-foreground: oklch(0.75 0.01 255);
+    --provider-sns: oklch(0.22 0.02 260);
+    --provider-sns-foreground: oklch(0.65 0.02 255);
+    --provider-default: oklch(0.22 0.02 260);
+    --provider-default-foreground: oklch(0.6 0.02 255);
+
+    /* Bump contrast on secondary text */
+    --muted-foreground: oklch(0.68 0.03 255); /* was 0.6 0.04 255 */
 }
 
 @theme inline {
     --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono Variable', monospace;
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Status colors */
+    --color-status-delivered: var(--status-delivered);
+    --color-status-delivered-foreground: var(--status-delivered-foreground);
+    --color-status-failed: var(--status-failed);
+    --color-status-failed-foreground: var(--status-failed-foreground);
+    --color-status-retrying: var(--status-retrying);
+    --color-status-retrying-foreground: var(--status-retrying-foreground);
+    --color-status-queued: var(--status-queued);
+    --color-status-queued-foreground: var(--status-queued-foreground);
+
+    /* Connection state colors */
+    --color-conn-live: var(--conn-live);
+    --color-conn-live-foreground: var(--conn-live-foreground);
+    --color-conn-connecting: var(--conn-connecting);
+    --color-conn-connecting-foreground: var(--conn-connecting-foreground);
+    --color-conn-disconnected: var(--conn-disconnected);
+    --color-conn-disconnected-foreground: var(--conn-disconnected-foreground);
+    --color-conn-error: var(--conn-error);
+    --color-conn-error-foreground: var(--conn-error-foreground);
+
+    /* Provider colors */
+    --color-provider-stripe: var(--provider-stripe);
+    --color-provider-stripe-foreground: var(--provider-stripe-foreground);
+    --color-provider-github: var(--provider-github);
+    --color-provider-github-foreground: var(--provider-github-foreground);
+    --color-provider-sns: var(--provider-sns);
+    --color-provider-sns-foreground: var(--provider-sns-foreground);
+    --color-provider-default: var(--provider-default);
+    --color-provider-default-foreground: var(--provider-default-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-accent: var(--sidebar-accent);
