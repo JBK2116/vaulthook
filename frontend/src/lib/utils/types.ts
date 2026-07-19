@@ -4,7 +4,7 @@ export interface WebHookEvent {
     provider: string; // provider of the event
     event_id: string | null; // ID of the event, send by the provider
     event_type: string; // type of the event
-    headers: Record<string, string>; // headers sent in event
+    headers: Record<string, string[]>; // headers sent in event (http.Header)
     payload: Record<string, unknown>; // payload sent in event
     delivery_status: DeliveryStatusTypes; // delivery status of the event
     forwarded_to: string; // forwared to server address of the event
