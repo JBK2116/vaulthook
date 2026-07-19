@@ -41,7 +41,7 @@
     let totalQueuedEvents = $state(0);
     let totalFailedEvents = $state(0);
     let totalEvents = $derived(
-        totalDeliveredEvents + totalRetryingEvents + totalQueuedEvents + totalFailedEvents,
+        Math.max(0, totalDeliveredEvents + totalRetryingEvents + totalQueuedEvents + totalFailedEvents),
     );
 
     // Pause functionality
@@ -69,6 +69,10 @@
     // Throttled derived view recomputes at most every 100ms
     let displayedEvents: WebHookEvent[] = $state([]);
     let rebuildPending = false;
+
+    // Scroll-away tracking: freeze table updates while user reads history
+    let scrolledAway = $state(false);
+    let pendingRebuild = false;
 
     // helper function to handle pause functionality
     function togglePause() {
@@ -101,6 +105,14 @@
     // Sheet / Table
     let currentSelectedEvent: WebHookEvent | null = $state(null);
     let isSheetOpen: boolean = $state(false);
+
+    // Called by EventTable when the user scrolls away from / back to the top.
+    function handleScrollAway(away: boolean) {
+        scrolledAway = away;
+        if (!away && pendingRebuild && !isPaused) {
+            rebuildEventsArray();
+        }
+    }
     // Keyboard shortcuts
     function handleKeydown(e: KeyboardEvent) {
         if (e.key === 'Escape' && currentSelectedEvent) {
@@ -130,20 +142,11 @@
         if (key) counts[key]++;
     }
 
-    function decrementStat(status: DeliveryStatusTypes) {
-        const key = statKey(status);
-        if (key) counts[key]--;
-    }
-
-    // All writes to eventMap go through here keeps stat counters in sync
+    // All writes to eventMap go through here. Only new events increment
+    // the live counters; status changes are corrected by the 1s poll.
     function upsertEvent(event: WebHookEvent) {
         const existing = eventMap.get(event.id);
         if (existing) {
-            // If status changed, correct the counter before overwriting
-            if (existing.delivery_status !== event.delivery_status) {
-                decrementStat(existing.delivery_status);
-                incrementStat(event.delivery_status);
-            }
             // if the display is currently paused patch the events array only for this specific event since it already exists
             if (isPaused) {
                 const idx = events.findIndex((e) => e.id === event.id);
@@ -151,25 +154,53 @@
                     events[idx] = event;
                 }
             }
-        } else {
-            incrementStat(event.delivery_status);
+            // Always update the map so the event is up-to-date when unpausing.
+            eventMap.set(event.id, { ...event, _ts: Date.parse(event.created_at) });
+            return;
         }
+        incrementStat(event.delivery_status);
         // Cache parsed timestamp once so the sort comparator is a pure subtraction
         eventMap.set(event.id, { ...event, _ts: Date.parse(event.created_at) });
     }
 
     // Rebuild the reactive events array from the map.
-    // Called after bulk loads and after each SSE flush
+    // Called after bulk loads and after each SSE flush.
+    // When the user has scrolled away from the top the display is frozen —
+    // events still accumulate in the map and stats flush normally.
     function rebuildEventsArray() {
         const sorted = Array.from(eventMap.values()).sort((a, b) => b._ts - a._ts);
+
+        // User is scrolled down or paused — don't disrupt their view.
+        // Counts still flush so the stat cards stay live.
+        if (scrolledAway || isPaused) {
+            pendingRebuild = true;
+            if (!firstFlush) {
+                counts.delivered = 0;
+                counts.failed = 0;
+                counts.retrying = 0;
+                counts.queued = 0;
+                firstFlush = true;
+            } else {
+                totalDeliveredEvents += counts.delivered;
+                totalFailedEvents += counts.failed;
+                totalRetryingEvents += counts.retrying;
+                totalQueuedEvents += counts.queued;
+                counts.delivered = 0;
+                counts.failed = 0;
+                counts.retrying = 0;
+                counts.queued = 0;
+            }
+            return;
+        }
+
         if (sorted.length > eventCap) {
             for (let i = eventCap; i < sorted.length; i++) {
-                decrementStat(sorted[i].delivery_status);
                 eventMap.delete(sorted[i].id);
             }
         }
         // This assignment triggers the $effect above automatically
         events = sorted.slice(0, eventCap);
+        pendingRebuild = false;
         if (!firstFlush) {
             // prevent overwriting call to loadStats
             counts.delivered = 0;
@@ -354,8 +385,35 @@
             }
         })();
 
+        // Poll every second to keep stats and rows accurate regardless of
+        // SSE pipeline saturation. The DB is the source of truth for both.
+        const POLL_MS = 1_000;
+        let polling = false;
+        const pollInterval = setInterval(async () => {
+            if (polling) return; // skip if previous poll still in flight
+            polling = true;
+            try {
+                // Stats: replace totals from DB, reset incremental counters.
+                await loadStats();
+                counts.delivered = 0;
+                counts.failed = 0;
+                counts.retrying = 0;
+                counts.queued = 0;
+
+                // Rows: refresh the most recent page so status changes from
+                // worker retries are visible even when SSE drops updates.
+                await loadPage(null);
+                rebuildEventsArray();
+            } catch {
+                // Silently retry next interval.
+            } finally {
+                polling = false;
+            }
+        }, POLL_MS);
+
         return () => {
             destroyed = true;
+            clearInterval(pollInterval);
             if (authCheckTimeout) clearTimeout(authCheckTimeout);
             rebuildPending = false;
             es?.close();
@@ -453,6 +511,7 @@
                         {loadMore}
                         {loadingMore}
                         {hasMore}
+                        onscrollaway={handleScrollAway}
                     />
                 </div>
                 <div class="hidden lg:block lg:basis-1/3 h-full overflow-auto">

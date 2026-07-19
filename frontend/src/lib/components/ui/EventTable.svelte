@@ -9,6 +9,7 @@
         loadMore: () => Promise<void>;
         loadingMore: boolean;
         hasMore: boolean;
+        onscrollaway?: (away: boolean) => void;
     }
     let {
         currentSelectedEvent = $bindable(),
@@ -16,12 +17,27 @@
         loadMore,
         loadingMore,
         hasMore,
+        onscrollaway,
     }: Props = $props();
 
     const ROW_HEIGHT = 36;
     const userTimeZone: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     let scrollEl: HTMLDivElement;
+
+    // Notify parent when the user scrolls away from / back to the top so the
+    // live feed can be frozen while they're reading history.
+    let wasAway = $state(false);
+    const SCROLL_AWAY_THRESHOLD = 50;
+
+    function handleScroll() {
+        if (!scrollEl || !onscrollaway) return;
+        const away = scrollEl.scrollTop > SCROLL_AWAY_THRESHOLD;
+        if (away !== wasAway) {
+            wasAway = away;
+            onscrollaway(away);
+        }
+    }
 
     let prevTopItemId: string | null = null;
 
@@ -75,7 +91,7 @@
     </div>
 </div>
 <!-- Virtual scroll container -->
-<div bind:this={scrollEl} class="relative h-full overflow-auto" style="overflow-anchor: none;">
+<div bind:this={scrollEl} onscroll={handleScroll} class="relative h-full overflow-auto" style="overflow-anchor: none;">
     <div style="height: {$virtualizer.getTotalSize()}px; position: relative;">
         {#each $virtualizer.getVirtualItems() as row (row.key)}
             {@const event = displayedEvents[row.index]}
