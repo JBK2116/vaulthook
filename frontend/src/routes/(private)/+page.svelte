@@ -245,7 +245,7 @@
             await loadPage(null);
             rebuildEventsArray();
         } catch (err: any) {
-            toast.error('Failed to load events', { position: 'top-center' });
+            toast.error('Failed to load events');
         } finally {
             initialLoading = false;
         }
@@ -258,7 +258,7 @@
             await loadPage(cursor);
             rebuildEventsArray();
         } catch (err: any) {
-            toast.error('Failed to load more webhooks', { position: 'top-center' });
+            toast.error('Failed to load more webhooks');
         } finally {
             loadingMore = false;
         }
@@ -320,7 +320,7 @@
                 await loadEvents();
                 connect();
             } catch (err: any) {
-                toast.error(err.message, { position: 'top-center' });
+                toast.error(err.message);
             }
         })();
 

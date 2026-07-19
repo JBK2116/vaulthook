@@ -23,7 +23,7 @@
         activeTabIsPayload
             ? navigator.clipboard.writeText(JSON.stringify(currentSelectedEvent.payload, null, 2))
             : navigator.clipboard.writeText(JSON.stringify(currentSelectedEvent.headers, null, 2));
-        toast.info('Copied to clipboard', { position: 'top-center' });
+        toast.info('Copied to clipboard');
     };
 
     const copyEventId: () => void = () => {
@@ -31,7 +31,7 @@
             return;
         }
         navigator.clipboard.writeText(currentSelectedEvent.id);
-        toast.info('Copied to clipboard', { position: 'top-center' });
+        toast.info('Copied to clipboard');
     };
     // helper function to improve the display of JSON in the sidebar
     function prettifyJSON(obj: unknown): string {
@@ -74,16 +74,16 @@
                         const msg = await retryRes.text();
                         throw new Error(msg);
                     }
-                    toast.info('Replaying Event', { position: 'top-center' });
+                    toast.info('Replaying Event');
                     return;
                 }
                 const msg = await res.text();
                 throw new Error(msg);
             }
-            toast.info('Replaying Event', { position: 'top-center' });
+            toast.info('Replaying Event');
             return;
         } catch (err: any) {
-            toast.error(err.message, { position: 'top-center' });
+            toast.error(err.message);
         }
     };
 </script>

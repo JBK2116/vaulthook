@@ -39,19 +39,19 @@
         if (!provider.is_configured) {
             // both fields must change
             if (body.destination_url.length <= 0) {
-                toast.error('Destination URL is required', { position: 'top-center' });
+                toast.error('Destination URL is required');
                 savingData = false;
                 return;
             }
             if (body.signing_secret.length <= 0) {
-                toast.error('Signing Secret is required', { position: 'top-center' });
+                toast.error('Signing Secret is required');
                 savingData = false;
                 return;
             }
         } else {
             // at least one field must change
             if (body.destination_url.length <= 0 || body.signing_secret.length <= 0) {
-                toast.error('At least one field required', { position: 'top-center' });
+                toast.error('At least one field required');
                 savingData = false;
                 return;
             }
@@ -61,7 +61,7 @@
             body.signing_secret === provider.signing_secret &&
             body.destination_url === provider.destination_url
         ) {
-            toast.warning('No changes detected', { position: 'top-center' });
+            toast.warning('No changes detected');
             savingData = false;
             return;
         }
@@ -74,7 +74,7 @@
             credentials: 'include',
         });
         if (!res.ok) {
-            toast.error('Unable to update provider', { position: 'top-center' });
+            toast.error('Unable to update provider');
             savingData = false;
             return;
         }
@@ -82,7 +82,7 @@
         provider = updatedProvider;
         editing = false;
         savingData = false;
-        toast.success('Provider updated', { position: 'top-center' });
+        toast.success('Provider updated');
     }
 </script>
 

@@ -6,5 +6,5 @@
     const { children } = $props();
 </script>
 
-<Toaster />
+<Toaster position="bottom-right" expand={true} closeButton />
 {@render children()}
