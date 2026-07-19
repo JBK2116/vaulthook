@@ -29,7 +29,7 @@
 
     // Primary source of truth keyed by event id for O(1) dedup + update
     const eventMap = new Map<string, CachedEvent>();
-    const eventCap = 100;
+    const eventCap = 500;
 
     // Incremental stat counters
     const counts = { delivered: 0, retrying: 0, queued: 0, failed: 0 };
@@ -47,6 +47,11 @@
     // Pause functionality
     let isPaused: boolean = $state(false);
     let firstFlush: boolean = $state(false);
+
+    // Overflow tracking — when the backend drops SSE events due to throughput,
+    // we reload from the REST API to keep the displayed events consistent.
+    let overflowCount: number = $state(0);
+    let overflowTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Pagination
     let cursor: string | null = $state(null);
@@ -294,6 +299,31 @@
                     // Malformed JSON — ignore
                 }
             };
+            // Handle overflow events: backend dropped events from the SSE feed.
+            // Reload from the REST API to fill the gap.
+            es.addEventListener('overflow', (e: MessageEvent) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    overflowCount += data.count ?? 0;
+                    // Debounce: reload at most once per 2 seconds
+                    if (!overflowTimeout) {
+                        overflowTimeout = setTimeout(async () => {
+                            overflowTimeout = null;
+                            const n = overflowCount;
+                            overflowCount = 0;
+                            toast.warning(
+                                `Live feed skipped ${n} event${n !== 1 ? 's' : ''}. Reloading…`,
+                            );
+                            // Reload from the REST API to get a consistent view
+                            await loadPage(null);
+                            rebuildEventsArray();
+                            toast.success('Feed resynced');
+                        }, 2000);
+                    }
+                } catch {
+                    // Malformed overflow JSON — ignore
+                }
+            });
             es.onerror = () => {
                 es?.close();
                 es = null;

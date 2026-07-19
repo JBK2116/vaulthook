@@ -93,6 +93,17 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
 				return
 			}
+			// Signal overflow so the client can resync from the REST API
+			if dropped := h.service.Dropped(); dropped > 0 {
+				if _, err := fmt.Fprintf(w, "event: overflow\ndata: {\"count\":%d}\n\n", dropped); err != nil {
+					h.logger.Error().Err(err).Msg("failed to send overflow event")
+					return
+				}
+				if err := rc.Flush(); err != nil {
+					h.logger.Error().Err(err).Msg("failed to flush overflow")
+					return
+				}
+			}
 		}
 	}
 }
