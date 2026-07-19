@@ -3,8 +3,8 @@
     import { page } from '$app/state';
     import type { ConnState } from '$lib/utils/types';
 
-    import Button from './button/button.svelte';
     import ConnIndicator from './ConnIndicator.svelte';
+    import Button from './button/button.svelte';
 
     interface Props {
         connState?: ConnState;
@@ -38,7 +38,7 @@
         <span class="text-primary">🟈</span>
         VaultHook
     </a>
-{#if !isLogin}
+    {#if !isLogin}
         <div class="flex items-center gap-3">
             {#if connState}
                 <ConnIndicator {connState} />
