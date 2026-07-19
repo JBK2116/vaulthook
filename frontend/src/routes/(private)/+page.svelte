@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import EventSheet from '$lib/components/ui/EventSheet.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
     import Navbar from '$lib/components/ui/Navbar.svelte';
@@ -8,6 +9,8 @@
     import SelectFilter from '$lib/components/ui/SelectFilter.svelte';
     import Sidebar from '$lib/components/ui/Sidebar.svelte';
     import StatCard from '$lib/components/ui/StatCard.svelte';
+    import TableSkeleton from '$lib/components/ui/TableSkeleton.svelte';
+    import { reAuthenticate } from '$lib/utils/auth';
     import * as functions from '$lib/utils/functions';
     import {
         ConnState,
@@ -16,6 +19,7 @@
         SelectTypes,
         type WebHookEvent,
     } from '$lib/utils/types';
+    import { Pause, Play } from '@lucide/svelte';
     import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
 
@@ -44,6 +48,7 @@
     let cursor: string | null = $state(null);
     let hasMore: boolean = $state(false);
     let loadingMore: boolean = $state(false);
+    let initialLoading: boolean = $state(true);
 
     // Backend Connection
     let connState: ConnState = $state(ConnState.Connecting);
@@ -87,6 +92,15 @@
     // Sheet / Table
     let currentSelectedEvent: WebHookEvent | null = $state(null);
     let isSheetOpen: boolean = $state(false);
+    // Keyboard shortcuts
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === 'Escape' && currentSelectedEvent) {
+            currentSelectedEvent = null;
+            isSheetOpen = false;
+        }
+    }
+
+    // Sheet reactivity
     $effect(() => {
         if (currentSelectedEvent && window.innerWidth < 1024) {
             isSheetOpen = true;
@@ -191,6 +205,8 @@
             rebuildEventsArray();
         } catch (err: any) {
             toast.error('Failed to load events', { position: 'top-center' });
+        } finally {
+            initialLoading = false;
         }
     }
 
@@ -207,15 +223,7 @@
         }
     }
 
-    // Auth
-    async function reAuthenticate(): Promise<boolean> {
-        try {
-            const res = await fetch('/api/refresh', { method: 'POST', credentials: 'include' });
-            return res.ok;
-        } catch {
-            return false;
-        }
-    }
+    // Auth — uses shared utility from $lib/utils/auth
 
     // SSE
     onMount(() => {
@@ -231,6 +239,8 @@
                 toast.info('Connected', { position: 'top-center' });
             };
             es.onmessage = (e) => {
+                // Ignore heartbeats and connection confirmations
+                if (!e.data || e.data === '{}' || e.data.startsWith(':')) return;
                 try {
                     const batch: WebHookEvent[] = JSON.parse(e.data);
                     if (!Array.isArray(batch) || batch.length === 0) return;
@@ -240,8 +250,8 @@
                     if (!isPaused) {
                         scheduleRebuild();
                     }
-                } catch (err) {
-                    // Ignore heartbeats
+                } catch {
+                    // Malformed JSON — ignore
                 }
             };
             es.onerror = () => {
@@ -289,17 +299,17 @@
     <meta name="description" content="Self-hostable webhook gateway" />
 </svelte:head>
 
+<svelte:window onkeydown={handleKeydown} />
+
 <Navbar></Navbar>
 <div>
     <div class="flex h-[calc(100vh-4rem)] flex-col">
         <div class="border-border flex flex-col border-b">
             <div class="flex flex-row items-center justify-between">
-                <div class="border-border flex shrink-0 overflow-x-auto">
-                    <StatCard
-                        label="Total (7days)"
-                        valueNumber={totalEvents}
-                        valueNumberColor={''}
-                    />
+                <div
+                    class="border-border flex shrink-0 overflow-x-auto snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch] relative"
+                >
+                    <StatCard label="Total" valueNumber={totalEvents} valueNumberColor={''} />
                     <StatCard
                         label="Delivered"
                         valueNumber={totalDeliveredEvents}
@@ -324,9 +334,15 @@
                 <div class="flex shrink-0 items-center gap-2 px-3">
                     <button
                         onclick={togglePause}
-                        class="px-3 py-1 text-sm rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
-                        {isPaused ? 'Resume' : 'Pause'}
+                        {#if isPaused}
+                            <Play class="h-3.5 w-3.5" />
+                            Resume
+                        {:else}
+                            <Pause class="h-3.5 w-3.5" />
+                            Pause
+                        {/if}
                     </button>
                     <ConnIndicator {connState} />
                 </div>
@@ -338,22 +354,39 @@
             <SelectFilter bind:currentSelectedOption></SelectFilter>
             <SearchFilter bind:currentSearchString></SearchFilter>
         </div>
-        <div class="flex flex-1 flex-col md:flex-row overflow-hidden min-h-0">
-            <div
-                class="basis-full lg:basis-2/3 h-full overflow-hidden border-r border-border min-h-0"
-            >
-                <EventTable
-                    bind:currentSelectedEvent
-                    {displayedEvents}
-                    {loadMore}
-                    {loadingMore}
-                    {hasMore}
-                />
+        {#if initialLoading}
+            <div class="flex flex-1 flex-col md:flex-row overflow-hidden min-h-0">
+                <div
+                    class="basis-full lg:basis-2/3 h-full overflow-hidden border-r border-border min-h-0"
+                >
+                    <TableSkeleton />
+                </div>
+                <div class="hidden lg:flex lg:basis-1/3 h-full items-center justify-center">
+                    <div class="bg-muted h-3 w-24 animate-pulse rounded"></div>
+                </div>
             </div>
-            <div class="hidden lg:block lg:basis-1/3 h-full overflow-auto">
-                <Sidebar {currentSelectedEvent}></Sidebar>
+        {:else if totalEvents === 0}
+            <div class="flex flex-1 items-center justify-center min-h-0">
+                <EmptyState />
             </div>
-        </div>
+        {:else}
+            <div class="flex flex-1 flex-col md:flex-row overflow-hidden min-h-0">
+                <div
+                    class="basis-full lg:basis-2/3 h-full overflow-hidden border-r border-border min-h-0"
+                >
+                    <EventTable
+                        bind:currentSelectedEvent
+                        {displayedEvents}
+                        {loadMore}
+                        {loadingMore}
+                        {hasMore}
+                    />
+                </div>
+                <div class="hidden lg:block lg:basis-1/3 h-full overflow-auto">
+                    <Sidebar {currentSelectedEvent}></Sidebar>
+                </div>
+            </div>
+        {/if}
         <EventSheet bind:open={isSheetOpen} {currentSelectedEvent} />
     </div>
 </div>

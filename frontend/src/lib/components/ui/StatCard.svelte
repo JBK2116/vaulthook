@@ -7,7 +7,9 @@
     let { label, valueNumber, valueNumberColor }: Props = $props();
 </script>
 
-<div class="border-border flex flex-col gap-1 border-r px-2 py-1.5 last:border-r-0 sm:px-5 sm:py-3">
+<div
+    class="border-border flex flex-col gap-1 border-r px-2 py-1.5 last:border-r-0 sm:px-5 sm:py-3 snap-start shrink-0 min-w-[80px] sm:min-w-0"
+>
     <span class="text-muted-foreground text-[8px] sm:text-[10px] tracking-widest uppercase">
         {label}
     </span>

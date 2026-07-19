@@ -1,8 +1,10 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
+    import { reAuthenticate } from '$lib/utils/auth';
     import * as functions from '$lib/utils/functions';
     import { type WebHookEvent } from '$lib/utils/types';
+    import { ArrowLeftRight } from '@lucide/svelte';
     import { toast } from 'svelte-sonner';
 
     import Button from './button/button.svelte';
@@ -84,15 +86,6 @@
             toast.error(err.message, { position: 'top-center' });
         }
     };
-
-    async function reAuthenticate(): Promise<boolean> {
-        try {
-            const res = await fetch('/api/refresh', { method: 'POST', credentials: 'include' });
-            return res.ok;
-        } catch {
-            return false;
-        }
-    }
 </script>
 
 {#if currentSelectedEvent}
@@ -195,5 +188,15 @@
                 {/if}</Button
             >
         </div>
+    </div>
+{:else}
+    <div class="flex h-full flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+        <div class="text-muted-foreground/30">
+            <ArrowLeftRight class="h-10 w-10" />
+        </div>
+        <h3 class="text-sm font-medium text-muted-foreground">Select an event</h3>
+        <p class="max-w-xs text-xs text-muted-foreground/60">
+            Click on an event from the table to view its details, payload, and headers.
+        </p>
     </div>
 {/if}
