@@ -138,9 +138,12 @@ func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 }
 
 // forwardEvent attempts to forward the webhook event to it's destination url.
+//
+// NOTE: We no longer send an intermediate SSE update here ("processing" status).
+// The initial "queued" status is sent by the HTTP ingestion handler and the
+// final result is sent after updateEvent. Removing this redundant send reduces
+// broadcast channel pressure by ~33%.
 func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateWebhook, error) {
-	// alert the frontend that processing has started for this webhook
-	w.sse.Send(*hook)
 	var updates updateWebhook
 	updates.id = hook.ID
 	// get the providers destination url
