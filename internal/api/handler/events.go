@@ -130,6 +130,30 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// getStats retrieves statistics for webhooks
+func (h *eventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
+	stats, err := h.service.GetStats(ctx)
+	if err != nil {
+		h.logger.Error().Stack().Err(err).Msg("error retrieving stats for webhooks")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rBody, err := json.Marshal(stats)
+	if err != nil {
+		h.logger.Error().Stack().Err(err).Msg("error marshaling stats")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(rBody); err != nil {
+		h.logger.Error().Stack().Err(err).Msg("error sending stats to frontend")
+		return
+	}
+}
+
 // replayEvent sets the webhook with the provided id to status 'queued' allowing it to be replayed by queue workers
 func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -150,11 +174,8 @@ func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 // RegisterRoutes mounts the webhook event related endpoints onto the provided router
 //
 // NOTE: SSE mounting is handled explicitly in main as it requires special configuration.
-//
-// Endpoints:
-//
-//	GET /api/events
 func (h *eventsHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/events", h.getAll)
 	r.Post("/events/{id}/replay", h.replayEvent)
+	r.Get("/events/stats", h.getStats)
 }

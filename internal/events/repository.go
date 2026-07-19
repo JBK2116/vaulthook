@@ -65,6 +65,31 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 	return hooks, nil
 }
 
+// getStats retrieves the count statistics of the webhook processing events that took place in the last 7 days
+func (r *EventRepo) getStats(ctx context.Context) (*model.Stats, error) {
+	query := ` 
+	SELECT 
+		COUNT(*) FILTER (WHERE delivery_status = 'delivered') as delivered,
+		COUNT(*) FILTER (WHERE delivery_status = 'failed') as failed,
+		COUNT(*) FILTER (WHERE delivery_status = 'retrying') as retrying,
+		COUNT(*) FILTER (WHERE delivery_status = 'queued') as queued
+	FROM webhook_events
+	WHERE created_at > NOW() - INTERVAL '7 days'
+
+	`
+	var stats model.Stats
+	err := r.db.QueryRow(ctx, query).Scan(
+		&stats.Delivered,
+		&stats.Failed,
+		&stats.Retrying,
+		&stats.Queued,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 // replayEvent sets the delivery_status of the webhook with the provided ID to "queued",
 // allowing it to be picked by queue workers to be replayed.
 func (r *EventRepo) replayEvent(ctx context.Context, id uuid.UUID) error {

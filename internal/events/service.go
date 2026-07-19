@@ -98,8 +98,19 @@ func (s *EventService) Send(event model.Webhook) {
 	s.broadcast <- event
 }
 
+// GetAll retrieves all webhooks from the repository, optionally filtered by the provided creation timestamp.
 func (s *EventService) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
 	return s.repo.getAll(ctx, createdAt)
+}
+
+// GetStats retrieves and returns the aggregated statistics from the repository.
+func (s *EventService) GetStats(ctx context.Context) (*model.Stats, error) {
+	stats, err := s.repo.getStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return stats, nil
+
 }
 
 // ReplayEvent marks the webhook event as "queued", allowing it to be picked by up workers to be replayed

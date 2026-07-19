@@ -17,6 +17,7 @@
         DeliveryStatusColors,
         DeliveryStatusTypes,
         SelectTypes,
+        type Stats,
         type WebHookEvent,
     } from '$lib/utils/types';
     import { Pause, Play } from '@lucide/svelte';
@@ -35,14 +36,17 @@
 
     // Reactive display state
     let events: WebHookEvent[] = $state([]);
-    let totalEvents = $state(0);
     let totalDeliveredEvents = $state(0);
     let totalRetryingEvents = $state(0);
     let totalQueuedEvents = $state(0);
     let totalFailedEvents = $state(0);
+    let totalEvents = $derived(
+        totalDeliveredEvents + totalRetryingEvents + totalQueuedEvents + totalFailedEvents,
+    );
 
     // Pause functionality
     let isPaused: boolean = $state(false);
+    let firstFlush: boolean = $state(false);
 
     // Pagination
     let cursor: string | null = $state(null);
@@ -161,11 +165,24 @@
         }
         // This assignment triggers the $effect above automatically
         events = sorted.slice(0, eventCap);
-        totalDeliveredEvents = counts.delivered;
-        totalRetryingEvents = counts.retrying;
-        totalQueuedEvents = counts.queued;
-        totalFailedEvents = counts.failed;
-        totalEvents = events.length;
+        if (!firstFlush) {
+            // prevent overwriting call to loadStats
+            counts.delivered = 0;
+            counts.failed = 0;
+            counts.retrying = 0;
+            counts.queued = 0;
+            firstFlush = true;
+        } else {
+            // append existing counts to last call to loadStats
+            totalDeliveredEvents += counts.delivered;
+            totalFailedEvents += counts.failed;
+            totalRetryingEvents += counts.retrying;
+            totalQueuedEvents += counts.queued;
+            counts.delivered = 0;
+            counts.failed = 0;
+            counts.retrying = 0;
+            counts.queued = 0;
+        }
 
         // Remove scheduleFilterUpdate() - the $effect is now the single source of truth
     }
@@ -195,6 +212,30 @@
         if (data.length > 0) {
             cursor = data[data.length - 1].created_at;
         }
+        return data;
+    }
+
+    // Loads the aggregate webhook processing stats from the database
+    async function loadStats(): Promise<Stats> {
+        const url = `/api/events/stats`;
+        const res = await fetch(url, { method: 'GET', credentials: 'include' });
+        if (!res.ok) {
+            if (res.status === 401) {
+                const ok = await reAuthenticate();
+                if (!ok) {
+                    goto('/login');
+                    return { delivered: 0, failed: 0, queued: 0, retrying: 0 } as Stats;
+                }
+                // Retry once again after re-auth
+                return loadStats();
+            }
+            throw new Error('Failed to load stats');
+        }
+        const data = (await res.json()) as Stats;
+        totalDeliveredEvents = data.delivered;
+        totalFailedEvents = data.failed;
+        totalRetryingEvents = data.retrying;
+        totalQueuedEvents = data.queued;
         return data;
     }
 
@@ -236,7 +277,6 @@
             es = new EventSource('/api/events/stream', { withCredentials: true });
             es.onopen = () => {
                 connState = ConnState.Connected;
-                toast.info('Connected', { position: 'top-center' });
             };
             es.onmessage = (e) => {
                 // Ignore heartbeats and connection confirmations
@@ -258,7 +298,6 @@
                 es?.close();
                 es = null;
                 connState = ConnState.Disconnected;
-                toast.warning('Reconnecting ...');
 
                 if (authCheckTimeout) clearTimeout(authCheckTimeout);
                 authCheckTimeout = setTimeout(async () => {
@@ -277,8 +316,8 @@
         }
         (async () => {
             try {
+                await loadStats();
                 await loadEvents();
-                toast.info('Connecting ...', { position: 'top-center' });
                 connect();
             } catch (err: any) {
                 toast.error(err.message, { position: 'top-center' });

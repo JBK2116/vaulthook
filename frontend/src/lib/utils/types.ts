@@ -26,6 +26,13 @@ export interface Provider {
     created_at: string; // time indicating when the provider was created at (ISO861 Format)
 }
 
+export interface Stats {
+    delivered: number;
+    failed: number;
+    retrying: number;
+    queued: number;
+}
+
 export enum DeliveryStatusTypes {
     Queued = 'queued',
     Processing = 'processing',
