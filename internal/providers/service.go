@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"errors"
+	"strings"
 
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/model"
@@ -50,6 +51,7 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) 
 // either field is empty or a database error occurs.
 func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, des string) (model.Provider, error) {
 	uuidS, err := uuid.Parse(ID)
+	sec = strings.TrimSpace(sec)
 	if err != nil {
 		return model.Provider{}, err
 	}
