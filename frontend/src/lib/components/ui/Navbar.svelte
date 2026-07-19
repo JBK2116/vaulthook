@@ -1,15 +1,8 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
-    import type { ConnState } from '$lib/utils/types';
 
-    import ConnIndicator from './ConnIndicator.svelte';
     import Button from './button/button.svelte';
-
-    interface Props {
-        connState?: ConnState;
-    }
-    let { connState }: Props = $props();
 
     const pathname: String = $derived(String(page.url.pathname));
     const isLogin: boolean = $derived(pathname === '/login');
@@ -39,10 +32,7 @@
         VaultHook
     </a>
     {#if !isLogin}
-        <div class="flex items-center gap-3">
-            {#if connState}
-                <ConnIndicator {connState} />
-            {/if}
+        <div class="flex items-center gap-2">
             <Button
                 variant="link"
                 type="button"

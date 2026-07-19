@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import EventSheet from '$lib/components/ui/EventSheet.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
@@ -339,7 +340,14 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<Navbar {connState}></Navbar>
+<Navbar></Navbar>
+
+<div
+    class="fixed bottom-4 left-4 z-50 rounded-md border border-border bg-background/90 px-3 py-1.5 backdrop-blur-sm"
+>
+    <ConnIndicator {connState} />
+</div>
+
 <div>
     <div class="flex h-[calc(100vh-4rem)] flex-col">
         <div class="border-border flex flex-col border-b">
