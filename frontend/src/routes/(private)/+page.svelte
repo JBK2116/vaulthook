@@ -1,6 +1,5 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import ConnIndicator from '$lib/components/ui/ConnIndicator.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import EventSheet from '$lib/components/ui/EventSheet.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
@@ -340,7 +339,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<Navbar></Navbar>
+<Navbar {connState}></Navbar>
 <div>
     <div class="flex h-[calc(100vh-4rem)] flex-col">
         <div class="border-border flex flex-col border-b">
@@ -377,13 +376,10 @@
                     >
                         {#if isPaused}
                             <Play class="h-3.5 w-3.5" />
-                            Resume
                         {:else}
                             <Pause class="h-3.5 w-3.5" />
-                            Pause
                         {/if}
                     </button>
-                    <ConnIndicator {connState} />
                 </div>
             </div>
         </div>

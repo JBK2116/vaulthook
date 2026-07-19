@@ -49,5 +49,5 @@
         ></div>
         <div class="absolute h-2 w-2 rounded-full {current.bg}"></div>
     </div>
-    <span class="text-xs font-medium {current.text}">{current.label}</span>
+<span class="font-medium {current.text}">{current.label}</span>
 </div>
