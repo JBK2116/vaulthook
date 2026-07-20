@@ -91,7 +91,12 @@
     </div>
 </div>
 <!-- Virtual scroll container -->
-<div bind:this={scrollEl} onscroll={handleScroll} class="relative h-full overflow-auto" style="overflow-anchor: none;">
+<div
+    bind:this={scrollEl}
+    onscroll={handleScroll}
+    class="relative h-full overflow-auto"
+    style="overflow-anchor: none;"
+>
     <div style="height: {$virtualizer.getTotalSize()}px; position: relative;">
         {#each $virtualizer.getVirtualItems() as row (row.key)}
             {@const event = displayedEvents[row.index]}

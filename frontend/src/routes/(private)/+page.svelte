@@ -41,7 +41,10 @@
     let totalQueuedEvents = $state(0);
     let totalFailedEvents = $state(0);
     let totalEvents = $derived(
-        Math.max(0, totalDeliveredEvents + totalRetryingEvents + totalQueuedEvents + totalFailedEvents),
+        Math.max(
+            0,
+            totalDeliveredEvents + totalRetryingEvents + totalQueuedEvents + totalFailedEvents,
+        ),
     );
 
     // Pause functionality
