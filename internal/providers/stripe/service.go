@@ -79,7 +79,7 @@ func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, paylo
 		Headers:     headers,
 		Payload:     payload,
 		ForwardedTo: providerRouting.ForwardedTo,
-		ReceivedAt:  time.Unix(event.Created, 0),
+		ReceivedAt:  time.Now().UTC(),
 	}
 	stripeWebhook, err := s.repo.insertWebhook(ctx, params)
 	if err != nil {
