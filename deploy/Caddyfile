@@ -1,3 +1,4 @@
+# For production TLS, replace ":80" with your domain (e.g. example.com)
 :80 {
     root * /srv/frontend
     

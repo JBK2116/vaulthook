@@ -1,51 +1,63 @@
+# .env file reference
+# All values in this file must be filled in accordingly in the .env
+
+# 32-byte hex key used to encrypt provider signing secrets at rest.
+# Generate with: openssl rand -hex 32
+MASTER_KEY=
+
+# Dashboard login credentials
+USER_EMAIL=
+USER_PASSWORD=
+
+# 64-byte hex secret used to sign JWT tokens.
+# Generate with: openssl rand -hex 64
+TOKEN_SECRET=
+
+# Database (app <-> postgres connection)
+DB_TYPE=postgres
+DB_USER=postgres
+DB_PASSWORD=                    # must match POSTGRES_PASSWORD below
+DB_HOST=db                      # use "localhost" for local dev without Docker
+DB_PORT=5432
+DB_NAME=vaulthook
+
+# Docker Postgres container (creates the initial superuser + database)
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=              # must match DB_PASSWORD above
+POSTGRES_DB=vaulthook
+
+# Goose migrations — uses these env vars automatically.
+# Build this string from the DB_* values above. Example:
+#   postgres://postgres:yourpassword@db:5432/vaulthook
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://postgres:<your-password>@db:5432/vaulthook
+GOOSE_MIGRATION_DIR=./migrations
+
+
+# OPTIONAL: sensible defaults are provided below, adjust as needed
+
 # Environment
 IS_DEVELOPMENT=false
 IS_TESTING=false
 
-# Master Secret Key (32-byte hex — used to encrypt provider signing secrets)
-MASTER_KEY=
+# JWT lifetimes
+ACCESS_TOKEN_TTL=10             # minutes
+REFRESH_TOKEN_TTL=24            # hours
 
-# Admin Credentials
-USER_EMAIL=
-USER_PASSWORD=
-
-# JWT Configuration
-TOKEN_SECRET=                  # 64-byte hex recommended
-ACCESS_TOKEN_TTL=10            # minutes
-REFRESH_TOKEN_TTL=24           # hours
-
-# Router Configuration
+# Request throttling
 THROTTLE_MAX_CONCURRENT=100
 THROTTLE_MAX_BACKLOG=50
-THROTTLE_BACKLOG_TIMEOUT=10    # seconds
-MAX_REQUEST_TIME_LENGTH=60     # seconds
+THROTTLE_BACKLOG_TIMEOUT=10     # seconds
+MAX_REQUEST_TIME_LENGTH=60      # seconds
 
-# Event Configuration
+# Webhook delivery
 MAX_RETRIES=3
 RETRY_INTERVAL_SECONDS=15
 FORWARD_TIMEOUT_SECONDS=6
 
-# Worker Configuration
+# Background workers
 TOTAL_QUEUE_WORKERS=8
 TOTAL_RETRY_WORKERS=12
 
-# Database
-DB_TYPE=postgres
-DB_USER=
-DB_PASSWORD=
-DB_HOST=db
-DB_PORT=5432
-DB_NAME=vaulthook
-
-# Docker Database Configuration
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=vaulthook
-
 # Logging (0=debug, 1=info, 2=warn, 3=error)
 LOG_LEVEL=1
-
-# Goose Migrations
-GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgres://<user>:<password>@db:<port>/<dbname>
-GOOSE_MIGRATION_DIR=./migrations

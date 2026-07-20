@@ -48,7 +48,7 @@ No managed service. No third party sees your data. Deploy it on your VPS, point 
 vaulthook/
 ├── cmd/
 │   ├── api/              ← Entry point
-│   └── api-mock/         ← Stripe simulator for testing
+│   └── api-mock/         ← Local simulator for testing
 ├── internal/
 │   ├── api/handler/      ← HTTP handlers (auth, events, providers, stripe)
 │   ├── auth/             ← JWT + refresh token logic
@@ -86,11 +86,12 @@ git clone https://github.com/JBK2116/vaulthook
 cd vaulthook/deploy
 cp ../env_example.txt .env
 # Fill in your .env values
-add your domain into Caddyfile
-docker compose up -d
+docker compose up -d --build
 ```
-Vaulthook is running behind Caddy with automatic TLS. 
-Point your providers at `https://yourdomain.com/api/webhooks/:provider`.
+
+Vaulthook is now running at `http://localhost`.
+
+**For production**, replace `:80` in `deploy/Caddyfile` with your domain (e.g. `example.com`) — Caddy will automatically provision a Let's Encrypt TLS certificate. Then point your providers at `https://yourdomain.com/api/webhooks/:provider`.
 
 ---
 
@@ -98,49 +99,51 @@ Point your providers at `https://yourdomain.com/api/webhooks/:provider`.
 
 See `env_example.txt` for the full reference. Key variables:
 
-| Variable | Purpose |
-|---|---|
-| `ADMIN_EMAIL` | Dashboard login email |
-| `ADMIN_PASSWORD` | Dashboard login password |
-| `JWT_SECRET` | JWT signing secret |
-| `MASTER_KEY` | AES-256 key for encrypting provider secrets |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `TOTAL_QUEUE_WORKERS` | Number of concurrent queue workers |
-| `TOTAL_RETRY_WORKERS` | Number of concurrent retry workers |
-| `MAX_RETRIES` | Max retry attempts before dead-lettering |
-| `RETRY_INTERVAL_SECONDS` | Backoff interval between retries |
+| Variable                 | Purpose                                           |
+| ------------------------ | ------------------------------------------------- |
+| `ADMIN_EMAIL`            | Dashboard login email                             |
+| `ADMIN_PASSWORD`         | Dashboard login password                          |
+| `JWT_SECRET`             | JWT signing secret                                |
+| `MASTER_KEY`             | AES-256 key for encrypting provider secrets       |
+| `DATABASE_URL`           | PostgreSQL connection string                      |
+| `TOTAL_QUEUE_WORKERS`    | Number of concurrent queue workers                |
+| `TOTAL_RETRY_WORKERS`    | Number of concurrent retry workers                |
+| `MAX_RETRIES`            | Max retry attempts before dead-lettering an event |
+| `RETRY_INTERVAL_SECONDS` | Backoff interval between retries                  |
 
 ---
 
-## Stress Test Results
+## Testing
 
 Tested with k6 under two scenarios running simultaneously — a ramping arrival rate (up to 600 req/s) and a concurrent burst spike of 100 VUs. Payloads randomized between 0–8KB to stress DB storage and JSON parsing.
 
-| Mode | p(95) Latency | Error Rate | Result |
-|---|---|---|---|
-| Success (baseline) | 72ms | 0% | ✅ |
-| Chaos (TCP drops) | 115ms | 0% | ✅ |
+| Mode               | p(95) Latency | Error Rate | Result |
+| ------------------ | ------------- | ---------- | ------ |
+| Success (baseline) | 60ms          | 0%         | ✅     |
+| Chaos (TCP drops)  | 115ms         | 0%         | ✅     |
 
 **195,000+ total events processed. Zero data loss across all runs.**
 
 Load tests are in `internal/tests/load/`.
 
+For testing stripe endpoints locally follow the official guide: [HERE](https://docs.stripe.com/stripe-cli/use-cli)
+
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Backend | Go |
-| Frontend | SvelteKit, TypeScript, Tailwind CSS |
-| Database | PostgreSQL |
-| Migrations | Goose |
-| Auth | JWT + Refresh Tokens |
-| Encryption | AES-256-GCM |
-| Reverse Proxy | Caddy (automatic TLS) |
-| Containerization | Docker + Docker Compose |
-| Build | Makefile |
-| Load Testing | k6 |
+| Layer            | Technology                          |
+| ---------------- | ----------------------------------- |
+| Backend          | Go                                  |
+| Frontend         | SvelteKit, TypeScript, Tailwind CSS |
+| Database         | PostgreSQL                          |
+| Migrations       | Goose                               |
+| Auth             | JWT + Refresh Tokens                |
+| Encryption       | AES-256-GCM                         |
+| Reverse Proxy    | Caddy (automatic TLS)               |
+| Containerization | Docker + Docker Compose             |
+| Build            | Makefile                            |
+| Load Testing     | k6                                  |
 
 ---
 
@@ -152,7 +155,7 @@ Vaulthook ships as a single Docker image behind Caddy. All config lives in your 
 - `Caddyfile` - TLS termination and reverse proxy config
 - `entrypoint.sh` - runs migrations then starts the binary
 
-Point your domain at the server, set `DOMAIN` in your `.env`, and Caddy handles the rest.
+**For production**, replace `:80` in `deploy/Caddyfile` with your actual domain, and Caddy handles automatic TLS via Let's Encrypt.
 
 ---
 
