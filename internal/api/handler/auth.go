@@ -89,7 +89,7 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
 	defer cancel()
 	if err := h.service.DeleteRefreshToken(ctx, refreshT.Value); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error occurred deleting refresh token")
+		h.logger.Error().Stack().Err(err).Msg("[Auth] error occurred deleting refresh token")
 		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
 		return
 	}
@@ -132,7 +132,7 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		h.logger.Error().Stack().Err(err).Msg("error refreshing token in refresh token endpoint")
+		h.logger.Error().Stack().Err(err).Msg("[Auth] error refreshing token in refresh token endpoint")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

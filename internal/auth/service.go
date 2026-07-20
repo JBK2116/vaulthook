@@ -13,10 +13,10 @@ import (
 
 // Sentinel errors returned by AuthService methods.
 var (
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrTokenNotFound      = errors.New("token not found")
-	ErrTokenKeyMissing    = errors.New("missing key in token claims")
+	ErrInvalidToken       = errors.New("[Auth] invalid token")
+	ErrInvalidCredentials = errors.New("[Auth] invalid email or password")
+	ErrTokenNotFound      = errors.New("[Auth] token not found")
+	ErrTokenKeyMissing    = errors.New("[Auth] missing key in token claims")
 )
 
 // AuthService handles JWT issuance, validation, and refresh token rotation.
@@ -80,7 +80,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 			return "", "", ErrTokenNotFound
 		}
 		if delErr := s.refreshTokenRepo.Delete(ctx, token); delErr != nil {
-			s.logger.Error().Stack().Err(delErr).Msg("error deleting token from database")
+			s.logger.Error().Stack().Err(delErr).Msg("[Auth] error deleting token from database")
 		}
 		return "", "", err
 	}

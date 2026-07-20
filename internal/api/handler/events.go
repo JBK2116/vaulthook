@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrClientDisconnected = errors.New("client disconnected from backend sse ")
+	ErrClientDisconnected = errors.New("[Events] client disconnected from backend sse")
 )
 
 // eventsHandler handles sse event logic for sending webhook related data to the frontend
@@ -54,12 +54,12 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	rc := http.NewResponseController(w)
 	// needs to be sent immediately to confirm connection and keep it running
 	if _, err := fmt.Fprintf(w, "event: connected\ndata: {}\n\n"); err != nil {
-		h.logger.Error().Err(err).Msg("failed to send initial connection string to frontend via sse")
+		h.logger.Error().Err(err).Msg("[Events] failed to send initial connection string to frontend via sse")
 	}
 	if err := rc.Flush(); err != nil {
-		h.logger.Error().Err(err).Msg("failed to flush sse buffer")
+		h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
 	}
-	h.logger.Info().Msg("client sse connected")
+	h.logger.Info().Msg("[Events] client sse connected")
 	// heartbeat for sse to keep it running when no events are coming in
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -71,36 +71,36 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 			// heartbeat
 			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
-				h.logger.Error().Err(err).Msg("failed to send heartbeat")
+				h.logger.Error().Err(err).Msg("[Events] failed to send heartbeat")
 				return
 			}
 			if err := rc.Flush(); err != nil {
-				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
+				h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
 				return
 			}
 		case batch := <-ch:
 			data, err := json.Marshal(batch)
 			if err != nil {
-				h.logger.Error().Err(err).Msg("failed to marshal batch")
+				h.logger.Error().Err(err).Msg("[Events] failed to marshal batch")
 				continue
 			}
 			// send the entire array under one 'data:' identifier
 			if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
-				h.logger.Error().Err(err).Msg("failed to send batch to frontend")
+				h.logger.Error().Err(err).Msg("[Events] failed to send batch to frontend")
 				return
 			}
 			if err := rc.Flush(); err != nil {
-				h.logger.Error().Err(err).Msg("failed to flush sse buffer")
+				h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
 				return
 			}
 			// Signal overflow so the client can resync from the REST API
 			if dropped := h.service.Dropped(); dropped > 0 {
 				if _, err := fmt.Fprintf(w, "event: overflow\ndata: {\"count\":%d}\n\n", dropped); err != nil {
-					h.logger.Error().Err(err).Msg("failed to send overflow event")
+					h.logger.Error().Err(err).Msg("[Events] failed to send overflow event")
 					return
 				}
 				if err := rc.Flush(); err != nil {
-					h.logger.Error().Err(err).Msg("failed to flush overflow")
+					h.logger.Error().Err(err).Msg("[Events] failed to flush overflow")
 					return
 				}
 			}
@@ -123,20 +123,20 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 	events, err := h.service.GetAll(ctx, cursor)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("error retrieving all webhook events from the database")
+		h.logger.Error().Err(err).Msg("[Events] error retrieving all webhook events from the database")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	rBody, err := json.Marshal(events)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling webhook events")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error marshaling webhook events")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error sending webhook events to frontend")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error sending webhook events to frontend")
 		return
 	}
 }
@@ -147,20 +147,20 @@ func (h *eventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	stats, err := h.service.GetStats(ctx)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error retrieving stats for webhooks")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error retrieving stats for webhooks")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	rBody, err := json.Marshal(stats)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling stats")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error marshaling stats")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error sending stats to frontend")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error sending stats to frontend")
 		return
 	}
 }
@@ -175,7 +175,7 @@ func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		h.logger.Error().Stack().Err(err).Msg("error replaying event")
+		h.logger.Error().Stack().Err(err).Msg("[Events] error replaying event")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

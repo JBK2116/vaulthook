@@ -38,20 +38,20 @@ func (h *ProviderHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	providers, err := h.service.GetAll(ctx)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error retrieving all providers from database")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error retrieving all providers from database")
 		http.Error(w, "error retrieving all providers from database", http.StatusInternalServerError)
 		return
 	}
 	rBody, err := json.Marshal(providers)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling providers")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error marshaling providers")
 		http.Error(w, "error marshaling providers", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error sending providers json to frontend")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error sending providers json to frontend")
 		return
 	}
 }
@@ -73,20 +73,20 @@ func (h *ProviderHandler) configure(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		h.logger.Error().Stack().Err(err).Msg("error occurred updating provider config")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error occurred updating provider config")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	rBody, err := json.Marshal(provider)
 	if err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error marshaling provider")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error marshaling provider")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error sending providers json to frontend")
+		h.logger.Error().Stack().Err(err).Msg("[Provider] error sending providers json to frontend")
 		return
 	}
 }

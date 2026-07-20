@@ -25,8 +25,8 @@ type Worker struct {
 }
 
 var (
-	ErrNoHooksToWork = errors.New("no webhooks to work at the moment")
-	ErrRateLimited   = errors.New("rate limited")
+	ErrNoHooksToWork = errors.New("[Worker] no webhooks to work at the moment")
+	ErrRateLimited   = errors.New("[Worker] rate limited")
 )
 
 // newWorker returns a pointer to a Worker backed by the provided values.
@@ -49,7 +49,6 @@ func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	w.logger.Debug().Msg("[queue] worker started")
 	for {
 		select {
 		case <-signal:
@@ -57,7 +56,6 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 		case <-ticker.C:
 			w.run(ctx)
 		case <-ctx.Done():
-			w.logger.Debug().Msg("[queue] worker stopped")
 			return
 		}
 	}
@@ -67,14 +65,11 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 func (w *Worker) startRetry(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
 	defer ticker.Stop()
-	w.logger.Debug().Msg("[retry] worker started")
 	for {
 		select {
 		case <-ticker.C:
-			w.logger.Debug().Msg("[retry] worker started polling")
 			w.run(ctx)
 		case <-ctx.Done():
-			w.logger.Debug().Msg("[retry] worker stopped")
 			return
 		}
 	}
@@ -85,13 +80,11 @@ func (w *Worker) startRetry(ctx context.Context) {
 func (w *Worker) startReplay(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
-	w.logger.Debug().Msg("[replay] worker started")
 	for {
 		select {
 		case <-ticker.C:
 			w.run(ctx)
 		case <-ctx.Done():
-			w.logger.Debug().Msg("[replay] worker stopped")
 			return
 		}
 	}
@@ -106,10 +99,9 @@ func (w *Worker) run(ctx context.Context) {
 		cancelGet()
 		if err != nil {
 			if errors.Is(err, ErrNoHooksToWork) {
-				w.logger.Debug().Msg("[worker] stopped after processing")
 				break
 			}
-			w.logger.Error().Stack().Err(err).Msg("error retrieving next webhook for processing")
+			w.logger.Error().Stack().Err(err).Msg("[Worker] error retrieving next webhook for processing")
 			break
 		}
 		// forwarding attempt (updates is valid for use even if error is not nil)
@@ -117,14 +109,14 @@ func (w *Worker) run(ctx context.Context) {
 		updates, err := w.forwardEvent(fwdCtx, hook)
 		cancelFwd()
 		if err != nil {
-			w.logger.Error().Stack().Err(err).Msg("error occurred when forwarding webhook")
+			w.logger.Error().Stack().Err(err).Msg("[Worker] error occurred when forwarding webhook")
 		}
 		// update the webhook accordingly after the forwarding attempt
 		updCtx, cancelUpd := context.WithTimeout(ctx, 5*time.Second)
 		hook, err = w.updateEvent(updCtx, updates)
 		cancelUpd()
 		if err != nil {
-			w.logger.Error().Stack().Err(err).Msg("error occurred when updating webhook")
+			w.logger.Error().Stack().Err(err).Msg("[Worker] error occurred when updating webhook")
 			continue
 		}
 		// send the updated webhook to the frontend
@@ -139,7 +131,7 @@ func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNoHooksToWork
 		}
-		w.logger.Error().Stack().Err(err).Msg("worker experienced database error when getting next event")
+		w.logger.Error().Stack().Err(err).Msg("[Worker] database error when getting next event")
 		return nil, err
 	}
 	return evt, nil

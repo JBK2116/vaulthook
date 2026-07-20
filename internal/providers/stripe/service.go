@@ -55,7 +55,7 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 			Str("secret_prefix", safePrefix(decrytedSecret)).
 			Str("sig_prefix", safePrefix(signatureHeader)).
 			Int("payload_len", len(payload)).
-			Msg("failed to validate stripe webhook secret")
+			Msg("[Stripe] failed to validate stripe webhook secret")
 		return stripe.Event{}, err
 	}
 	return event, nil

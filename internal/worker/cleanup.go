@@ -34,11 +34,9 @@ func NewCleanupWorker(logger *zerolog.Logger, db *pgxpool.Pool) *cleanupWorker {
 func (w *cleanupWorker) startCleanup(ctx context.Context) {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
-	w.logger.Debug().Msg("[cleanup] worker started")
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Debug().Msg("[cleanup] worker stopped")
 			return
 		case <-ticker.C:
 			w.runCleanup(ctx)
@@ -54,17 +52,17 @@ func (w *cleanupWorker) runCleanup(ctx context.Context) {
 		WHERE received_at < NOW() - INTERVAL '7 days'
 	`)
 	if err != nil {
-		w.logger.Error().Err(err).Msg("[cleanup] age purge error")
+		w.logger.Error().Err(err).Msg("[Cleanup] age purge error")
 		return
 	}
 	if age.RowsAffected() > 0 {
-		w.logger.Info().Int64("rows_removed", age.RowsAffected()).Int("retention_days", retentionDays).Msg("[cleanup] age purge complete")
+		w.logger.Info().Int64("rows_removed", age.RowsAffected()).Int("retention_days", retentionDays).Msg("[Cleanup] age purge complete")
 	}
 	// if still over limit, evict oldest first
 	var count int
 	err = w.db.QueryRow(ctx, `SELECT COUNT(*) FROM webhook_events`).Scan(&count)
 	if err != nil {
-		w.logger.Error().Err(err).Msg("[cleanup] row count error")
+		w.logger.Error().Err(err).Msg("[Cleanup] row count error")
 		return
 	}
 	if count <= maxRows {
@@ -80,7 +78,7 @@ func (w *cleanupWorker) runCleanup(ctx context.Context) {
 		)
 	`, excess)
 	if err != nil {
-		w.logger.Error().Err(err).Msg("[cleanup] eviction error")
+		w.logger.Error().Err(err).Msg("[Cleanup] eviction error")
 		return
 	}
 	w.logger.Info().Int64("rows_removed", evict.RowsAffected()).Int("max_rows", maxRows).Msg("[cleanup] eviction complete")

@@ -142,7 +142,7 @@ func (s *EventService) Send(event model.Webhook) {
 	case s.broadcast <- event:
 	default:
 		// Channel full — event is still in the DB; frontend can fetch via REST.
-		s.logger.Warn().Msg("broadcast channel full, dropping event from SSE feed")
+		s.logger.Warn().Msg("[EventService] channel full, dropping event from SSE feed")
 	}
 }
 

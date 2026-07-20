@@ -52,37 +52,37 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("error receiving webhook request")
+		h.logger.Error().Err(err).Msg("[Stripe] error receiving webhook request")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
 	signatureHeader := r.Header.Get("Stripe-Signature")
 	event, err := h.service.ValidateSecret(ctx, signatureHeader, payload)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("failed to validate stripe webhook secret")
+		h.logger.Error().Err(err).Msg("[Stripe] failed to validate stripe webhook secret")
 		if errors.Is(err, crypto.ErrDecryption) {
-			h.logger.Error().Err(err).Msg(fmt.Sprintf("failed to decrypt signing key for provider: %s", model.Stripe))
+			h.logger.Error().Err(err).Msg(fmt.Sprintf("[Stripe] failed to decrypt signing key for provider: %s", model.Stripe))
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if errors.As(err, &config.PgErr) {
-			h.logger.Error().Err(err).Msg("database error validating webhook")
+			h.logger.Error().Err(err).Msg("[Stripe] database error validating webhook")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.logger.Debug().Msgf("stripe event validated: %s", event.ID)
+	h.logger.Debug().Msgf("[Stripe] stripe event validated: %s", event.ID)
 	headersJSON, err := json.Marshal(r.Header)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("failed to marshal stripe webhook request headers")
+		h.logger.Error().Err(err).Msg("[Stripe] failed to marshal webhook request headers")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	stripeWebhook, err := h.service.InsertWebhook(ctx, headersJSON, payload, event)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("error inserting webhook into database")
+		h.logger.Error().Err(err).Msg("[Stripe] error inserting webhook into database")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -97,7 +97,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		"status": "queued",
 		"id":     event.ID,
 	}); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("error encoding response to stripe")
+		h.logger.Error().Stack().Err(err).Msg("[Stripe] error encoding response")
 	}
 }
 

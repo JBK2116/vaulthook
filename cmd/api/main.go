@@ -114,8 +114,8 @@ func main() {
 		Addr:    ":8080",
 		Handler: router,
 	}
-	logger.Info().Str("addr", server.Addr).Msg("server starting")
+	logger.Info().Str("addr", server.Addr).Msg("[Main] server starting")
 	if err := server.ListenAndServe(); err != nil {
-		logger.Fatal().Stack().Err(err).Msg("server stopped unexpectedly")
+		logger.Fatal().Stack().Err(err).Msg("[Main] server stopped unexpectedly")
 	}
 }
