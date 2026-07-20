@@ -5,6 +5,7 @@
     import * as functions from '$lib/utils/functions';
     import { type WebHookEvent } from '$lib/utils/types';
     import { ArrowLeftRight } from '@lucide/svelte';
+    import JSONFormatter from 'json-formatter-js';
     import { toast } from 'svelte-sonner';
 
     import Button from './button/button.svelte';
@@ -15,6 +16,34 @@
     let { currentSelectedEvent }: Props = $props();
     let activeTabIsPayload: boolean = $state(true);
     let userTimeZone: string = $derived(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    // JSON formatting — reacts to both the selected event and the active tab
+    let activeFormatter = $derived(
+        currentSelectedEvent
+            ? new JSONFormatter(
+                  activeTabIsPayload ? currentSelectedEvent.payload : currentSelectedEvent.headers,
+                  Infinity,
+                  {
+                      theme: 'dark',
+                      hoverPreviewEnabled: true,
+                      animateOpen: true,
+                      animateClose: true,
+                      exposePath: true,
+                  },
+              )
+            : null,
+    );
+
+    let jsonContainer = $state<HTMLDivElement>(undefined!);
+
+    $effect(() => {
+        const container = jsonContainer;
+        if (!container) return;
+        container.innerHTML = '';
+        if (activeFormatter) {
+            container.appendChild(activeFormatter.render());
+        }
+    });
 
     const copyEventJSON: () => void = () => {
         if (!currentSelectedEvent) {
@@ -33,28 +62,6 @@
         navigator.clipboard.writeText(currentSelectedEvent.id);
         toast.info('Copied to clipboard');
     };
-    // helper function to improve the display of JSON in the sidebar
-    function prettifyJSON(obj: unknown): string {
-        const json = JSON.stringify(obj, null, 2)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-
-        return json.replace(
-            /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-            (match) => {
-                let cls = 'text-blue-400';
-                if (/^"/.test(match)) {
-                    cls = /:$/.test(match) ? 'text-zinc-300 font-medium' : 'text-green-400';
-                } else if (/true|false/.test(match)) {
-                    cls = 'text-yellow-400';
-                } else if (/null/.test(match)) {
-                    cls = 'text-red-400';
-                }
-                return `<span class="${cls}">${match}</span>`;
-            },
-        );
-    }
 
     const replayEvent = async (): Promise<void> => {
         const url = `/api/events/${currentSelectedEvent?.id}/replay`;
@@ -165,17 +172,8 @@
             </div>
             <div
                 class="border-border overflow-auto rounded-sm border mx-5 p-3 max-h-32 md:max-h-64"
-            >
-                {#if activeTabIsPayload}
-                    <pre class="text-xs whitespace-pre">{@html prettifyJSON(
-                            currentSelectedEvent.payload,
-                        )}</pre>
-                {:else}
-                    <pre class="text-xs whitespace-pre">{@html prettifyJSON(
-                            currentSelectedEvent.headers,
-                        )}</pre>
-                {/if}
-            </div>
+                bind:this={jsonContainer}
+            ></div>
         </ScrollArea>
         <div class="border-border flex gap-2 border-t px-5 pt-3 pb-4">
             <Button variant="outline" size="sm" onclick={replayEvent}>Replay</Button>
