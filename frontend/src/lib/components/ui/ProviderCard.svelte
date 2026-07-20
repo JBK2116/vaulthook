@@ -18,6 +18,10 @@
     let showSecret = $state(false);
     let draft = $state({ signing_secret: '', destination_url: '' });
     let savingData = $state(false);
+    // card accent when not configured
+    let cardClass = $derived(
+        `w-full${!provider.is_configured ? ' border-l-2 border-l-yellow-500/50 bg-yellow-500/[0.02]' : ''}`,
+    );
     // editing and view management
     function startEdit() {
         draft = {
@@ -86,18 +90,11 @@
     }
 </script>
 
-<Card.Root class="w-full">
+<Card.Root class={cardClass}>
     <Card.Header class="flex flex-row items-start justify-between space-y-0 pb-2">
         <div>
             <div class="flex items-center">
                 <Card.Title class="text-base w-18 truncate">{provider.name}</Card.Title>
-                {#if !provider.is_configured}
-                    <span
-                        class="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap"
-                    >
-                        Not configured
-                    </span>
-                {/if}
             </div>
             <Card.Description class="font-mono text-xs">{provider.id}</Card.Description>
         </div>

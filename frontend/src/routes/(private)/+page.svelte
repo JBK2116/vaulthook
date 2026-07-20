@@ -446,7 +446,7 @@
                 <div
                     class="border-border flex shrink-0 overflow-x-auto snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch] relative"
                 >
-                    <StatCard label="Total" valueNumber={totalEvents} valueNumberColor={''} />
+                    <StatCard label="Total (7 Days)" valueNumber={totalEvents} valueNumberColor={''} />
                     <StatCard
                         label="Delivered"
                         valueNumber={totalDeliveredEvents}

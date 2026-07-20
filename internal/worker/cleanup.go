@@ -34,11 +34,11 @@ func NewCleanupWorker(logger *zerolog.Logger, db *pgxpool.Pool) *cleanupWorker {
 func (w *cleanupWorker) startCleanup(ctx context.Context) {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
-	w.logger.Info().Msg("[cleanup] worker started")
+	w.logger.Debug().Msg("[cleanup] worker started")
 	for {
 		select {
 		case <-ctx.Done():
-			w.logger.Info().Msg("[cleanup] worker stopped")
+			w.logger.Debug().Msg("[cleanup] worker stopped")
 			return
 		case <-ticker.C:
 			w.runCleanup(ctx)

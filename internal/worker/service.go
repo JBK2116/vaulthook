@@ -49,6 +49,7 @@ func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
+	w.logger.Debug().Msg("[queue] worker started")
 	for {
 		select {
 		case <-signal:
@@ -56,6 +57,7 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 		case <-ticker.C:
 			w.run(ctx)
 		case <-ctx.Done():
+			w.logger.Debug().Msg("[queue] worker stopped")
 			return
 		}
 	}
@@ -65,11 +67,14 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 func (w *Worker) startRetry(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
 	defer ticker.Stop()
+	w.logger.Debug().Msg("[retry] worker started")
 	for {
 		select {
 		case <-ticker.C:
+			w.logger.Debug().Msg("[retry] worker started polling")
 			w.run(ctx)
 		case <-ctx.Done():
+			w.logger.Debug().Msg("[retry] worker stopped")
 			return
 		}
 	}
@@ -80,11 +85,13 @@ func (w *Worker) startRetry(ctx context.Context) {
 func (w *Worker) startReplay(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
+	w.logger.Debug().Msg("[replay] worker started")
 	for {
 		select {
 		case <-ticker.C:
 			w.run(ctx)
 		case <-ctx.Done():
+			w.logger.Debug().Msg("[replay] worker stopped")
 			return
 		}
 	}
@@ -99,6 +106,7 @@ func (w *Worker) run(ctx context.Context) {
 		cancelGet()
 		if err != nil {
 			if errors.Is(err, ErrNoHooksToWork) {
+				w.logger.Debug().Msg("[worker] stopped after processing")
 				break
 			}
 			w.logger.Error().Stack().Err(err).Msg("error retrieving next webhook for processing")

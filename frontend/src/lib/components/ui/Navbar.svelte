@@ -36,7 +36,7 @@
             <Button
                 variant="link"
                 type="button"
-                class="text-sm cursor-pointer"
+                class="text-sm cursor-pointer text-white"
                 size="lg"
                 onclick={gotoProviders}
             >
@@ -45,7 +45,7 @@
             <Button
                 variant="link"
                 type="button"
-                class="text-sm cursor-pointer"
+                class="text-sm cursor-pointer text-white"
                 size="lg"
                 onclick={logout}
             >
