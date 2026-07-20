@@ -11,8 +11,7 @@ import (
 )
 
 /**
- * STRIPE SIMULATOR CONTROL API
- * ----------------------------
+ * WEBHOOK RECEIVER SIMULATOR CONTROL API
  * Success:      curl -X POST http://localhost:8081/control -d '{"mode":"success"}'
  * Outage:       curl -X POST http://localhost:8081/control -d '{"mode":"outage", "fail_count": 2000}'
  * Slow Recover: curl -X POST http://localhost:8081/control -d '{"mode":"slow_recover", "fail_count": 500}'
@@ -24,7 +23,6 @@ import (
  * Check Mode:   curl http://localhost:8081/control
  *
  * MODE DESCRIPTIONS
- * -----------------
  * success      — Baseline. Every request returns 200 immediately.
  *
  * outage       — Simulates a full destination crash/restart. Returns 503 with
@@ -127,7 +125,7 @@ func shouldFail() bool {
 	return false
 }
 
-func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
+func uniWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -146,7 +144,7 @@ func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	mu.Unlock()
 
-	log.Printf("[stripe] mode=%-14s failing=%-5v %s %s", mode, failing, r.Method, r.URL.Path)
+	log.Printf("[uniWebhookHandler] mode=%-14s failing=%-5v %s %s", mode, failing, r.Method, r.URL.Path)
 
 	switch mode {
 	case ModeSuccess:
@@ -183,7 +181,7 @@ func stripeWebhookHandler(w http.ResponseWriter, r *http.Request) {
 
 	case ModeFatal:
 		if failing {
-			// Rotate through 4xx codes — covers bad_request, unauthorized, not_found
+			// Rotate through 4xx codes, covers bad_request, unauthorized, not_found
 			// fail_count default is 50000 so retry exhaustion is guaranteed
 			code := fatalCodes[rng.Intn(len(fatalCodes))]
 			stats.record(false)
@@ -257,7 +255,7 @@ func controlHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch body.Mode {
 	case ModeFatal:
-		// Default to 50000 if not specified — guarantees exhaustion
+		// Default to 50000 if not specified, guarantees exhaustion
 		if body.FailCount > 0 {
 			failCount = body.FailCount
 		} else {
@@ -281,7 +279,7 @@ func controlHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/webhooks/stripe", stripeWebhookHandler)
+	mux.HandleFunc("/api/webhooks", uniWebhookHandler)
 	mux.HandleFunc("/control", controlHandler)
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		mu.RLock()
