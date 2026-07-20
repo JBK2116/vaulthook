@@ -28,7 +28,7 @@ var (
 // The connection string is assembled from config.Envs. If the pool cannot
 // be created, an error is returned and pgInstance remains nil.
 func NewPG(ctx context.Context) (*postgres, error) {
-	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s",
+	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s?timezone=UTC",
 		Envs.DBType,
 		Envs.DBUser,
 		Envs.DBPassword,

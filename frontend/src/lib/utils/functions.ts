@@ -142,25 +142,45 @@ export function getResponseCodeColor(response_code: number | null): string {
 }
 
 /**
- * Returns a formatted string in HH:MM:SS format using the provided received_at time
+ * Parse an ISO 8601 / RFC 3339 timestamp string ensuring UTC interpretation.
+ * If the string lacks a timezone designator (Z or ±HH:MM), 'Z' is appended
+ * so that `new Date()` treats it as UTC rather than local time.
+ */
+function parseUTCDate(dateStr: string): Date {
+    // RFC 3339 timezone offset always starts with Z, +, or - in the last 6 chars.
+    // ISO 8601 without designator is ambiguous; force UTC.
+    if (!/[+\-Zz]/.test(dateStr.slice(-6))) {
+        dateStr += 'Z';
+    }
+    return new Date(dateStr);
+}
+
+/**
+ * Returns a formatted time string in the user's local timezone (24h format).
+ * Used in the event table column.
  */
 export function formatReceivedAtTimeForTable(received_at: string, timezone: string): string {
-    let utcDate = new Date(received_at);
-    const options: Intl.DateTimeFormatOptions = {
+    const date = parseUTCDate(received_at);
+    if (isNaN(date.getTime())) return received_at;
+
+    return new Intl.DateTimeFormat(navigator.language, {
         timeZone: timezone,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-    };
-    return utcDate.toLocaleString('en-us', options);
+        hour12: false,
+    }).format(date);
 }
 
 /**
- * Returns a nicely formatted time string converted to the user's local time using the provided timezone
+ * Returns a full date/time string in the user's local timezone.
+ * Used in the event detail sidebar.
  */
 export function formatReceivedAtTimeForSidebar(received_at: string, timezone: string): string {
-    let utcDate = new Date(received_at);
-    const options: Intl.DateTimeFormatOptions = {
+    const date = parseUTCDate(received_at);
+    if (isNaN(date.getTime())) return received_at;
+
+    return new Intl.DateTimeFormat(navigator.language, {
         timeZone: timezone,
         day: '2-digit',
         month: 'long',
@@ -168,6 +188,6 @@ export function formatReceivedAtTimeForSidebar(received_at: string, timezone: st
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-    };
-    return utcDate.toLocaleString('en-us', options);
+        hour12: false,
+    }).format(date);
 }

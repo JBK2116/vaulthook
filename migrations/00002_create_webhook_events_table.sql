@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     next_retry_at     TIMESTAMP, -- Next Retry Attempt Timestamp
     last_error        VARCHAR, -- Last Error Message
     received_at       TIMESTAMP NOT NULL, -- Recieved At Timestamp Of Webhook Event
-    created_at        TIMESTAMP NOT NULL DEFAULT NOW(), -- Created At Timestamp Generated In Database
-    updated_at        TIMESTAMP NOT NULL DEFAULT NOW() -- Last Updated Timestamp Generated In Database
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- Created At Timestamp Generated In Database
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW() -- Last Updated Timestamp Generated In Database
 );
 
 -- automatically updates updated_at whenever the row is modified
