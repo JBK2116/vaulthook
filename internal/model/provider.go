@@ -8,7 +8,6 @@ type ProviderName string
 const (
 	Github ProviderName = "Github"
 	Stripe ProviderName = "Stripe"
-	SNS    ProviderName = "SNS"
 )
 
 // ProviderRouting represents the routing configuration for a webhook provider.

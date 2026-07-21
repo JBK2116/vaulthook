@@ -18,14 +18,14 @@ No managed service. No third party sees your data. Deploy it on your VPS, point 
 
 - Github
 
-- SNS [**Coming Soon**]
+- More Coming Soon
 
 ---
 
 ## Architecture
 
 ```
-[Stripe / GitHub / AWS SNS]
+[Stripe / GitHub]
           │
           ▼
     [Caddy — TLS]

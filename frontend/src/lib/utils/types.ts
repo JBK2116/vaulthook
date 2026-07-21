@@ -59,7 +59,6 @@ export enum SelectTypes {
 export enum ProviderTypes {
     Stripe = 'Stripe',
     Github = 'Github',
-    Sns = 'SNS',
 }
 
 export enum ConnState {

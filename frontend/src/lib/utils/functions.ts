@@ -83,8 +83,6 @@ export function getProviderBackgroundColor(provider: string): string {
             return 'var(--provider-stripe)';
         case ProviderTypes.Github:
             return 'var(--provider-github)';
-        case ProviderTypes.Sns:
-            return 'var(--provider-sns)';
         default:
             return 'var(--provider-default)';
     }
@@ -99,8 +97,6 @@ export function getProviderTextColor(provider: string): string {
             return 'var(--provider-stripe-foreground)';
         case ProviderTypes.Github:
             return 'var(--provider-github-foreground)';
-        case ProviderTypes.Sns:
-            return 'var(--provider-sns-foreground)';
         default:
             return 'var(--provider-default-foreground)';
     }

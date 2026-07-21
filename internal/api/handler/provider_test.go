@@ -67,7 +67,6 @@ func TestConfigureHandler(t *testing.T) {
 		// valid bodies for each provider now
 		"valid body stripe": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/stripe"}`)},
 		"valid body github": {accessToken: func() string { return createAccessToken(t) }, providerName: "Github", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/github"}`)},
-		"valid body sns":    {accessToken: func() string { return createAccessToken(t) }, providerName: "SNS", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/sns"}`)},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

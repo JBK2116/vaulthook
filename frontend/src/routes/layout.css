@@ -100,8 +100,6 @@
     --provider-stripe-foreground: oklch(0.65 0.02 255); /* was blue, now gray */
     --provider-github: oklch(0.22 0.02 255);
     --provider-github-foreground: oklch(0.75 0.01 255);
-    --provider-sns: oklch(0.22 0.02 260);
-    --provider-sns-foreground: oklch(0.65 0.02 255);
     --provider-default: oklch(0.22 0.02 260);
     --provider-default-foreground: oklch(0.6 0.02 255);
 
@@ -139,8 +137,6 @@
     --color-provider-stripe-foreground: var(--provider-stripe-foreground);
     --color-provider-github: var(--provider-github);
     --color-provider-github-foreground: var(--provider-github-foreground);
-    --color-provider-sns: var(--provider-sns);
-    --color-provider-sns-foreground: var(--provider-sns-foreground);
     --color-provider-default: var(--provider-default);
     --color-provider-default-foreground: var(--provider-default-foreground);
     --color-sidebar-border: var(--sidebar-border);
