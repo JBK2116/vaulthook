@@ -11,6 +11,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/JBK2116/vaulthook/internal/providers/github"
 	stripe "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
@@ -157,8 +158,14 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 		return updates, err
 	}
 	// set provider-specific headers
-	if hook.Provider == string(model.Stripe) {
+	switch hook.Provider {
+	case string(model.Stripe):
 		if headerErr := stripe.SetForwardHeaders(req, hook.Headers); headerErr != nil {
+			setDefaultUpdateValues(headerErr.Error(), &updates)
+			return updates, headerErr
+		}
+	case string(model.Github):
+		if headerErr := github.SetForwardHeaders(req, hook.Headers); headerErr != nil {
 			setDefaultUpdateValues(headerErr.Error(), &updates)
 			return updates, headerErr
 		}

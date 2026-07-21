@@ -5,7 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/crypto"
@@ -14,6 +16,32 @@ import (
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
 )
+
+// SetForwardHeaders applies the appropriate Github-specific HTTP headers
+// to the outgoing forward request. Only a curated allowlist of headers
+// from the original incoming webhook/http request are forwarded.
+func SetForwardHeaders(r *http.Request, headers []byte) error {
+	notAllowed := map[string]struct{}{
+		"Host":              {},
+		"Content-Length":    {},
+		"Connection":        {},
+		"Transfer-Encoding": {},
+		"Keep-Alive":        {},
+	}
+	var parsed map[string][]string
+	if err := json.Unmarshal(headers, &parsed); err != nil {
+		return err
+	}
+	for k, vals := range parsed {
+		if _, ok := notAllowed[http.CanonicalHeaderKey(k)]; ok {
+			continue
+		}
+		for _, v := range vals {
+			r.Header.Add(k, v)
+		}
+	}
+	return nil
+}
 
 // ErrInvalidSignature is returned when a webhook signature does not match
 // the expected HMAC.
