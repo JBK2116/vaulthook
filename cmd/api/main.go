@@ -15,6 +15,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
@@ -60,12 +61,14 @@ func main() {
 	providerRepo := providers.NewProviderRepo(db.DB)
 	eventRepo := events.NewEventRepo(db.DB)
 	stripeRepo := stripe.NewStripeRepo(db.DB)
+	gitRepo := github.NewGitRepo(db.DB)
 
 	// Services
 	authService := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, refreshTokenRepo, logger)
 	providerService := providers.NewProviderService(providerRepo)
 	eventService := events.NewEventService(logger, eventRepo)
 	stripeService := stripe.NewStripeService(logger, stripeRepo, providerRepo)
+	gitService := github.NewGitService(logger, gitRepo, providerRepo)
 
 	// Background Workers
 	go eventService.Start(appCtx)
@@ -78,6 +81,7 @@ func main() {
 	providerHandler := handler.NewProviderHandler(logger, providerService)
 	eventHandler := handler.NewEventsHandler(logger, eventService)
 	stripeHandler := handler.NewStripeHandler(logger, stripeService, eventService, workerPool)
+	gitHandler := handler.NewGitHandler(logger, gitService, eventService, workerPool)
 
 	// Router
 	router := chi.NewRouter()
@@ -96,6 +100,7 @@ func main() {
 		// Public endpoints
 		authHandler.RegisterRoutes(r)
 		stripeHandler.RegisterRoutes(r)
+		gitHandler.RegisterRoutes(r)
 
 		// JWT-protected endpoints
 		r.Group(func(r chi.Router) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
-	"github.com/JBK2116/vaulthook/internal/model"
 	stripeProvider "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
@@ -59,9 +57,9 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	signatureHeader := r.Header.Get("Stripe-Signature")
 	event, err := h.service.ValidateSecret(ctx, signatureHeader, payload)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("[Stripe] failed to validate stripe webhook secret")
+		h.logger.Error().Err(err).Msg("[Stripe] failed to validate webhook secret")
 		if errors.Is(err, crypto.ErrDecryption) {
-			h.logger.Error().Err(err).Msg(fmt.Sprintf("[Stripe] failed to decrypt signing key for provider: %s", model.Stripe))
+			h.logger.Error().Err(err).Msg("[Stripe] failed to decrypt signing key")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -73,7 +71,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.logger.Debug().Msgf("[Stripe] stripe event validated: %s", event.ID)
+	h.logger.Debug().Msgf("[Stripe] event validated: %s", event.ID)
 	headersJSON, err := json.Marshal(r.Header)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Stripe] failed to marshal webhook request headers")

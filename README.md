@@ -16,7 +16,7 @@ No managed service. No third party sees your data. Deploy it on your VPS, point 
 
 - Stripe
 
-- Github [**Coming Soon**]
+- Github
 
 - SNS [**Coming Soon**]
 
@@ -127,6 +127,8 @@ Tested with k6 under two scenarios running simultaneously — a ramping arrival 
 Load tests are in `internal/tests/load/`.
 
 For testing stripe endpoints locally follow the official guide: [HERE](https://docs.stripe.com/stripe-cli/use-cli)
+
+For testing github endpoints locally follow the official guide: [HERE](https://docs.github.com/en/webhooks/using-webhooks/handling-webhook-deliveries)
 
 ---
 
