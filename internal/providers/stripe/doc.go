@@ -5,8 +5,7 @@
 //
 // # File Structure
 //
-//   - repository.go - Database access layer for the webhook_events table.
-//
 //   - service.go - Business logic layer. Coordinates signature verification
-//     via middleware and persistence via repository.go.
+//     via the shared event and provider repositories, forwarding header
+//     preparation, and webhook persistence.
 package stripe

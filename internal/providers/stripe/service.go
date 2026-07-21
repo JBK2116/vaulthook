@@ -2,9 +2,12 @@ package stripe
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"time"
 
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
+	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
@@ -20,26 +23,52 @@ func safePrefix(s string) string {
 	return s[:6]
 }
 
-// StripeService provides the main business logic for handling webhook events pertaining to the stripe provider
+// SetForwardHeaders applies the appropriate Stripe-specific HTTP headers
+// to the outgoing forward request. Only a curated allowlist of headers
+// from the original incoming webhook are forwarded.
+func SetForwardHeaders(r *http.Request, headers []byte) error {
+	allowed := map[string]struct{}{
+		"Content-Type":     {},
+		"Stripe-Signature": {},
+		"User-Agent":       {},
+		"Cache-Control":    {},
+	}
+	var parsed map[string][]string
+	if err := json.Unmarshal(headers, &parsed); err != nil {
+		return err
+	}
+	for k, val := range parsed {
+		if _, ok := allowed[k]; ok {
+			for _, v := range val {
+				r.Header.Add(k, v)
+			}
+		}
+	}
+	return nil
+}
+
+// StripeService provides the main business logic for handling webhook events
+// pertaining to the Stripe provider.
 type StripeService struct {
 	logger       *zerolog.Logger
-	repo         *StripeRepo
+	eventRepo    *events.EventRepo
 	providerRepo *providers.ProviderRepo
 }
 
-// NewStripeService returns a Stripe service configured with the provided logger and repo
-func NewStripeService(logger *zerolog.Logger, repo *StripeRepo, providerRepo *providers.ProviderRepo) *StripeService {
+// NewStripeService returns a StripeService configured with the provided
+// logger, event repository, and provider repository.
+func NewStripeService(logger *zerolog.Logger, eventRepo *events.EventRepo, providerRepo *providers.ProviderRepo) *StripeService {
 	return &StripeService{
 		logger:       logger,
-		repo:         repo,
+		eventRepo:    eventRepo,
 		providerRepo: providerRepo,
 	}
 }
 
-// ValidateSecret receives a stripe signature from the `Stripe-Signature` header and ensures that it matches the
-// secret key used for stripe endpoints.
+// ValidateSecret receives a stripe signature from the `Stripe-Signature` header
+// and ensures that it matches the secret key used for stripe endpoints.
 func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader string, payload []byte) (stripe.Event, error) {
-	endpointSecret, err := s.repo.getSigningKey(ctx, string(model.Stripe))
+	endpointSecret, err := s.providerRepo.GetSigningKey(ctx, string(model.Stripe))
 	if err != nil {
 		return stripe.Event{}, err
 	}
@@ -81,10 +110,9 @@ func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, paylo
 		ForwardedTo: providerRouting.ForwardedTo,
 		ReceivedAt:  time.Now().UTC(),
 	}
-	stripeWebhook, err := s.repo.insertWebhook(ctx, params)
+	stripeWebhook, err := s.eventRepo.InsertWebhook(ctx, params)
 	if err != nil {
 		return model.Webhook{}, err
 	}
 	return stripeWebhook, nil
-
 }

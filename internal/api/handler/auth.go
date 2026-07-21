@@ -20,18 +20,18 @@ type loginRequestBody struct {
 	Password string `json:"password"`
 }
 
-// authHandler handles authentication-related HTTP requests.
+// AuthHandler handles authentication-related HTTP requests.
 // It relies on an AuthService for business logic and a logger for
 // structured error reporting.
-type authHandler struct {
+type AuthHandler struct {
 	logger  *zerolog.Logger
 	service *auth.AuthService
 }
 
-// NewAuthHandler returns an authHandler configured with the provided
+// NewAuthHandler returns an AuthHandler configured with the provided
 // logger and AuthService.
-func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *authHandler {
-	return &authHandler{
+func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *AuthHandler {
+	return &AuthHandler{
 		logger:  logger,
 		service: service,
 	}
@@ -40,7 +40,7 @@ func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *authHand
 // login handles POST /api/login. It decodes the request body, delegates
 // credential validation to the AuthService, and writes a JSON response
 // containing an access token and a refresh token on success.
-func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	var body loginRequestBody
 	if err := helpers.DecodeBodyJSON(w, r, &body); err != nil {
 		http.Error(w, err.Error(), err.Status)
@@ -58,29 +58,12 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	secure := !config.Envs.IsDevelopment
-	accessC := http.Cookie{
-		Name:     "access_token",
-		Value:    accessT,
-		MaxAge:   config.Envs.AccessTokenTTL * 60, // minutes converted to seconds
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	refreshC := http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshT,
-		MaxAge:   config.Envs.RefreshTokenTTL * 60 * 60, // hours converted to seconds
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(w, &accessC)
-	http.SetCookie(w, &refreshC)
+	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60))
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	refreshT, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, "missing refresh token cookie", http.StatusBadRequest)
@@ -93,32 +76,15 @@ func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
 		return
 	}
-	secure := !config.Envs.IsDevelopment
-	accessC := http.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		MaxAge:   -1, // expires the cookie immediately
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	refreshC := http.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		MaxAge:   -1, // expires the cookie immediately
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(w, &accessC)
-	http.SetCookie(w, &refreshC)
+	http.SetCookie(w, auth.ExpiredAccessCookie())
+	http.SetCookie(w, auth.ExpiredRefreshCookie())
 	w.WriteHeader(http.StatusOK)
 }
 
 // refreshToken handles POST /api/refresh. It extracts a bearer token from
 // the Authorization header, passes it to the AuthService for validation,
 // and writes a JSON response with a new access token and refresh token.
-func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 	token, err := r.Cookie("refresh_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -136,31 +102,14 @@ func (h *authHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	secure := !config.Envs.IsDevelopment
-	accessC := http.Cookie{
-		Name:     "access_token",
-		Value:    accessT,
-		MaxAge:   config.Envs.AccessTokenTTL * 60, // minutes converted to seconds
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	refreshC := http.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshT,
-		MaxAge:   config.Envs.RefreshTokenTTL * 60 * 60, // hours converted to seconds
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(w, &accessC)
-	http.SetCookie(w, &refreshC)
+	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60))
 	w.WriteHeader(http.StatusOK)
 }
 
 // me handles GET /api/me. It extracts the access token from the request cookie,
 // validates it, and returns 200 OK if the token is valid or 401 Unauthorized if not.
-func (h *authHandler) me(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 	token, err := r.Cookie("access_token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -182,7 +131,7 @@ func (h *authHandler) me(w http.ResponseWriter, r *http.Request) {
 //	POST /api/logout
 //	POST /api/refresh
 //	GET  /api/me
-func (h *authHandler) RegisterRoutes(r chi.Router) {
+func (h *AuthHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/logout", h.logout)
 	r.Post("/refresh", h.refreshToken)

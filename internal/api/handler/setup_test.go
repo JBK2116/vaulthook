@@ -35,7 +35,7 @@ var eventService *events.EventService
 // AUTH
 var testAuthRepo *auth.RefreshTokenRepo
 var testAuthService *auth.AuthService
-var testAuthHandler *authHandler
+var testAuthHandler *AuthHandler
 
 // WORKERS
 var workerPool *worker.WorkerPool
@@ -46,7 +46,6 @@ var testProviderService *providers.ProviderService
 var testProviderHandler *ProviderHandler
 
 // STRIPE
-var stripeRepo *stripe.StripeRepo
 var stripeService *stripe.StripeService
 var stripeHandle *StripeHandler
 
@@ -89,9 +88,7 @@ func TestMain(m *testing.M) {
 	providerH := NewProviderHandler(l, providerS)
 	testProviderHandler = providerH
 	// configure the stripe variables
-	stripeR := stripe.NewStripeRepo(db.DB)
-	stripeRepo = stripeR
-	stripeS := stripe.NewStripeService(l, stripeR, providerR)
+	stripeS := stripe.NewStripeService(l, eventR, providerR)
 	stripeService = stripeS
 	stripeH := NewStripeHandler(l, stripeS, eventS, workerPool)
 	stripeHandle = stripeH

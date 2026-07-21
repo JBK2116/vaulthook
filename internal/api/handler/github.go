@@ -17,10 +17,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var (
-// TODO: Github specific errors go in here
-)
-
 // GitHandler handles webhook logic for all events that reach `/webhooks/github`
 type GitHandler struct {
 	logger       *zerolog.Logger
@@ -38,8 +34,6 @@ func NewGitHandler(logger *zerolog.Logger, service *github.GitService, eventServ
 		workerPool:   workerPool,
 	}
 }
-
-// TODO: Create the NewGitHandler function here
 
 func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)

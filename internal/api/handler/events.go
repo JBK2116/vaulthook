@@ -18,25 +18,25 @@ var (
 	ErrClientDisconnected = errors.New("[Events] client disconnected from backend sse")
 )
 
-// eventsHandler handles sse event logic for sending webhook related data to the frontend
-type eventsHandler struct {
+// EventsHandler handles SSE event logic for sending webhook related data to the frontend.
+type EventsHandler struct {
 	logger  *zerolog.Logger
 	service *events.EventService
 }
 
-// NewEventsHandler returns an eventsHandler configured with the provided logger and service.
-func NewEventsHandler(logger *zerolog.Logger, service *events.EventService) *eventsHandler {
-	return &eventsHandler{
+// NewEventsHandler returns an EventsHandler configured with the provided logger and service.
+func NewEventsHandler(logger *zerolog.Logger, service *events.EventService) *EventsHandler {
+	return &EventsHandler{
 		logger:  logger,
 		service: service,
 	}
 }
 
-// sse establishes a long-lived Server-Sent Events connection with the client.
+// SSE establishes a long-lived Server-Sent Events connection with the client.
 // It subscribes to the event service hub and streams incoming webhook events
 // to the connected client in real time. The connection is closed when the
 // client disconnects.
-func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	// sse headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
@@ -109,7 +109,7 @@ func (h *eventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 }
 
 // getAll handles GET /events, returning all webhook events as JSON.
-func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
 	var cursor *time.Time
@@ -142,7 +142,7 @@ func (h *eventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 }
 
 // getStats retrieves statistics for webhooks
-func (h *eventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
 	stats, err := h.service.GetStats(ctx)
@@ -166,7 +166,7 @@ func (h *eventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // replayEvent sets the webhook with the provided id to status 'queued' allowing it to be replayed by queue workers
-func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
+func (h *EventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
@@ -185,7 +185,7 @@ func (h *eventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 // RegisterRoutes mounts the webhook event related endpoints onto the provided router
 //
 // NOTE: SSE mounting is handled explicitly in main as it requires special configuration.
-func (h *eventsHandler) RegisterRoutes(r chi.Router) {
+func (h *EventsHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/events", h.getAll)
 	r.Post("/events/{id}/replay", h.replayEvent)
 	r.Get("/events/stats", h.getStats)

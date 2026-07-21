@@ -90,8 +90,35 @@ func (r *EventRepo) getStats(ctx context.Context) (*model.Stats, error) {
 	return &stats, nil
 }
 
-// replayEvent sets the delivery_status of the webhook with the provided ID to "queued",
-// allowing it to be picked by queue workers to be replayed.
+// InsertWebhook saves a new webhook event to the database and returns the
+// stored record with all database-generated fields populated.
+func (r *EventRepo) InsertWebhook(ctx context.Context, p model.CreateWebhookParams) (model.Webhook, error) {
+	query := `
+	INSERT INTO webhook_events (provider_id, provider, event_id, event_type, headers, payload, forwarded_to, received_at)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	RETURNING id, provider_id, provider, event_id, event_type, headers, payload,
+	          delivery_status, forwarded_to, response_code, retry_count,
+	          next_retry_at, last_error, received_at, created_at, updated_at
+	`
+
+	var w model.Webhook
+	err := r.db.QueryRow(ctx, query,
+		p.ProviderID, p.Provider, p.EventID, p.EventType,
+		p.Headers, p.Payload, p.ForwardedTo, p.ReceivedAt,
+	).Scan(
+		&w.ID, &w.ProviderID, &w.Provider, &w.EventID, &w.EventType,
+		&w.Headers, &w.Payload, &w.DeliveryStatus, &w.ForwardedTo,
+		&w.ResponseCode, &w.RetryCount, &w.NextRetryAt, &w.LastError,
+		&w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
+	)
+	if err != nil {
+		return model.Webhook{}, err
+	}
+	return w, nil
+}
+
+// replayEvent sets the delivery_status of the webhook with the provided ID to "replaying",
+// allowing it to be picked by replay workers to be replayed.
 func (r *EventRepo) replayEvent(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE webhook_events SET delivery_status = 'replaying' WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, id)

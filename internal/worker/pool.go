@@ -20,15 +20,17 @@ type WorkerPool struct {
 	cleanup      *cleanupWorker
 }
 
-// NewWorkerPool returns a WorkerPool backed by the provided configuration
+// NewWorkerPool returns a WorkerPool backed by the provided configuration.
 func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *WorkerPool {
 	signal := make(chan struct{}, config.Envs.TotalQueueWorkers)
 	queueWorkers := make([]*Worker, config.Envs.TotalQueueWorkers)
 	retryWorkers := make([]*Worker, config.Envs.TotalRetryWorkers)
-	// initialize the repo for the workers
-	queueRepo := NewQueueWorkerRepo(db)
-	retryRepo := NewRetryWorkerRepo(db)
-	replayRepo := NewReplayWorkerRepo(db)
+
+	// initialize repos for each worker strategy
+	queueRepo := NewWorkerRepo(db, WorkerKindQueue)
+	retryRepo := NewWorkerRepo(db, WorkerKindRetry)
+	replayRepo := NewWorkerRepo(db, WorkerKindReplay)
+
 	// initialize the QueueWorkers
 	for i := range len(queueWorkers) {
 		queueWorkers[i] = newWorker(svc, queueRepo, logger)

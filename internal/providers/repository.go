@@ -32,12 +32,12 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]model.Provider, error) {
 	var provs []model.Provider
 	for rows.Next() {
 		var p model.Provider
-		err := rows.Scan(
+		rowErr := rows.Scan(
 			&p.ID, &p.Name, &p.SigningSecret,
 			&p.DestinationURL, &p.IsConfigured, &p.CreatedAt,
 		)
-		if err != nil {
-			return provs, err
+		if rowErr != nil {
+			return provs, rowErr
 		}
 		provs = append(provs, p)
 	}
@@ -88,4 +88,17 @@ func (r *ProviderRepo) GetProviderRouting(ctx context.Context, name string) (mod
 		return model.ProviderRouting{}, err
 	}
 	return pr, nil
+}
+
+// GetSigningKey returns the encrypted signing secret for the provider
+// with the given name. The returned value is the hex-encoded ciphertext
+// as stored in the database.
+func (r *ProviderRepo) GetSigningKey(ctx context.Context, name string) (string, error) {
+	query := `SELECT signing_secret FROM providers WHERE name = $1`
+	var key string
+	err := r.db.QueryRow(ctx, query, name).Scan(&key)
+	if err != nil {
+		return "", err
+	}
+	return key, nil
 }

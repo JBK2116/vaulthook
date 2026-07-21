@@ -8,31 +8,34 @@ import (
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/crypto"
+	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
 )
 
-// GitService provides the main business logic for handling webhook events pertaining to the git provider
+// GitService provides the main business logic for handling webhook events
+// pertaining to the GitHub provider.
 type GitService struct {
 	logger       *zerolog.Logger
-	repo         *GitRepo
+	eventRepo    *events.EventRepo
 	providerRepo *providers.ProviderRepo
 }
 
-// NewGitService returns a Git service configured with the provided logger and repo
-func NewGitService(logger *zerolog.Logger, repo *GitRepo, providerRepo *providers.ProviderRepo) *GitService {
+// NewGitService returns a GitService configured with the provided logger,
+// event repository, and provider repository.
+func NewGitService(logger *zerolog.Logger, eventRepo *events.EventRepo, providerRepo *providers.ProviderRepo) *GitService {
 	return &GitService{
 		logger:       logger,
-		repo:         repo,
+		eventRepo:    eventRepo,
 		providerRepo: providerRepo,
 	}
 }
 
-// ValidateSecret receives a github signature from the `X-Hub-Signature-256` header and ensures that it matches the
-// secret key used for github endpoints.
+// ValidateSecret receives a GitHub signature from the `X-Hub-Signature-256`
+// header and ensures that it matches the secret key used for GitHub endpoints.
 func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) (err error) {
-	key, err := s.repo.getSigningKey(ctx, string(model.Github))
+	key, err := s.providerRepo.GetSigningKey(ctx, string(model.Github))
 	if err != nil {
 		return err
 	}
@@ -65,7 +68,7 @@ func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload 
 		ForwardedTo: routing.ForwardedTo,
 		ReceivedAt:  time.Now().UTC(),
 	}
-	hook, err := s.repo.insertWebhook(ctx, params)
+	hook, err := s.eventRepo.InsertWebhook(ctx, params)
 	if err != nil {
 		return model.Webhook{}, err
 	}

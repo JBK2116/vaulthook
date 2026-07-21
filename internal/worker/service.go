@@ -3,7 +3,6 @@ package worker
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,11 +11,13 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
+	stripe "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 )
 
-// Worker struct is responsible for processing all webhook events that are stored in the database.
+// Worker struct is responsible for processing all webhook events that are
+// stored in the database.
 type Worker struct {
 	sse    *events.EventService
 	repo   WorkerRepository
@@ -61,7 +62,8 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 	}
 }
 
-// startRetry kicks off a loop that causes the worker to run in the background following an interval.
+// startRetry kicks off a loop that causes the worker to run in the background
+// following the configured retry interval.
 func (w *Worker) startRetry(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
 	defer ticker.Stop()
@@ -73,10 +75,10 @@ func (w *Worker) startRetry(ctx context.Context) {
 			return
 		}
 	}
-
 }
 
-// startReplay kicks off a loop that causes the worker to run in the background following an interval.
+// startReplay kicks off a loop that causes the worker to run in the background
+// following a short interval for replay events.
 func (w *Worker) startReplay(ctx context.Context) {
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
@@ -137,31 +139,26 @@ func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 	return evt, nil
 }
 
-// forwardEvent attempts to forward the webhook event to it's destination url.
-//
-// NOTE: We no longer send an intermediate SSE update here ("processing" status).
-// The initial "queued" status is sent by the HTTP ingestion handler and the
-// final result is sent after updateEvent. Removing this redundant send reduces
-// broadcast channel pressure by ~33%.
+// forwardEvent attempts to forward the webhook event to its destination URL.
 func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateWebhook, error) {
 	var updates updateWebhook
 	updates.id = hook.ID
-	// get the providers destination url
+	// get the provider's destination URL
 	payload := bytes.NewReader(hook.Payload)
 	url, err := w.repo.GetDestinationURL(ctx, hook.ProviderID)
 	if err != nil {
 		setDefaultUpdateValues(err.Error(), &updates)
 		return updates, err
 	}
-	// configure the http request payload
+	// configure the HTTP request payload
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
 		setDefaultUpdateValues(err.Error(), &updates)
 		return updates, err
 	}
-	// set provider specific values
+	// set provider-specific headers
 	if hook.Provider == string(model.Stripe) {
-		if headerErr := setStripeHeaders(req, hook.Headers); headerErr != nil {
+		if headerErr := stripe.SetForwardHeaders(req, hook.Headers); headerErr != nil {
 			setDefaultUpdateValues(headerErr.Error(), &updates)
 			return updates, headerErr
 		}
@@ -191,7 +188,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 	return updates, nil
 }
 
-// UpdateEvent updates the received events data in the database.
+// updateEvent updates the received event's data in the database.
 func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
 	hook, err := w.repo.UpdateEvent(ctx, updates)
 	if err != nil {
@@ -200,36 +197,15 @@ func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*model
 	return hook, nil
 }
 
-// Send pushes the received updated event to the frontend via the sse pipeline.
+// send pushes the received updated event to the frontend via the SSE pipeline.
 func (w *Worker) send(hook *model.Webhook) {
 	w.sse.Send(*hook)
 }
 
-// setStripeHeaders inputs the appropriate stripe headers into the provided http request object
-func setStripeHeaders(r *http.Request, headers []byte) error {
-	var parsed map[string][]string
-	allowed := map[string]struct{}{
-		"Content-Type":     {},
-		"Stripe-Signature": {},
-		"User-Agent":       {},
-		"Cache-Control":    {},
-	}
-	if err := json.Unmarshal(headers, &parsed); err != nil {
-		return err
-	}
-	for k, val := range parsed {
-		if _, ok := allowed[k]; ok {
-			for _, v := range val {
-				r.Header.Add(k, v)
-			}
-		}
-	}
-	return nil
-}
-
-// setDefaultUpdateValues configures the provided updateWebhook to standard values.
+// setDefaultUpdateValues configures the provided updateWebhook to standard
+// failure values with a scheduled retry.
 func setDefaultUpdateValues(err string, updates *updateWebhook) {
-	nextRetry := (time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second))
+	nextRetry := time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
 	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.lastError = &err
 	updates.nextRetryAt = &nextRetry
@@ -245,7 +221,7 @@ func setSuccessUpdateValues(code int, updates *updateWebhook) {
 }
 
 // setFailureUpdateValues configures the update for non-retryable 4xx responses.
-// These require operator intervention, retrying will not resolve them.
+// These require operator intervention; retrying will not resolve them.
 func setFailureUpdateValues(code int, err string, updates *updateWebhook) {
 	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code
@@ -263,8 +239,9 @@ func setRetryableUpdateValues(code int, err string, updates *updateWebhook) {
 	updates.nextRetryAt = &nextRetry
 }
 
-// setRateLimitedUpdateValues configures the update for 429 responses.
-// Honours the Retry-After header if present, otherwise falls back to configured interval.
+// setRateLimitedUpdateValues configures the update for 429/503 responses.
+// Honours the Retry-After header if present; otherwise falls back to the
+// configured retry interval.
 func setRateLimitedUpdateValues(code int, err, retryAfter string, updates *updateWebhook) {
 	var nextRetry time.Time
 	if secs, parseErr := strconv.Atoi(retryAfter); parseErr == nil && secs > 0 {
