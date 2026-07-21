@@ -22,11 +22,16 @@ import (
 // from the original incoming webhook/http request are forwarded.
 func SetForwardHeaders(r *http.Request, headers []byte) error {
 	notAllowed := map[string]struct{}{
-		"Host":              {},
-		"Content-Length":    {},
-		"Connection":        {},
-		"Transfer-Encoding": {},
-		"Keep-Alive":        {},
+		"Host":                {},
+		"Content-Length":      {},
+		"Connection":          {},
+		"Transfer-Encoding":   {},
+		"Keep-Alive":          {},
+		"Proxy-Authenticate":  {},
+		"Proxy-Authorization": {},
+		"Te":                  {},
+		"Trailer":             {},
+		"Upgrade":             {},
 	}
 	var parsed map[string][]string
 	if err := json.Unmarshal(headers, &parsed); err != nil {
