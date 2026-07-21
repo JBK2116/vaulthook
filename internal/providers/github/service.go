@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/crypto"
@@ -13,6 +14,10 @@ import (
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/rs/zerolog"
 )
+
+// ErrInvalidSignature is returned when a webhook signature does not match
+// the expected HMAC.
+var ErrInvalidSignature = errors.New("invalid GitHub webhook signature")
 
 // GitService provides the main business logic for handling webhook events
 // pertaining to the GitHub provider.
@@ -47,7 +52,7 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 	mac.Write(payload)
 	expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 	if !hmac.Equal([]byte(expected), []byte(signature)) {
-		return nil
+		return ErrInvalidSignature
 	}
 	return nil
 }

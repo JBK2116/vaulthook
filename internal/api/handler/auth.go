@@ -58,8 +58,9 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60))
+	secure := !config.Envs.IsDevelopment
+	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60, secure))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -76,8 +77,9 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, auth.ExpiredAccessCookie())
-	http.SetCookie(w, auth.ExpiredRefreshCookie())
+	secure := !config.Envs.IsDevelopment
+	http.SetCookie(w, auth.ExpiredAccessCookie(secure))
+	http.SetCookie(w, auth.ExpiredRefreshCookie(secure))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -102,8 +104,9 @@ func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60))
+	secure := !config.Envs.IsDevelopment
+	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60, secure))
 	w.WriteHeader(http.StatusOK)
 }
 
