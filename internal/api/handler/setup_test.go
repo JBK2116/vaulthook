@@ -18,6 +18,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -31,6 +32,7 @@ var testLogger *zerolog.Logger
 // EVENT HANDLING
 var eventRepo *events.EventRepo
 var eventService *events.EventService
+var eventsHandler *EventsHandler
 
 // AUTH
 var testAuthRepo *auth.RefreshTokenRepo
@@ -48,6 +50,10 @@ var testProviderHandler *ProviderHandler
 // STRIPE
 var stripeService *stripe.StripeService
 var stripeHandle *StripeHandler
+
+// GITHUB
+var gitService *github.GitService
+var gitHandle *GitHandler
 
 func TestMain(m *testing.M) {
 	if err := godotenv.Load("../../../.env"); err != nil {
@@ -92,6 +98,14 @@ func TestMain(m *testing.M) {
 	stripeService = stripeS
 	stripeH := NewStripeHandler(l, stripeS, eventS, workerPool)
 	stripeHandle = stripeH
+	// configure the github variables
+	gitS := github.NewGitService(l, eventR, providerR)
+	gitService = gitS
+	gitH := NewGitHandler(l, gitS, eventS, workerPool)
+	gitHandle = gitH
+	// configure the events handler
+	eventsH := NewEventsHandler(l, eventS)
+	eventsHandler = eventsH
 	// run the code
 	code := m.Run()
 	os.Exit(code)

@@ -109,3 +109,36 @@ func TestValidateAccessTokenService(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteRefreshTokenService(t *testing.T) {
+	tests := map[string]struct {
+		setup func() string
+	}{
+		"existing token": {setup: func() string {
+			return createRefreshToken(t)
+		}},
+		"nonexistent token": {setup: func() string {
+			return "token-not-in-database"
+		}},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			beforeEach(t)
+			t.Cleanup(func() { afterEach(t) })
+			ctx := context.Background()
+			token := test.setup()
+			err := testService.DeleteRefreshToken(ctx, token)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			// Verify the token no longer exists.
+			exists, existsErr := testRepo.Exists(ctx, token)
+			if existsErr != nil {
+				t.Fatalf("unexpected exists error: %v", existsErr)
+			}
+			if exists {
+				t.Fatal("expected token to be deleted")
+			}
+		})
+	}
+}
