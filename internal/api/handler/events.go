@@ -10,6 +10,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
+	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 )
@@ -108,6 +109,41 @@ func (h *EventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *EventsHandler) search(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
+	var opts model.SearchRequest
+	if err := json.NewDecoder(r.Body).Decode(&opts); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] error decoding payload")
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := opts.Validate(); err != nil {
+		h.logger.Warn().Err(err).Msg("[Events] error validating payload")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	hooks, err := h.service.Search(ctx, opts)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("[Events] error executing search")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	rBody, err := json.Marshal(hooks)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("[Events] error marshaling response payload")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(rBody); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] error sending webhook events to frontend")
+		return
+	}
+
+}
+
 // getAll handles GET /events, returning all webhook events as JSON.
 func (h *EventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
@@ -187,6 +223,7 @@ func (h *EventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 // NOTE: SSE mounting is handled explicitly in main as it requires special configuration.
 func (h *EventsHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/events", h.getAll)
+	r.Post("/events", h.search)
 	r.Post("/events/{id}/replay", h.replayEvent)
 	r.Get("/events/stats", h.getStats)
 }

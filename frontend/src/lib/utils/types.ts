@@ -38,6 +38,8 @@ export interface Stats {
 
 /** A search payload sent to the backend */
 export interface SearchPayload {
+    // type of search to execute
+    type: SearchTypes;
     // quick lookup options
     webhook_id: string | null;
     event_id: string | null;
@@ -51,6 +53,12 @@ export interface SearchPayload {
     payload_search: string | null;
     has_retries: boolean;
     has_error: boolean;
+}
+
+/** Available types of search options sent to backend */
+export enum SearchTypes {
+    Lookup = 'lookup',
+    Filter = 'filter',
 }
 
 /** Available types of delivery statuses of a webhook */

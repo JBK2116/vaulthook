@@ -2,6 +2,8 @@ package events
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/model"
@@ -126,4 +128,137 @@ func (r *EventRepo) replayEvent(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return nil
+}
+
+// lookup retrieves webhooks matching either the provided webhook ID or event ID.
+// At least one of the two IDs must be non-nil and non-empty.
+func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.Webhook, error) {
+	var (
+		conditions []string
+		args       []any
+		argIdx     = 1
+	)
+
+	if opts.WebhookID != nil && *opts.WebhookID != "" {
+		conditions = append(conditions, fmt.Sprintf("id::text = $%d", argIdx))
+		args = append(args, *opts.WebhookID)
+		argIdx++
+	}
+	if opts.EventID != nil && *opts.EventID != "" {
+		conditions = append(conditions, fmt.Sprintf("event_id = $%d", argIdx))
+		args = append(args, *opts.EventID)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT * FROM webhook_events
+		WHERE %s
+		ORDER BY created_at DESC
+		LIMIT 25`,
+		strings.Join(conditions, " OR "),
+	)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var hooks []model.Webhook
+	for rows.Next() {
+		var w model.Webhook
+		if err := rows.Scan(
+			&w.ID, &w.ProviderID, &w.Provider, &w.EventID,
+			&w.EventType, &w.Headers, &w.Payload, &w.DeliveryStatus,
+			&w.ForwardedTo, &w.ResponseCode, &w.RetryCount, &w.NextRetryAt,
+			&w.LastError, &w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		hooks = append(hooks, w)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return hooks, nil
+}
+
+// filter retrieves webhooks matching the criteria in opts. Only fields that are
+// explicitly set (non-zero / non-empty) become filter conditions.
+func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.Webhook, error) {
+	var (
+		conditions []string
+		args       []any
+		argIdx     = 1
+	)
+
+	if len(opts.Providers) > 0 {
+		conditions = append(conditions, fmt.Sprintf("provider = ANY($%d)", argIdx))
+		args = append(args, opts.Providers)
+		argIdx++
+	}
+	if opts.EventType != nil && *opts.EventType != "" {
+		conditions = append(conditions, fmt.Sprintf("event_type = $%d", argIdx))
+		args = append(args, *opts.EventType)
+		argIdx++
+	}
+	if len(opts.DeliveryStatuses) > 0 {
+		conditions = append(conditions, fmt.Sprintf("delivery_status = ANY($%d)", argIdx))
+		args = append(args, opts.DeliveryStatuses)
+		argIdx++
+	}
+	if opts.ResponseCode != nil {
+		conditions = append(conditions, fmt.Sprintf("response_code = $%d", argIdx))
+		args = append(args, *opts.ResponseCode)
+		argIdx++
+	}
+	if opts.FromTime != nil && opts.ToTime != nil {
+		conditions = append(conditions, fmt.Sprintf("created_at >= $%d", argIdx))
+		args = append(args, *opts.FromTime)
+		argIdx++
+		conditions = append(conditions, fmt.Sprintf("created_at <= $%d", argIdx))
+		args = append(args, *opts.ToTime)
+		argIdx++
+	}
+	if opts.PayloadSearch != nil && *opts.PayloadSearch != "" {
+		conditions = append(conditions, fmt.Sprintf("payload::text ILIKE '%%' || $%d || '%%'", argIdx))
+		args = append(args, *opts.PayloadSearch)
+	}
+	if opts.HasRetries {
+		conditions = append(conditions, "retry_count > 0")
+	}
+	if opts.HasError {
+		conditions = append(conditions, "last_error IS NOT NULL")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT * FROM webhook_events
+		WHERE %s
+		ORDER BY created_at DESC
+		LIMIT 50`,
+		strings.Join(conditions, " AND "),
+	)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var hooks []model.Webhook
+	for rows.Next() {
+		var w model.Webhook
+		if err := rows.Scan(
+			&w.ID, &w.ProviderID, &w.Provider, &w.EventID,
+			&w.EventType, &w.Headers, &w.Payload, &w.DeliveryStatus,
+			&w.ForwardedTo, &w.ResponseCode, &w.RetryCount, &w.NextRetryAt,
+			&w.LastError, &w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		hooks = append(hooks, w)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return hooks, nil
 }

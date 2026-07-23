@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import EventTable from '$lib/components/ui/EventTable.svelte';
     import MultiSelect from '$lib/components/ui/MultiSelect.svelte';
@@ -9,15 +10,17 @@
     import { Input } from '$lib/components/ui/input/index.js';
     import * as Popover from '$lib/components/ui/popover/index.js';
     import * as Switch from '$lib/components/ui/switch/index.js';
+    import { reAuthenticate } from '$lib/utils/auth';
     import { firstToUpper, formatDateTime } from '$lib/utils/functions';
     import {
         DeliveryStatusTypes,
         ProviderTypes,
         type SearchPayload,
+        SearchTypes,
         type WebHookEvent,
     } from '$lib/utils/types';
     import { type CalendarDate, getLocalTimeZone } from '@internationalized/date';
-    import { ChevronDown } from '@lucide/svelte';
+    import { ChevronDown, LoaderCircle } from '@lucide/svelte';
 
     // Quick Lookup state
     let searchWebhookId = $state('');
@@ -65,23 +68,26 @@
 
     let filterError = $state('');
     let lookupError = $state('');
+    let lookupLoading = $state(false);
+    let filterLoading = $state(false);
 
     // Results placeholder
     let displayedEvents: WebHookEvent[] = $state([]);
     let currentSelectedEvent: WebHookEvent | null = $state(null);
-    let totalDisplayedEvents: number = $derived(displayedEvents.length);
 
     /** Builds the SearchPayload using the provided options */
-    function buildFormState() {
+    function buildFormState(type: SearchTypes) {
         return {
+            // type of search to execute
+            type: type,
             // quick lookup options
             webhook_id: searchWebhookId.trim() || null,
             event_id: searchEventId.trim() || null,
             // filter options
             providers: selectedProviders,
             event_type: eventType.trim() || null,
-            delivery_statuses: selectedStatuses,
-            response_code: responseCode.trim() || null,
+            delivery_statuses: selectedStatuses.map((s) => s.toLowerCase()),
+            response_code: responseCode.trim() !== '' ? Number(responseCode.trim()) : null,
             from_time: formatDateTime(fromDate, fromTime),
             to_time: formatDateTime(toDate, toTime),
             payload_search: payloadSearch.trim() || null,
@@ -90,33 +96,116 @@
         } as SearchPayload;
     }
 
+    const searchURL = `/api/events`;
+
     /** Queries the database for events using the provided lookup options */
     async function handleLookup(): Promise<void> {
-        // TODO: Implement this
+        lookupLoading = true;
         try {
             if (!validateLookup()) {
                 return;
             }
             clearLookupError();
-            const payload = buildFormState();
-            console.log('Find:', payload);
+            clearFilterError();
+            const form = buildFormState(SearchTypes.Lookup);
+            const payload = JSON.stringify(form);
+            let response = await fetch(searchURL, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+            });
+            if (response.status === 401) {
+                const ok = await reAuthenticate();
+                if (!ok) {
+                    await goto('/login');
+                    return;
+                }
+                response = await fetch(searchURL, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                });
+            }
+            if (!response.ok) {
+                if (response.status === 400) {
+                    const text = await response.text();
+                    lookupError = firstToUpper(text);
+                } else if (response.status === 500) {
+                    lookupError = 'Failed to execute search. Please try again.';
+                } else {
+                    lookupError = 'Failed to execute search. Please try again soon.';
+                }
+                return;
+            }
+            const body = (await response.json()) as WebHookEvent[] | null;
+            displayedEvents = [];
+            if (Array.isArray(body) && body.length > 0) {
+                displayedEvents.push(...body);
+            } else {
+                lookupError = 'No results found.';
+            }
         } catch (err: any) {
-            return;
+            lookupError = 'Failed to execute search. Please try again soon.';
+            console.log(err);
+        } finally {
+            lookupLoading = false;
         }
     }
 
     /** Queries the database for events using the provided filter options */
     async function handleFilter(): Promise<void> {
-        // TODO: Implement this
+        filterLoading = true;
         try {
             if (!validateFilter()) {
                 return;
             }
+            clearLookupError();
             clearFilterError();
-            const payload = buildFormState();
-            console.log('Filter:', payload);
+            const form = buildFormState(SearchTypes.Filter);
+            const payload = JSON.stringify(form);
+            let response = await fetch(searchURL, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+            });
+            if (response.status === 401) {
+                const ok = await reAuthenticate();
+                if (!ok) {
+                    await goto('/login');
+                    return;
+                }
+                response = await fetch(searchURL, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                });
+            }
+            if (!response.ok) {
+                if (response.status === 400) {
+                    const text = await response.text();
+                    filterError = firstToUpper(text);
+                } else if (response.status === 500) {
+                    filterError = 'Failed to execute search. Please try again.';
+                } else {
+                    filterError = 'Failed to execute search. Please try again soon.';
+                }
+                return;
+            }
+            const body = (await response.json()) as WebHookEvent[] | null;
+            displayedEvents = [];
+            if (Array.isArray(body) && body.length > 0) {
+                displayedEvents.push(...body);
+            } else {
+                filterError = 'No results found.';
+            }
         } catch (error: any) {
             return;
+        } finally {
+            filterLoading = false;
         }
     }
 
@@ -238,12 +327,12 @@
                 class:opacity-40={filtersActive}
             >
                 <h2
-                    class="text-muted-foreground mb-4 text-[10px] font-medium tracking-widest uppercase"
+                    class="text-muted-foreground mb-4 flex items-center justify-between text-[10px] font-medium tracking-widest uppercase"
                 >
-                    Quick Lookup
+                    <span>Quick Lookup</span>
                     {#if lookupError}
                         <span
-                            class="ml-3 text-[12px] font-normal normal-case tracking-normal text-red-400"
+                            class="text-[12px] font-normal normal-case tracking-normal text-red-400"
                             >{lookupError}</span
                         >
                     {/if}
@@ -269,9 +358,13 @@
                         variant="outline"
                         size="default"
                         onclick={handleLookup}
-                        disabled={!canSearch || filtersActive}
+                        disabled={!canSearch || filtersActive || lookupLoading}
                     >
-                        Find
+                        {#if lookupLoading}
+                            <LoaderCircle class="animate-spin" />
+                        {:else}
+                            Find
+                        {/if}
                     </Button>
                 </div>
             </section>
@@ -480,9 +573,13 @@
                         variant="default"
                         size="default"
                         onclick={handleFilter}
-                        disabled={!canSearch}
+                        disabled={!canSearch || filterLoading}
                     >
-                        Search
+                        {#if filterLoading}
+                            <LoaderCircle class="animate-spin" />
+                        {:else}
+                            Search
+                        {/if}
                     </Button>
                     <Button
                         variant="ghost"

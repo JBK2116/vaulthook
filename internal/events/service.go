@@ -179,3 +179,48 @@ func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// Search returns all webhooks that meet thre requirements listed in the provided options payload
+func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) ([]model.Webhook, error) {
+	var found []model.Webhook
+	if opts.Type == model.LookUp {
+		lookOpts := model.LookupOpts{
+			WebhookID: opts.WebhookID,
+			EventID:   opts.EventID,
+		}
+		hooks, err := s.repo.lookup(ctx, lookOpts)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, hooks...)
+	}
+	if opts.Type == model.Filter {
+		filterOpts := model.FilterOpts{
+			Providers:        opts.Providers,
+			EventType:        opts.EventType,
+			DeliveryStatuses: opts.DeliveryStatuses,
+			ResponseCode:     opts.ResponseCode,
+			PayloadSearch:    opts.PayloadSearch,
+			HasRetries:       opts.HasRetries,
+			HasError:         opts.HasError,
+		}
+		if opts.FromTime != nil {
+			filterOpts.FromTime = convTime(*opts.FromTime)
+		}
+		if opts.ToTime != nil {
+			filterOpts.ToTime = convTime(*opts.ToTime)
+		}
+		hooks, err := s.repo.filter(ctx, filterOpts)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, hooks...)
+	}
+	return found, nil
+}
+
+// convTime is a helper function to convert a valid ISO8601 string to a time object
+func convTime(iso string) *time.Time {
+	time, _ := time.Parse(time.RFC3339, iso)
+	return &time
+}
