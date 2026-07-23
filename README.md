@@ -1,69 +1,3 @@
-# Vaulthook
-
-**A self-hostable webhook gateway. Own your data, inspect everything, replay anything.**
-
-![Vaulthook Demo](./assets/output.gif)
-
----
-
-## What is it?
-
-Vaulthook sits between your webhook providers and your application. It receives every inbound webhook, cryptographically verifies the signature, logs the full payload and headers to your database, and forwards it to your destination. If delivery fails, background workers retry automatically. If you need to re-send an event, replay it from the dashboard in one click.
-
-No managed service. No third party sees your data. Deploy it on your VPS, point your providers at it, and log in from anywhere.
-
-## Supported Providers
-
-- Stripe
-
-- Github
-
-- More Coming Soon
-
----
-
-## Architecture
-
-```
-[Stripe / GitHub]
-          │
-          ▼
-    [Caddy — TLS]
-     ├── /* → SvelteKit frontend
-     └── /api/* → Go binary :8080
-          │
-          ▼
-  [Vaulthook — Go :8080]
-    ├── /api/webhooks/:provider   ← Inbound receiver
-    └── /api/*                   ← Dashboard API (JWT protected)
-          │
-          ▼
-     [PostgreSQL]
-          │
-          ▼
-  [Destination URL — your app]
-```
-
-```
-vaulthook/
-├── cmd/
-│   ├── api/              ← Entry point
-│   └── api-mock/         ← Local simulator for testing
-├── internal/
-│   ├── api/handler/      ← HTTP handlers (auth, events, providers, stripe)
-│   ├── auth/             ← JWT + refresh token logic
-│   ├── config/           ← Env config, logger, DB setup
-│   ├── crypto/           ← AES-256-GCM encryption for signing secrets
-│   ├── events/           ← SSE pipeline + event service
-│   ├── model/            ← Domain models
-│   ├── providers/        ← Provider management
-│   ├── tests/load/       ← k6 stress tests
-│   └── worker/           ← Queue, retry, replay, and cleanup workers
-├── migrations/           ← Goose SQL migrations
-├── frontend/             ← SvelteKit dashboard
-└── deploy/               ← Dockerfile, docker-compose.yml, Caddyfile
-```
-
 ---
 
 ## Features
@@ -73,6 +7,7 @@ vaulthook/
 - **Transactional outbox pattern** - events are committed to the database before any forwarding attempt, guaranteeing zero data loss even under load.
 - **Background worker pool** - concurrent queue workers, retry workers with exponential backoff, and a dedicated replay worker all run independently, configurable via `.env`.
 - **Manual replay** - replay any past event from the dashboard. A dedicated worker picks it up within seconds.
+- **Powerful event search** - instantly find any webhook by ID, or filter by provider, event type, delivery status, response code, date range, payload contents, and retry/error state, with infinite scroll across your entire event history.
 - **Live SSE dashboard** - real-time event feed pushed from the server. Pause and resume the stream at any time without missing updates.
 - **AES-256-GCM encrypted secrets** - provider signing secrets are encrypted at rest. A second layer of protection if your server is ever compromised.
 - **Fully configurable** - worker counts, retry intervals, max retries, and more via a single `.env` file.
@@ -91,7 +26,7 @@ docker compose up -d --build
 
 Vaulthook is now running at `http://localhost`.
 
-**For production**, replace `:80` in `deploy/Caddyfile` with your domain (e.g. `example.com`) — Caddy will automatically provision a Let's Encrypt TLS certificate. Then point your providers at `https://yourdomain.com/api/webhooks/:provider`.
+**For production**, replace `:80` in `deploy/Caddyfile` with your domain (e.g. `example.com`) and Caddy will automatically request a Let's Encrypt TLS certificate. Then point your providers at `https://yourdomain.com/api/webhooks/:provider`.
 
 ---
 
@@ -115,20 +50,21 @@ See `env_example.txt` for the full reference. Key variables:
 
 ## Testing
 
-Tested with k6 under two scenarios running simultaneously — a ramping arrival rate (up to 600 req/s) and a concurrent burst spike of 100 VUs. Payloads randomized between 0–8KB to stress DB storage and JSON parsing.
+Tested with k6 across multiple runs, including a ramping arrival rate scenario and a concurrent burst spike scenario, run simultaneously. Payloads randomized between 0–8KB to stress DB storage and JSON parsing.
 
-| Mode               | p(95) Latency | Error Rate | Result |
-| ------------------ | ------------- | ---------- | ------ |
-| Success (baseline) | 60ms          | 0%         | ✅     |
-| Chaos (TCP drops)  | 115ms         | 0%         | ✅     |
+| Mode                   | p(95) Latency | Error Rate  | Result |
+| ---------------------- | ------------- | ----------- | ------ |
+| Success (baseline)     | 60ms          | 0%          | ✅     |
+| Chaos (TCP drops)      | 115ms         | 0%          | ✅     |
+| Max load (~1000 req/s) | 132ms         | 0% (server) | ✅     |
 
-**195,000+ total events processed. Zero data loss across all runs.**
+**858,000+ events processed in a single max-load run, sustaining ~1000 req/s with zero application-level (5xx) errors.**
 
 Load tests are in `internal/tests/load/`.
 
-For testing stripe endpoints locally follow the official guide: [HERE](https://docs.stripe.com/stripe-cli/use-cli)
+For testing Stripe endpoints locally, follow the official guide: [HERE](https://docs.stripe.com/stripe-cli/use-cli)
 
-For testing github endpoints locally follow the official guide: [HERE](https://docs.github.com/en/webhooks/using-webhooks/handling-webhook-deliveries)
+For testing GitHub endpoints locally, follow the official guide: [HERE](https://docs.github.com/en/webhooks/using-webhooks/handling-webhook-deliveries)
 
 ---
 
