@@ -204,8 +204,8 @@ export function formatDateTime(date: CalendarDate | undefined, time: string): st
         return null;
     }
     const d = date.toDate(getLocalTimeZone());
-    const [h, m] = time.split(':').map(Number);
-    d.setHours(h, m, 0, 0);
+    const [h, m, s = 0] = time.split(':').map(Number);
+    d.setHours(h, m, s, 0);
     return d.toISOString();
 }
 

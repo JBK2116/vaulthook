@@ -38,10 +38,10 @@
     let selectedStatuses = $state<string[]>([]);
     let responseCode = $state('');
     let fromDate: CalendarDate | undefined = $state(undefined);
-    let fromTime = $state('00:00');
+    let fromTime = $state('00:00:00');
     let fromOpen = $state(false);
     let toDate: CalendarDate | undefined = $state(undefined);
-    let toTime = $state('23:59');
+    let toTime = $state('23:59:00');
     let toOpen = $state(false);
     let payloadSearch = $state('');
     let hasRetries = $state(false);
@@ -202,9 +202,9 @@
         selectedStatuses = [];
         responseCode = '';
         fromDate = undefined;
-        fromTime = '00:00';
+        fromTime = '00:00:00';
         toDate = undefined;
-        toTime = '23:59';
+        toTime = '23:59:00';
         payloadSearch = '';
         hasRetries = false;
         hasError = false;
