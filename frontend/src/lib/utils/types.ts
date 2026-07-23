@@ -53,6 +53,15 @@ export interface SearchPayload {
     payload_search: string | null;
     has_retries: boolean;
     has_error: boolean;
+    // pagination
+    offset: number;
+    limit: number;
+}
+
+/** Response wrapper returned by the search endpoint */
+export interface SearchResponse {
+    events: WebHookEvent[];
+    has_more: boolean;
 }
 
 /** Available types of search options sent to backend */

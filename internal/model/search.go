@@ -29,12 +29,16 @@ type SearchRequest struct {
 	PayloadSearch    *string    `json:"payload_search"`
 	HasRetries       bool       `json:"has_retries"`
 	HasError         bool       `json:"has_error"`
+	Offset           int        `json:"offset"`
+	Limit            int        `json:"limit"`
 }
 
 // LookupOpts contains options to be used when executing lookup queries for events
 type LookupOpts struct {
 	WebhookID *string
 	EventID   *string
+	Offset    int
+	Limit     int
 }
 
 // FilterOpts contains the options to be used when executing filter queries for events
@@ -48,6 +52,15 @@ type FilterOpts struct {
 	PayloadSearch    *string
 	HasRetries       bool
 	HasError         bool
+	Offset           int
+	Limit            int
+}
+
+// SearchResponse wraps a page of webhook events together with a flag indicating
+// whether more results are available.
+type SearchResponse struct {
+	Events  []Webhook `json:"events"`
+	HasMore bool      `json:"has_more"`
 }
 
 // Validation errors for SearchPayload.

@@ -56,14 +56,24 @@
         prevTopItemId = currentEvents.length > 0 ? currentEvents[0].id : null;
     });
 
-    let virtualizer = $derived(
+    let virtualizer = $state(
         createVirtualizer<HTMLDivElement, HTMLDivElement>({
-            count: displayedEvents.length,
+            count: 0,
             getScrollElement: () => scrollEl,
             estimateSize: () => ROW_HEIGHT,
             overscan: 10,
         }),
     );
+
+    $effect(() => {
+        // Recreate after DOM commit so scrollEl is bound and has dimensions
+        virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+            count: displayedEvents.length,
+            getScrollElement: () => scrollEl,
+            estimateSize: () => ROW_HEIGHT,
+            overscan: 10,
+        });
+    });
 
     $effect(() => {
         const items = $virtualizer.getVirtualItems();

@@ -123,13 +123,13 @@ func (h *EventsHandler) search(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	hooks, err := h.service.Search(ctx, opts)
+	result, err := h.service.Search(ctx, opts)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Events] error executing search")
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	rBody, err := json.Marshal(hooks)
+	rBody, err := json.Marshal(result)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Events] error marshaling response payload")
 		http.Error(w, "internal server error", http.StatusInternalServerError)

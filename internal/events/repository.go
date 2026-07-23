@@ -153,9 +153,11 @@ func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.
 		SELECT * FROM webhook_events
 		WHERE %s
 		ORDER BY created_at DESC
-		LIMIT 25`,
+		LIMIT $%d OFFSET $%d`,
 		strings.Join(conditions, " OR "),
+		argIdx, argIdx+1,
 	)
+	args = append(args, opts.Limit, opts.Offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
@@ -234,9 +236,11 @@ func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.
 		SELECT * FROM webhook_events
 		WHERE %s
 		ORDER BY created_at DESC
-		LIMIT 50`,
+		LIMIT $%d OFFSET $%d`,
 		strings.Join(conditions, " AND "),
+		argIdx, argIdx+1,
 	)
+	args = append(args, opts.Limit, opts.Offset)
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {

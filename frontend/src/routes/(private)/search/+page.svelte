@@ -16,6 +16,7 @@
         DeliveryStatusTypes,
         ProviderTypes,
         type SearchPayload,
+        type SearchResponse,
         SearchTypes,
         type WebHookEvent,
     } from '$lib/utils/types';
@@ -71,12 +72,19 @@
     let lookupLoading = $state(false);
     let filterLoading = $state(false);
 
+    // Pagination
+    let offset = $state(0);
+    const limit = 25;
+    let hasMore = $state(false);
+    let loadingMore = $state(false);
+    let lastSearchType = $state<SearchTypes | null>(null);
+
     // Results placeholder
     let displayedEvents: WebHookEvent[] = $state([]);
     let currentSelectedEvent: WebHookEvent | null = $state(null);
 
     /** Builds the SearchPayload using the provided options */
-    function buildFormState(type: SearchTypes) {
+    function buildFormState(type: SearchTypes, pageOffset: number = 0) {
         return {
             // type of search to execute
             type: type,
@@ -93,10 +101,41 @@
             payload_search: payloadSearch.trim() || null,
             has_retries: hasRetries,
             has_error: hasError,
+            // pagination
+            offset: pageOffset,
+            limit: limit,
         } as SearchPayload;
     }
 
     const searchURL = `/api/events`;
+
+    /** Shared helper: sends the search payload and returns the parsed response. */
+    async function executeSearch(payload: SearchPayload): Promise<SearchResponse> {
+        let response = await fetch(searchURL, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (response.status === 401) {
+            const ok = await reAuthenticate();
+            if (!ok) {
+                await goto('/login');
+                throw new Error('unauthenticated');
+            }
+            response = await fetch(searchURL, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        }
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `status ${response.status}`);
+        }
+        return (await response.json()) as SearchResponse;
+    }
 
     /** Queries the database for events using the provided lookup options */
     async function handleLookup(): Promise<void> {
@@ -107,47 +146,19 @@
             }
             clearLookupError();
             clearFilterError();
-            const form = buildFormState(SearchTypes.Lookup);
-            const payload = JSON.stringify(form);
-            let response = await fetch(searchURL, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: payload,
-            });
-            if (response.status === 401) {
-                const ok = await reAuthenticate();
-                if (!ok) {
-                    await goto('/login');
-                    return;
-                }
-                response = await fetch(searchURL, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payload,
-                });
-            }
-            if (!response.ok) {
-                if (response.status === 400) {
-                    const text = await response.text();
-                    lookupError = firstToUpper(text);
-                } else if (response.status === 500) {
-                    lookupError = 'Failed to execute search. Please try again.';
-                } else {
-                    lookupError = 'Failed to execute search. Please try again soon.';
-                }
-                return;
-            }
-            const body = (await response.json()) as WebHookEvent[] | null;
-            displayedEvents = [];
-            if (Array.isArray(body) && body.length > 0) {
-                displayedEvents.push(...body);
-            } else {
+            offset = 0;
+            lastSearchType = SearchTypes.Lookup;
+            const form = buildFormState(SearchTypes.Lookup, 0);
+            const result = await executeSearch(form);
+            displayedEvents = result.events;
+            hasMore = result.has_more;
+            if (result.events.length === 0) {
                 lookupError = 'No results found.';
             }
         } catch (err: any) {
-            lookupError = 'Failed to execute search. Please try again soon.';
+            if (err.message === 'unauthenticated') return;
+            lookupError =
+                firstToUpper(err.message) || 'Failed to execute search. Please try again soon.';
             console.log(err);
         } finally {
             lookupLoading = false;
@@ -163,49 +174,40 @@
             }
             clearLookupError();
             clearFilterError();
-            const form = buildFormState(SearchTypes.Filter);
-            const payload = JSON.stringify(form);
-            let response = await fetch(searchURL, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: payload,
-            });
-            if (response.status === 401) {
-                const ok = await reAuthenticate();
-                if (!ok) {
-                    await goto('/login');
-                    return;
-                }
-                response = await fetch(searchURL, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payload,
-                });
-            }
-            if (!response.ok) {
-                if (response.status === 400) {
-                    const text = await response.text();
-                    filterError = firstToUpper(text);
-                } else if (response.status === 500) {
-                    filterError = 'Failed to execute search. Please try again.';
-                } else {
-                    filterError = 'Failed to execute search. Please try again soon.';
-                }
-                return;
-            }
-            const body = (await response.json()) as WebHookEvent[] | null;
-            displayedEvents = [];
-            if (Array.isArray(body) && body.length > 0) {
-                displayedEvents.push(...body);
-            } else {
+            offset = 0;
+            lastSearchType = SearchTypes.Filter;
+            const form = buildFormState(SearchTypes.Filter, 0);
+            const result = await executeSearch(form);
+            displayedEvents = result.events;
+            hasMore = result.has_more;
+            if (result.events.length === 0) {
                 filterError = 'No results found.';
             }
-        } catch (error: any) {
-            return;
+        } catch (err: any) {
+            if (err.message === 'unauthenticated') return;
+            filterError =
+                firstToUpper(err.message) || 'Failed to execute search. Please try again soon.';
+            console.log(err);
         } finally {
             filterLoading = false;
+        }
+    }
+
+    /** Loads the next page of results for the current search. */
+    async function loadMore(): Promise<void> {
+        if (!lastSearchType || loadingMore || !hasMore) return;
+        loadingMore = true;
+        try {
+            const newOffset = offset + limit;
+            const form = buildFormState(lastSearchType, newOffset);
+            const result = await executeSearch(form);
+            displayedEvents = [...displayedEvents, ...result.events];
+            offset = newOffset;
+            hasMore = result.has_more;
+        } catch (err: any) {
+            console.log(err);
+        } finally {
+            loadingMore = false;
         }
     }
 
@@ -610,9 +612,9 @@
                 <EventTable
                     bind:currentSelectedEvent
                     {displayedEvents}
-                    loadMore={async () => {}}
-                    loadingMore={false}
-                    hasMore={false}
+                    {loadMore}
+                    {loadingMore}
+                    {hasMore}
                 />
             {/if}
         </div>

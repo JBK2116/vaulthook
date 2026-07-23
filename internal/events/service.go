@@ -181,16 +181,25 @@ func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 }
 
 // Search returns all webhooks that meet thre requirements listed in the provided options payload
-func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) ([]model.Webhook, error) {
+func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (model.SearchResponse, error) {
+	// Default to a sensible page size when none is provided.
+	if opts.Limit <= 0 {
+		opts.Limit = 25
+	}
+	// Fetch one extra row so we can tell if there are more pages.
+	reqLimit := opts.Limit + 1
+
 	var found []model.Webhook
 	if opts.Type == model.LookUp {
 		lookOpts := model.LookupOpts{
 			WebhookID: opts.WebhookID,
 			EventID:   opts.EventID,
+			Offset:    opts.Offset,
+			Limit:     reqLimit,
 		}
 		hooks, err := s.repo.lookup(ctx, lookOpts)
 		if err != nil {
-			return nil, err
+			return model.SearchResponse{}, err
 		}
 		found = append(found, hooks...)
 	}
@@ -203,6 +212,8 @@ func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) ([]
 			PayloadSearch:    opts.PayloadSearch,
 			HasRetries:       opts.HasRetries,
 			HasError:         opts.HasError,
+			Offset:           opts.Offset,
+			Limit:            reqLimit,
 		}
 		if opts.FromTime != nil {
 			filterOpts.FromTime = convTime(*opts.FromTime)
@@ -212,11 +223,16 @@ func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) ([]
 		}
 		hooks, err := s.repo.filter(ctx, filterOpts)
 		if err != nil {
-			return nil, err
+			return model.SearchResponse{}, err
 		}
 		found = append(found, hooks...)
 	}
-	return found, nil
+
+	hasMore := len(found) > opts.Limit
+	if hasMore {
+		found = found[:opts.Limit]
+	}
+	return model.SearchResponse{Events: found, HasMore: hasMore}, nil
 }
 
 // convTime is a helper function to convert a valid ISO8601 string to a time object
