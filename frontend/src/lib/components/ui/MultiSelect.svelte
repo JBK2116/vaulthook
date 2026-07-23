@@ -55,7 +55,7 @@
                 >
                     <Checkbox.Root
                         checked={selected.includes(option)}
-                        onchange={() => toggle(option)}
+                        onCheckedChange={() => toggle(option)}
                     />
                     <span>{option}</span>
                 </label>

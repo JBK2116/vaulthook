@@ -1,3 +1,5 @@
+import { type CalendarDate, getLocalTimeZone } from '@internationalized/date';
+
 import {
     DeliveryStatusColors,
     DeliveryStatusTypes,
@@ -186,4 +188,31 @@ export function formatReceivedAtTimeForSidebar(received_at: string, timezone: st
         second: '2-digit',
         hour12: false,
     }).format(date);
+}
+
+/**
+ * Formats a CalendarDate and time string into an ISO 8601 date-time string.
+ * Combines the date part from the CalendarDate and the hours/minutes from the time string.
+ * Returns null if no date is provided.
+ *
+ * @param {CalendarDate | undefined} date - The calendar date to format.
+ * @param {string} time - A string in the format "HH:MM" representing the time.
+ * @returns {string | null} The combined date-time as an ISO string, or null if date is undefined.
+ */
+export function formatDateTime(date: CalendarDate | undefined, time: string): string | null {
+    if (!date) {
+        return null;
+    }
+    const d = date.toDate(getLocalTimeZone());
+    const [h, m] = time.split(':').map(Number);
+    d.setHours(h, m, 0, 0);
+    return d.toISOString();
+}
+
+/** Capitalizes the first letter in a string
+ *
+ * @returns {string} The full string with the first char being capitalized
+ * */
+export function firstToUpper(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }

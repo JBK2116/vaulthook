@@ -1,3 +1,4 @@
+/** A webhook event received from the backend */
 export interface WebHookEvent {
     id: string; // id of the event
     provider_id: string; // id of the provider attached to this event
@@ -17,6 +18,7 @@ export interface WebHookEvent {
     created_at: string; // created at time of the event (ISO861 Format)
 }
 
+/** A provider received from the backend */
 export interface Provider {
     id: string; // id of the provider
     name: string; // name of the provider
@@ -26,6 +28,7 @@ export interface Provider {
     created_at: string; // time indicating when the provider was created at (ISO861 Format)
 }
 
+/** A stats object received from the backend */
 export interface Stats {
     delivered: number;
     failed: number;
@@ -33,6 +36,24 @@ export interface Stats {
     queued: number;
 }
 
+/** A search payload sent to the backend */
+export interface SearchPayload {
+    // quick lookup options
+    webhook_id: string | null;
+    event_id: string | null;
+    // filter options
+    providers: string[];
+    event_type: string | null;
+    delivery_statuses: string[];
+    response_code: number | null;
+    from_time: string | null;
+    to_time: string | null;
+    payload_search: string | null;
+    has_retries: boolean;
+    has_error: boolean;
+}
+
+/** Available types of delivery statuses of a webhook */
 export enum DeliveryStatusTypes {
     Queued = 'queued',
     Processing = 'processing',
@@ -41,6 +62,7 @@ export enum DeliveryStatusTypes {
     Failed = 'failed',
 }
 
+/** Colors pertaining to each `DeliveryStatusTypes` */
 export enum DeliveryStatusColors {
     delivered = 'text-status-delivered-foreground',
     failed = 'text-status-failed-foreground',
@@ -48,6 +70,7 @@ export enum DeliveryStatusColors {
     queued = 'text-status-queued-foreground',
 }
 
+/** Filter types for delivery status on SSE page */
 export enum SelectTypes {
     All = 'all',
     Delivered = 'delivered',
@@ -56,11 +79,13 @@ export enum SelectTypes {
     Failed = 'failed',
 }
 
+/** Provider names available in application */
 export enum ProviderTypes {
     Stripe = 'Stripe',
     Github = 'Github',
 }
 
+/** SSE connection states */
 export enum ConnState {
     Connected = 'connected',
     Connecting = 'connecting',

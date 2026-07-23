@@ -1,6 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
+    import { Search } from '@lucide/svelte';
 
     import Button from './button/button.svelte';
 
@@ -27,12 +28,28 @@
 <nav
     class="border-border/60 bg-background/80 sticky top-0 z-50 flex h-16 items-center justify-between border-b px-6 backdrop-blur-sm"
 >
-    <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
+    <!-- Left: Brand -->
+    <a href="/" class="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
         <span class="text-primary">🟈</span>
         VaultHook
     </a>
+
+    <!-- Center: Search -->
     {#if !isLogin}
-        <div class="flex items-center gap-2">
+        <div class="flex flex-1 items-center justify-center">
+            <button
+                onclick={() => goto('/search')}
+                class="border-border dark:bg-input/30 dark:hover:bg-input/50 inline-flex items-center gap-2 rounded-sm border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+                <Search class="size-3.5" />
+                <span class="hidden sm:inline">Search</span>
+            </button>
+        </div>
+    {/if}
+
+    <!-- Right: Navigation buttons -->
+    {#if !isLogin}
+        <div class="flex shrink-0 items-center gap-2">
             <Button
                 variant="link"
                 type="button"
