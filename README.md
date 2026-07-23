@@ -1,5 +1,3 @@
----
-
 ## Features
 
 - **Cryptographic signature verification** - every inbound request is verified against the provider's signing secret before any payload touches the database. Invalid requests are rejected immediately.
