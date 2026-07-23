@@ -341,7 +341,7 @@
                         </span>
                         <Input
                             type="text"
-                            placeholder="e.g. 200, 4xx, 5xx"
+                            placeholder="e.g. 200, 404, 501"
                             bind:value={responseCode}
                         />
                     </label>
