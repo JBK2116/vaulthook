@@ -147,6 +147,7 @@ func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.
 	if opts.EventID != nil && *opts.EventID != "" {
 		conditions = append(conditions, fmt.Sprintf("event_id = $%d", argIdx))
 		args = append(args, *opts.EventID)
+		argIdx++
 	}
 
 	query := fmt.Sprintf(`
@@ -224,6 +225,7 @@ func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.
 	if opts.PayloadSearch != nil && *opts.PayloadSearch != "" {
 		conditions = append(conditions, fmt.Sprintf("payload::text ILIKE '%%' || $%d || '%%'", argIdx))
 		args = append(args, *opts.PayloadSearch)
+		argIdx++
 	}
 	if opts.HasRetries {
 		conditions = append(conditions, "retry_count > 0")
