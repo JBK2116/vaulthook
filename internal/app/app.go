@@ -90,8 +90,8 @@ func New() *App {
 	// Services
 	authSvc := auth.NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		auth.AccessTokenTTL,
+		auth.RefreshTokenTTL,
 		refreshTokenRepo,
 		logger,
 	)

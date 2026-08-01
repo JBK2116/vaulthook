@@ -12,8 +12,8 @@ import (
 func TestJwtMiddleware_NoCookie(t *testing.T) {
 	svc := NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		AccessTokenTTL,
+		RefreshTokenTTL,
 		nil,
 		nil,
 	)
@@ -35,15 +35,15 @@ func TestJwtMiddleware_NoCookie(t *testing.T) {
 func TestJwtMiddleware_ValidToken(t *testing.T) {
 	svc := NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		AccessTokenTTL,
+		RefreshTokenTTL,
 		nil,
 		nil,
 	)
 	mw := Jwt(svc)
 
 	now := time.Now()
-	exp := now.Add(time.Duration(config.Envs.AccessTokenTTL) * time.Minute)
+	exp := now.Add(time.Duration(AccessTokenTTL) * time.Minute)
 	token, err := svc.GenerateAccessToken(config.Envs.UserEmail, exp, now)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
@@ -69,8 +69,8 @@ func TestJwtMiddleware_ValidToken(t *testing.T) {
 func TestJwtMiddleware_ExpiredToken(t *testing.T) {
 	svc := NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		AccessTokenTTL,
+		RefreshTokenTTL,
 		nil,
 		nil,
 	)
@@ -103,8 +103,8 @@ func TestJwtMiddleware_ExpiredToken(t *testing.T) {
 func TestJwtMiddleware_InvalidToken(t *testing.T) {
 	svc := NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		AccessTokenTTL,
+		RefreshTokenTTL,
 		nil,
 		nil,
 	)
@@ -130,15 +130,15 @@ func TestJwtMiddleware_InvalidToken(t *testing.T) {
 func TestJwtMiddleware_TamperedToken(t *testing.T) {
 	svc := NewAuthService(
 		config.Envs.JWTSecret,
-		config.Envs.AccessTokenTTL,
-		config.Envs.RefreshTokenTTL,
+		AccessTokenTTL,
+		RefreshTokenTTL,
 		nil,
 		nil,
 	)
 	mw := Jwt(svc)
 
 	now := time.Now()
-	exp := now.Add(time.Duration(config.Envs.AccessTokenTTL) * time.Minute)
+	exp := now.Add(time.Duration(AccessTokenTTL) * time.Minute)
 	token, err := svc.GenerateAccessToken(config.Envs.UserEmail, exp, now)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)

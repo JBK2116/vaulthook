@@ -40,10 +40,6 @@ GOOSE_MIGRATION_DIR=./migrations
 IS_DEVELOPMENT=false
 IS_TESTING=false
 
-# JWT lifetimes
-ACCESS_TOKEN_TTL=10             # minutes
-REFRESH_TOKEN_TTL=24            # hours
-
 # Request throttling
 THROTTLE_MAX_CONCURRENT=100
 THROTTLE_MAX_BACKLOG=50

@@ -59,8 +59,8 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secure := !config.Envs.IsDevelopment
-	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60, secure))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60, secure))
+	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*60, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*60*60, secure))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -105,8 +105,8 @@ func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secure := !config.Envs.IsDevelopment
-	http.SetCookie(w, auth.NewAccessCookie(accessT, config.Envs.AccessTokenTTL*60, secure))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, config.Envs.RefreshTokenTTL*60*60, secure))
+	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*60, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*60*60, secure))
 	w.WriteHeader(http.StatusOK)
 }
 

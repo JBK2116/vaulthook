@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 	testLogger = l
 	r := NewRefreshTokenRepo(testDB)
 	testRepo = r
-	s := NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, r, l)
+	s := NewAuthService(config.Envs.JWTSecret, AccessTokenTTL, RefreshTokenTTL, r, l)
 	testService = s
 	code := m.Run()
 	os.Exit(code)
@@ -63,7 +63,7 @@ func afterEach(t *testing.T) {
 func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
-	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
+	exp := now.Add(time.Duration(RefreshTokenTTL) * time.Hour)
 	token, err := testService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)

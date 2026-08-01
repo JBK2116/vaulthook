@@ -41,10 +41,6 @@ type Config struct {
 	LogLevel int
 	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
 	JWTSecret string
-	// AccessTokenTTL is the access token lifetime in minutes.
-	AccessTokenTTL int
-	// RefreshTokenTTL is the refresh token lifetime in hours.
-	RefreshTokenTTL int
 	// ThrottleMaxConcurrent is the maximum number of requests handled concurrently.
 	ThrottleMaxConcurrent int
 	// ThrottleMaxBacklog is the maximum number of requests queued while at capacity.
@@ -82,8 +78,6 @@ func initConfig() Config {
 		UserPassword:           getEnvString("USER_PASSWORD"),
 		LogLevel:               getEnvInt("LOG_LEVEL"),
 		JWTSecret:              getEnvString("TOKEN_SECRET"),
-		AccessTokenTTL:         getEnvInt("ACCESS_TOKEN_TLL"),
-		RefreshTokenTTL:        getEnvInt("REFRESH_TOKEN_TTL"),
 		ThrottleMaxConcurrent:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
 		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),

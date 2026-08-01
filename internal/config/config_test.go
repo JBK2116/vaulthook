@@ -27,12 +27,6 @@ func TestInitConfig(t *testing.T) {
 	if Envs.IsDevelopment != true {
 		t.Fatalf("expected IsDevelopment true, got %v", Envs.IsDevelopment)
 	}
-	if Envs.AccessTokenTTL != 10 {
-		t.Fatalf("expected AccessTokenTTL 10, got %d", Envs.AccessTokenTTL)
-	}
-	if Envs.RefreshTokenTTL != 24 {
-		t.Fatalf("expected RefreshTokenTTL 24, got %d", Envs.RefreshTokenTTL)
-	}
 	if Envs.MaxRetries != 5 {
 		t.Fatalf("expected MaxRetries 5, got %d", Envs.MaxRetries)
 	}
@@ -195,12 +189,6 @@ func TestInitConfig_AllFieldsSet(t *testing.T) {
 	}
 	if cfg.DBPort != 5432 {
 		t.Errorf("DBPort: expected 5432, got %d", cfg.DBPort)
-	}
-	if cfg.AccessTokenTTL != 15 {
-		t.Errorf("AccessTokenTTL: expected 15, got %d", cfg.AccessTokenTTL)
-	}
-	if cfg.RefreshTokenTTL != 48 {
-		t.Errorf("RefreshTokenTTL: expected 48, got %d", cfg.RefreshTokenTTL)
 	}
 	if cfg.MaxRetries != 3 {
 		t.Errorf("MaxRetries: expected 3, got %d", cfg.MaxRetries)

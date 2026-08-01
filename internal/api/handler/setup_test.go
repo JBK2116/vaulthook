@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 	// configure the auth variables
 	authR := auth.NewRefreshTokenRepo(testDB)
 	testAuthRepo = authR
-	authS := auth.NewAuthService(config.Envs.JWTSecret, config.Envs.AccessTokenTTL, config.Envs.RefreshTokenTTL, authR, l)
+	authS := auth.NewAuthService(config.Envs.JWTSecret, auth.AccessTokenTTL, auth.RefreshTokenTTL, authR, l)
 	testAuthService = authS
 	authH := NewAuthHandler(l, authS)
 	testAuthHandler = authH
@@ -163,7 +163,7 @@ func getValidLoginCredentials() []byte {
 func createAccessToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
-	exp := now.Add(time.Duration(config.Envs.AccessTokenTTL) * time.Minute)
+	exp := now.Add(time.Duration(auth.AccessTokenTTL) * time.Minute)
 	token, err := testAuthService.GenerateAccessToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)
@@ -187,7 +187,7 @@ func createExpiredAccessToken(t *testing.T) string {
 func createRefreshToken(t *testing.T) string {
 	email := config.Envs.UserEmail
 	now := time.Now()
-	exp := now.Add(time.Duration(config.Envs.RefreshTokenTTL) * time.Hour)
+	exp := now.Add(time.Duration(auth.RefreshTokenTTL) * time.Hour)
 	token, err := testAuthService.GenerateRefreshToken(email, exp, now)
 	if err != nil {
 		t.Fatal(err)

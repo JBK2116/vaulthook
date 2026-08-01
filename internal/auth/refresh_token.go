@@ -8,6 +8,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	// AccessTokenTTL in minutes
+	AccessTokenTTL = 10
+	// RefreshTokenTTL in hours
+	RefreshTokenTTL = 24
+)
+
 // refreshToken represents a persisted refresh token record.
 type refreshToken struct {
 	ID    uuid.UUID
