@@ -24,6 +24,8 @@ export interface Provider {
     name: string; // name of the provider
     signing_secret: string; // signing_secret of the provider to validate webhooks
     destination_url: string; // destination address to forward webhooks
+    max_retries: number; // max retries for each webhook forwarding attempt
+    max_req_second: number; // max number of requests allowed per second
     is_configured: boolean; // boolean indicating if the user has configured this provider fully
     created_at: string; // time indicating when the provider was created at (ISO861 Format)
 }

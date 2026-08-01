@@ -82,7 +82,7 @@ func TestProviderService_Configure_Success(t *testing.T) {
 		t.Fatal("Stripe provider not found")
 	}
 
-	prov, err := svc.Configure(ctx, stripeID, "whsec_test123", "https://example.com/webhook")
+	prov, err := svc.Configure(ctx, stripeID, "whsec_test123", "https://example.com/webhook", 5, 90)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestProviderService_Configure_InvalidUUID(t *testing.T) {
 	repo := NewProviderRepo(testDB)
 	svc := NewProviderService(repo)
 
-	_, err := svc.Configure(ctx, "not-a-uuid", "secret", "https://example.com")
+	_, err := svc.Configure(ctx, "not-a-uuid", "secret", "https://example.com", 5, 90)
 	if err == nil {
 		t.Fatal("expected error for invalid UUID")
 	}
@@ -122,7 +122,7 @@ func TestProviderService_Configure_MissingSecret(t *testing.T) {
 	providers, _ := svc.GetAll(ctx)
 	stripeID := providers[0].ID.String()
 
-	_, err := svc.Configure(ctx, stripeID, "", "https://example.com")
+	_, err := svc.Configure(ctx, stripeID, "", "https://example.com", 5, 90)
 	if err == nil {
 		t.Fatal("expected error for missing signing secret")
 	}
@@ -141,7 +141,7 @@ func TestProviderService_Configure_MissingDestination(t *testing.T) {
 	providers, _ := svc.GetAll(ctx)
 	stripeID := providers[0].ID.String()
 
-	_, err := svc.Configure(ctx, stripeID, "whsec_test", "")
+	_, err := svc.Configure(ctx, stripeID, "whsec_test", "", 5, 90)
 	if err == nil {
 		t.Fatal("expected error for missing destination URL")
 	}
@@ -161,7 +161,7 @@ func TestProviderService_Configure_WhitespaceSecret(t *testing.T) {
 	stripeID := providers[0].ID.String()
 
 	// Secret that is only whitespace should be treated as empty.
-	_, err := svc.Configure(ctx, stripeID, "   ", "https://example.com")
+	_, err := svc.Configure(ctx, stripeID, "   ", "https://example.com", 5, 90)
 	if err == nil {
 		t.Fatal("expected error for whitespace-only signing secret")
 	}

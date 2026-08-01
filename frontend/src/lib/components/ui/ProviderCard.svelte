@@ -16,7 +16,12 @@
     // card state management
     let editing = $state(false);
     let showSecret = $state(false);
-    let draft = $state({ signing_secret: '', destination_url: '' });
+    let draft = $state({
+        signing_secret: '',
+        destination_url: '',
+        max_retries: 0,
+        max_req_second: 0,
+    });
     let savingData = $state(false);
     // card accent when not configured
     let cardClass = $derived(
@@ -27,12 +32,16 @@
         draft = {
             signing_secret: provider.signing_secret,
             destination_url: provider.destination_url,
+            max_retries: provider.max_retries,
+            max_req_second: provider.max_req_second,
         };
         editing = true;
     }
     function cancel() {
         editing = false;
     }
+    const MAX_RETRY_COUNT = 20;
+    const MAX_REQ_SECOND = 1000;
     async function save() {
         if (savingData) {
             return;
@@ -60,10 +69,23 @@
                 return;
             }
         }
+        // validate numeric fields
+        if (body.max_retries < 0 || body.max_retries > MAX_RETRY_COUNT) {
+            toast.error(`Max retries must be between 0 and ${MAX_RETRY_COUNT}`);
+            savingData = false;
+            return;
+        }
+        if (body.max_req_second < 0 || body.max_req_second > MAX_REQ_SECOND) {
+            toast.error(`Max requests per second must be between 0 and ${MAX_REQ_SECOND}`);
+            savingData = false;
+            return;
+        }
         // prevent empty changes
         if (
             body.signing_secret === provider.signing_secret &&
-            body.destination_url === provider.destination_url
+            body.destination_url === provider.destination_url &&
+            body.max_retries === provider.max_retries &&
+            body.max_req_second === provider.max_req_second
         ) {
             toast.warning('No changes detected');
             savingData = false;
@@ -143,6 +165,34 @@
                 </div>
             {:else}
                 <p class="font-mono text-sm tracking-widest">••••••••••••</p>
+            {/if}
+        </div>
+        <div class="space-y-1">
+            <Label class="text-muted-foreground text-xs">Max Retries</Label>
+            {#if editing}
+                <Input
+                    type="number"
+                    min="0"
+                    max="20"
+                    bind:value={draft.max_retries}
+                    placeholder="3"
+                />
+            {:else}
+                <p class="font-mono text-sm">{provider.max_retries}</p>
+            {/if}
+        </div>
+        <div class="space-y-1">
+            <Label class="text-muted-foreground text-xs">Max Requests / Second</Label>
+            {#if editing}
+                <Input
+                    type="number"
+                    min="0"
+                    max="1000"
+                    bind:value={draft.max_req_second}
+                    placeholder="10"
+                />
+            {:else}
+                <p class="font-mono text-sm">{provider.max_req_second}</p>
             {/if}
         </div>
     </Card.Content>

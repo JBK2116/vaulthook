@@ -27,21 +27,6 @@ type CreateWebhookParams struct {
 	ReceivedAt time.Time
 }
 
-// Provider represents a webhook provider.
-type Provider struct {
-	ID uuid.UUID `json:"id"`
-	// Provider Name
-	Name string `json:"name"`
-	// Provider Signing Secret For Validating Webhooks
-	SigningSecret string `json:"signing_secret"`
-	// Provider Destination URL To Forward Webhooks
-	DestinationURL string `json:"destination_url"`
-	// Provider Manual Configuration Bool
-	IsConfigured bool `json:"is_configured"`
-	// Provider Created At Time
-	CreatedAt time.Time `json:"created_at"`
-}
-
 // Webhook struct represents a webhook event received by a provider
 type Webhook struct {
 	// Webhook ID

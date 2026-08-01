@@ -13,9 +13,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// configureRequestBody is a dto used to update a providers configuration variables
 type configureRequestBody struct {
 	SigningSecret  string `json:"signing_secret"`
 	DestinationURL string `json:"destination_url"`
+	MaxRetries     int    `json:"max_retries"`
+	MaxReqSecond   int    `json:"max_req_second"`
 }
 
 // ProviderHandler handles HTTP requests for provider operations.
@@ -67,9 +70,9 @@ func (h *ProviderHandler) configure(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
 	defer cancel()
-	provider, err := h.service.Configure(ctx, id, body.SigningSecret, body.DestinationURL)
+	provider, err := h.service.Configure(ctx, id, body.SigningSecret, body.DestinationURL, body.MaxRetries, body.MaxReqSecond)
 	if err != nil {
-		if errors.Is(err, providers.ErrMissingSigningSecret) || errors.Is(err, providers.ErrMissingDestination) {
+		if errors.Is(err, providers.ErrMissingSigningSecret) || errors.Is(err, providers.ErrMissingDestination) || errors.Is(err, providers.ErrInvalidRetryCount) || errors.Is(err, providers.ErrInvalidReqSecond) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

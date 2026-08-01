@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
@@ -13,6 +14,13 @@ import (
 var (
 	ErrMissingSigningSecret = errors.New("error field is empty: signing_secret")
 	ErrMissingDestination   = errors.New("error missing field: destination_url")
+	ErrInvalidRetryCount    = fmt.Errorf("error field is invalid: retry_count must be between 0 and %d", maxRetryCount)
+	ErrInvalidReqSecond     = fmt.Errorf("error field is invalid: max_req_second must be between 0 and %d", maxReqSecond)
+)
+
+const (
+	maxRetryCount = 20
+	maxReqSecond  = 1000
 )
 
 // ProviderService handles business logic for providers.
@@ -46,10 +54,10 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) 
 	return provs, nil
 }
 
-// Configure updates a provider's signing secret and destination URL by ID,
+// Configure updates a providers configuration settings by ID,
 // setting is_configured to true. Returns an error if the ID is invalid,
-// either field is empty or a database error occurs.
-func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, des string) (model.Provider, error) {
+// any field is empty or a database error occurs.
+func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, des string, maxRetry int, maxReqSec int) (model.Provider, error) {
 	uuidS, err := uuid.Parse(ID)
 	sec = strings.TrimSpace(sec)
 	if err != nil {
@@ -61,11 +69,18 @@ func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, 
 	if len(des) <= 0 {
 		return model.Provider{}, ErrMissingDestination
 	}
+	if maxRetry < 0 || maxRetry > maxRetryCount {
+		return model.Provider{}, ErrInvalidRetryCount
+	}
+	if maxReqSec < 0 || maxReqSec > maxReqSecond {
+		return model.Provider{}, ErrInvalidReqSecond
+	}
 	encKey, err := crypto.EncryptSigningKey(sec)
 	if err != nil {
 		return model.Provider{}, err
 	}
-	prov, err := s.repo.configure(ctx, uuidS, encKey, des)
+	// TODO: contine building in here now
+	prov, err := s.repo.configure(ctx, uuidS, encKey, des, maxRetry, maxReqSec)
 	if err != nil {
 		return model.Provider{}, err
 	}

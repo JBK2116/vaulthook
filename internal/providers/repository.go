@@ -22,7 +22,10 @@ func NewProviderRepo(db *pgxpool.Pool) *ProviderRepo {
 
 // GetAll retrieves all providers from the database.
 func (r *ProviderRepo) getAll(ctx context.Context) ([]model.Provider, error) {
-	query := `SELECT * FROM providers`
+	query := `SELECT id, name, signing_secret, destination_url,
+	                  max_retries, max_req_second,
+	                  is_configured, created_at
+	           FROM providers`
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -34,7 +37,8 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]model.Provider, error) {
 		var p model.Provider
 		rowErr := rows.Scan(
 			&p.ID, &p.Name, &p.SigningSecret,
-			&p.DestinationURL, &p.IsConfigured, &p.CreatedAt,
+			&p.DestinationURL, &p.MaxRetries, &p.MaxReqSecond,
+			&p.IsConfigured, &p.CreatedAt,
 		)
 		if rowErr != nil {
 			return provs, rowErr
@@ -47,25 +51,32 @@ func (r *ProviderRepo) getAll(ctx context.Context) ([]model.Provider, error) {
 	return provs, nil
 }
 
-// Update modifies a provider's signing secret and destination URL, and
-// sets is_configured flag to true if it isn't already, returning the updated Provider.
+// Update modifies a provider's signing secret, destination URL,
+// max_retries, and max_req_second, and sets is_configured flag to true
+// if it isn't already, returning the updated Provider.
 func (r *ProviderRepo) configure(
 	ctx context.Context,
 	id uuid.UUID,
 	sec string,
 	des string,
+	maxRetry int,
+	maxReqSec int,
 ) (model.Provider, error) {
 	query := `
 		UPDATE providers
-		SET signing_secret = $1, destination_url = $2, is_configured = $3
-		WHERE id = $4
-		RETURNING id, name, signing_secret, destination_url, is_configured, created_at`
+		SET signing_secret = $1, destination_url = $2, is_configured = $3,
+		    max_retries = $4, max_req_second = $5
+		WHERE id = $6
+		RETURNING id, name, signing_secret, destination_url,
+		          max_retries, max_req_second, is_configured, created_at`
 	var p model.Provider
-	err := r.db.QueryRow(ctx, query, sec, des, true, id).Scan(
+	err := r.db.QueryRow(ctx, query, sec, des, true, maxRetry, maxReqSec, id).Scan(
 		&p.ID,
 		&p.Name,
 		&p.SigningSecret,
 		&p.DestinationURL,
+		&p.MaxRetries,
+		&p.MaxReqSecond,
 		&p.IsConfigured,
 		&p.CreatedAt,
 	)
