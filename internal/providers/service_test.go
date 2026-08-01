@@ -31,7 +31,7 @@ func beforeEachProviders(t *testing.T) {
 	t.Helper()
 	// Reset providers to unconfigured state.
 	_, err := testDB.Exec(context.Background(),
-		`UPDATE providers SET signing_secret = '', destination_url = '', is_configured = false`)
+		`UPDATE providers SET signing_secret = '', destination_url = '', max_retries = 5, max_req_second = 0, is_configured = false`)
 	if err != nil {
 		t.Fatalf("failed to reset providers: %v", err)
 	}
@@ -231,5 +231,63 @@ func TestProviderRepo_GetAll(t *testing.T) {
 		if p.Name == "" {
 			t.Fatal("expected non-empty provider name")
 		}
+	}
+}
+
+func TestProviderService_Configure_InvalidRetryCount(t *testing.T) {
+	beforeEachProviders(t)
+	ctx := context.Background()
+
+	repo := NewProviderRepo(testDB)
+	svc := NewProviderService(repo)
+
+	providers, _ := svc.GetAll(ctx)
+	stripeID := providers[0].ID.String()
+
+	// Below minimum.
+	_, err := svc.Configure(ctx, stripeID, "whsec_test", "https://example.com", -1, 90)
+	if err == nil {
+		t.Fatal("expected error for negative max_retries")
+	}
+	if err != ErrInvalidRetryCount {
+		t.Fatalf("expected ErrInvalidRetryCount, got %v", err)
+	}
+
+	// Above maximum.
+	_, err = svc.Configure(ctx, stripeID, "whsec_test", "https://example.com", 21, 90)
+	if err == nil {
+		t.Fatal("expected error for max_retries above limit")
+	}
+	if err != ErrInvalidRetryCount {
+		t.Fatalf("expected ErrInvalidRetryCount, got %v", err)
+	}
+}
+
+func TestProviderService_Configure_InvalidReqSecond(t *testing.T) {
+	beforeEachProviders(t)
+	ctx := context.Background()
+
+	repo := NewProviderRepo(testDB)
+	svc := NewProviderService(repo)
+
+	providers, _ := svc.GetAll(ctx)
+	stripeID := providers[0].ID.String()
+
+	// Below minimum.
+	_, err := svc.Configure(ctx, stripeID, "whsec_test", "https://example.com", 5, -1)
+	if err == nil {
+		t.Fatal("expected error for negative max_req_second")
+	}
+	if err != ErrInvalidReqSecond {
+		t.Fatalf("expected ErrInvalidReqSecond, got %v", err)
+	}
+
+	// Above maximum.
+	_, err = svc.Configure(ctx, stripeID, "whsec_test", "https://example.com", 5, 1001)
+	if err == nil {
+		t.Fatal("expected error for max_req_second above limit")
+	}
+	if err != ErrInvalidReqSecond {
+		t.Fatalf("expected ErrInvalidReqSecond, got %v", err)
 	}
 }

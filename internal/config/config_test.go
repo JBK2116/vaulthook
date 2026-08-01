@@ -21,8 +21,8 @@ func TestInitConfig(t *testing.T) {
 	if Envs.DBPort != 5432 {
 		t.Fatalf("expected DBPort 5432, got %d", Envs.DBPort)
 	}
-	if Envs.DBName != "vaulthook" {
-		t.Fatalf("expected DBName 'vaulthook', got %q", Envs.DBName)
+if Envs.DBName != "vaulthooktest" {
+		t.Fatalf("expected DBName 'vaulthooktest', got %q", Envs.DBName)
 	}
 	if Envs.IsDevelopment != true {
 		t.Fatalf("expected IsDevelopment true, got %v", Envs.IsDevelopment)
@@ -36,8 +36,8 @@ func TestInitConfig(t *testing.T) {
 	if Envs.MaxRetries != 5 {
 		t.Fatalf("expected MaxRetries 5, got %d", Envs.MaxRetries)
 	}
-	if Envs.RetryIntervalSeconds != 15 {
-		t.Fatalf("expected RetryIntervalSeconds 15, got %d", Envs.RetryIntervalSeconds)
+if Envs.RetryIntervalSeconds != 30 {
+		t.Fatalf("expected RetryIntervalSeconds 30, got %d", Envs.RetryIntervalSeconds)
 	}
 	if Envs.TotalQueueWorkers != 8 {
 		t.Fatalf("expected TotalQueueWorkers 8, got %d", Envs.TotalQueueWorkers)

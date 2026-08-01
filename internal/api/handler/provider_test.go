@@ -60,13 +60,15 @@ func TestConfigureHandler(t *testing.T) {
 		statusCode         int
 		body               []byte
 	}{
-		"missing access token": {accessToken: func() string { return "" }, providerName: "Stripe", shouldIncludeToken: false, statusCode: http.StatusUnauthorized, body: []byte(`{}`)},
-		"invalid access token": {accessToken: func() string { return createExpiredAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusUnauthorized, body: []byte(`{}`)},
-		// destination_url is mispelled here ("destination_ur")
-		"invalid body": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_ur": "https://collaboard.site/webhooks/stripe"}`)},
-		// valid bodies for each provider now
-		"valid body stripe": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/stripe"}`)},
-		"valid body github": {accessToken: func() string { return createAccessToken(t) }, providerName: "Github", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/github"}`)},
+		"missing access token":      {accessToken: func() string { return "" }, providerName: "Stripe", shouldIncludeToken: false, statusCode: http.StatusUnauthorized, body: []byte(`{}`)},
+		"invalid access token":      {accessToken: func() string { return createExpiredAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusUnauthorized, body: []byte(`{}`)},
+		"invalid body":              {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_ur": "https://collaboard.site/webhooks/stripe"}`)},
+		"invalid retry count (low)": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://example.com", "max_retries": -1, "max_req_second": 90}`)},
+		"invalid retry count (high)": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://example.com", "max_retries": 21, "max_req_second": 90}`)},
+		"invalid req second (low)":  {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://example.com", "max_retries": 5, "max_req_second": -1}`)},
+		"invalid req second (high)": {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusBadRequest, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://example.com", "max_retries": 5, "max_req_second": 1001}`)},
+		"valid body stripe":         {accessToken: func() string { return createAccessToken(t) }, providerName: "Stripe", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/stripe", "max_retries": 5, "max_req_second": 90}`)},
+		"valid body github":         {accessToken: func() string { return createAccessToken(t) }, providerName: "Github", shouldIncludeToken: true, statusCode: http.StatusOK, body: []byte(`{"signing_secret": "jnjsd", "destination_url": "https://collaboard.site/webhooks/github", "max_retries": 5, "max_req_second": 100}`)},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

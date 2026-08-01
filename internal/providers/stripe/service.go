@@ -27,27 +27,19 @@ func safePrefix(s string) string {
 // to the outgoing forward request. Only a curated allowlist of headers
 // from the original incoming webhook are forwarded.
 func SetForwardHeaders(r *http.Request, headers []byte) error {
-	notAllowed := map[string]struct{}{
-		"Host":                {},
-		"Content-Length":      {},
-		"Connection":          {},
-		"Transfer-Encoding":   {},
-		"Keep-Alive":          {},
-		"Proxy-Authenticate":  {},
-		"Proxy-Authorization": {},
-		"Te":                  {},
-		"Trailer":             {},
-		"Upgrade":             {},
+	allowed := map[string]struct{}{
+		"Content-Type":     {},
+		"Stripe-Signature": {},
+		"User-Agent":       {},
+		"Cache-Control":    {},
 	}
 	var parsed map[string][]string
 	if err := json.Unmarshal(headers, &parsed); err != nil {
 		return err
 	}
-	for k, val := range parsed {
-		if _, ok := notAllowed[http.CanonicalHeaderKey(k)]; ok {
-			continue
-		} else {
-			for _, v := range val {
+	for k, vals := range parsed {
+		if _, ok := allowed[http.CanonicalHeaderKey(k)]; ok {
+			for _, v := range vals {
 				r.Header.Add(k, v)
 			}
 		}

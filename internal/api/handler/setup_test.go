@@ -117,9 +117,17 @@ func beforeEach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reset tables: %v", err)
 	}
-	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", model.Stripe)
+	_, err = testDB.Exec(context.Background(),
+		"UPDATE providers SET destination_url = $1, signing_secret = $2, max_retries = 5, max_req_second = 100 WHERE name = $3",
+		"", "", model.Stripe)
 	if err != nil {
-		t.Fatalf("failed to reset tables :%v", err)
+		t.Fatalf("failed to reset Stripe provider: %v", err)
+	}
+	_, err = testDB.Exec(context.Background(),
+		"UPDATE providers SET destination_url = $1, signing_secret = $2, max_retries = 5, max_req_second = 100 WHERE name = $3",
+		"", "", model.Github)
+	if err != nil {
+		t.Fatalf("failed to reset Github provider: %v", err)
 	}
 }
 
@@ -130,9 +138,17 @@ func afterEach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to cleanup tables: %v", err)
 	}
-	_, err = testDB.Exec(context.Background(), "UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3", "", "", model.Stripe)
+	_, err = testDB.Exec(context.Background(),
+		"UPDATE providers SET destination_url = $1, signing_secret = $2, max_retries = 5, max_req_second = 100 WHERE name = $3",
+		"", "", model.Stripe)
 	if err != nil {
-		t.Fatalf("failed to reset tables :%v", err)
+		t.Fatalf("failed to reset Stripe provider: %v", err)
+	}
+	_, err = testDB.Exec(context.Background(),
+		"UPDATE providers SET destination_url = $1, signing_secret = $2, max_retries = 5, max_req_second = 100 WHERE name = $3",
+		"", "", model.Github)
+	if err != nil {
+		t.Fatalf("failed to reset Github provider: %v", err)
 	}
 }
 

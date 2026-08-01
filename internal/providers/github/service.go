@@ -21,28 +21,24 @@ import (
 // to the outgoing forward request. Only a curated allowlist of headers
 // from the original incoming webhook/http request are forwarded.
 func SetForwardHeaders(r *http.Request, headers []byte) error {
-	notAllowed := map[string]struct{}{
-		"Host":                {},
-		"Content-Length":      {},
-		"Connection":          {},
-		"Transfer-Encoding":   {},
-		"Keep-Alive":          {},
-		"Proxy-Authenticate":  {},
-		"Proxy-Authorization": {},
-		"Te":                  {},
-		"Trailer":             {},
-		"Upgrade":             {},
+	allowed := map[string]struct{}{
+		"Content-Type":        {},
+		"X-Hub-Signature-256": {},
+		"X-Hub-Signature":     {},
+		"X-Github-Event":      {},
+		"X-Github-Delivery":   {},
+		"X-Github-Hook-Id":    {},
+		"User-Agent":          {},
 	}
 	var parsed map[string][]string
 	if err := json.Unmarshal(headers, &parsed); err != nil {
 		return err
 	}
 	for k, vals := range parsed {
-		if _, ok := notAllowed[http.CanonicalHeaderKey(k)]; ok {
-			continue
-		}
-		for _, v := range vals {
-			r.Header.Add(k, v)
+		if _, ok := allowed[http.CanonicalHeaderKey(k)]; ok {
+			for _, v := range vals {
+				r.Header.Add(k, v)
+			}
 		}
 	}
 	return nil

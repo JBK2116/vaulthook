@@ -42,8 +42,8 @@ func beforeEachWorker(t *testing.T) {
 	}
 	// Ensure a provider row exists for GetDestinationURL tests.
 	_, err = testDB.Exec(context.Background(), `
-		INSERT INTO providers (id, name, signing_secret, destination_url, is_configured)
-		VALUES (gen_random_uuid(), 'Stripe', '', '', false)
+		INSERT INTO providers (id, name, signing_secret, destination_url, max_retries, max_req_second, is_configured)
+		VALUES (gen_random_uuid(), 'Stripe', '', '', 5, 0, false)
 		ON CONFLICT (name) DO NOTHING
 	`)
 	if err != nil {

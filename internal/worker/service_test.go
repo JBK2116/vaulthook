@@ -113,11 +113,12 @@ func TestSetRateLimitedUpdateValues(t *testing.T) {
 		if u.nextRetryAt == nil {
 			t.Fatal("expected non-nil nextRetryAt")
 		}
-		// Falls back to config.Envs.RetryIntervalSeconds (15).
-		expected := time.Now().Add(15 * time.Second)
+		// Falls back to config.Envs.RetryIntervalSeconds.
+		retrySecs := config.Envs.RetryIntervalSeconds
+		expected := time.Now().Add(time.Duration(retrySecs) * time.Second)
 		diff := u.nextRetryAt.Sub(expected)
 		if diff < -time.Second || diff > time.Second {
-			t.Fatalf("expected nextRetryAt ~15s from now, got %v (diff: %v)", u.nextRetryAt, diff)
+			t.Fatalf("expected nextRetryAt ~%ds from now, got %v (diff: %v)", retrySecs, u.nextRetryAt, diff)
 		}
 	})
 
@@ -128,11 +129,12 @@ func TestSetRateLimitedUpdateValues(t *testing.T) {
 		if u.nextRetryAt == nil {
 			t.Fatal("expected non-nil nextRetryAt")
 		}
-		// Falls back to config.Envs.RetryIntervalSeconds (15).
-		expected := time.Now().Add(15 * time.Second)
+		// Falls back to config.Envs.RetryIntervalSeconds.
+		retrySecs := config.Envs.RetryIntervalSeconds
+		expected := time.Now().Add(time.Duration(retrySecs) * time.Second)
 		diff := u.nextRetryAt.Sub(expected)
 		if diff < -time.Second || diff > time.Second {
-			t.Fatalf("expected nextRetryAt ~15s from now, got %v (diff: %v)", u.nextRetryAt, diff)
+			t.Fatalf("expected nextRetryAt ~%ds from now, got %v (diff: %v)", retrySecs, u.nextRetryAt, diff)
 		}
 	})
 }
