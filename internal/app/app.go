@@ -50,6 +50,17 @@ type App struct {
 	router chi.Router
 }
 
+const (
+	// ThrottleMaxConcurrent is the maximum number of requests handled concurrently.
+	ThrottleMaxConcurrent = 500
+	// ThrottleMaxBacklog is the maximum number of requests queued while at capacity.
+	ThrottleMaxBacklog = 2000
+	// ThrottleBacklogTimeout is the number of seconds a queued request may wait before timing out.
+	ThrottleBacklogTimeout = 5
+	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
+	MaxRequestTime = 5
+)
+
 // New initializes all infrastructure, wires dependencies, and returns a
 // fully configured App ready to serve requests.
 //
@@ -118,13 +129,13 @@ func New() *App {
 	router.Use(chimiddleware.CleanPath)
 	router.Use(chimiddleware.StripSlashes)
 	router.Use(chimiddleware.ThrottleBacklog(
-		config.Envs.ThrottleMaxConcurrent,
-		config.Envs.ThrottleMaxBacklog,
-		time.Duration(config.Envs.ThrottleBacklogTimeout)*time.Second,
+		ThrottleMaxConcurrent,
+		ThrottleMaxBacklog,
+		time.Duration(ThrottleBacklogTimeout)*time.Second,
 	))
 
 	router.Route("/api", func(r chi.Router) {
-		r.Use(chimiddleware.Timeout(time.Duration(config.Envs.MaxRequestTime) * time.Second))
+		r.Use(chimiddleware.Timeout(time.Duration(MaxRequestTime) * time.Second))
 
 		// Public endpoints
 		authH.RegisterRoutes(r)

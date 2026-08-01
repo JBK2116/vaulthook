@@ -41,14 +41,6 @@ type Config struct {
 	LogLevel int
 	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
 	JWTSecret string
-	// ThrottleMaxConcurrent is the maximum number of requests handled concurrently.
-	ThrottleMaxConcurrent int
-	// ThrottleMaxBacklog is the maximum number of requests queued while at capacity.
-	ThrottleMaxBacklog int
-	// ThrottleBacklogTimeout is the number of seconds a queued request may wait before timing out.
-	ThrottleBacklogTimeout int
-	// MaxRequestTime is the maximum number of seconds a request may run end-to-end.
-	MaxRequestTime int
 	// MaxRetries is the max number of times a webhook can be forwarded upon failure before giving up.
 	MaxRetries int
 	// TotalQueueWorkers is the max number of queue workers that may be processing webhooks on first forwarding attempt.
@@ -68,25 +60,21 @@ var Envs Config
 // It panics if any required variable is missing or malformed.
 func initConfig() Config {
 	return Config{
-		DBType:                 getEnvString("DB_TYPE"),
-		DBUser:                 getEnvString("DB_USER"),
-		DBPassword:             getEnvString("DB_PASSWORD"),
-		DBHost:                 getEnvString("DB_HOST"),
-		DBPort:                 getEnvInt("DB_PORT"),
-		DBName:                 getEnvString("DB_NAME"),
-		UserEmail:              getEnvString("USER_EMAIL"),
-		UserPassword:           getEnvString("USER_PASSWORD"),
-		LogLevel:               getEnvInt("LOG_LEVEL"),
-		JWTSecret:              getEnvString("TOKEN_SECRET"),
-		ThrottleMaxConcurrent:  getEnvInt("THROTTLE_MAX_CONCURRENT"),
-		ThrottleMaxBacklog:     getEnvInt("THROTTLE_MAX_BACKLOG"),
-		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
-		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
-		MaxRetries:             getEnvInt("MAX_RETRIES"),
-		TotalQueueWorkers:      getEnvInt("TOTAL_QUEUE_WORKERS"),
-		TotalRetryWorkers:      getEnvInt("TOTAL_RETRY_WORKERS"),
-		MasterKey:              getEnvString("MASTER_KEY"),
-		IsDevelopment:          getEnvBool("IS_DEVELOPMENT"),
+		DBType:            getEnvString("DB_TYPE"),
+		DBUser:            getEnvString("DB_USER"),
+		DBPassword:        getEnvString("DB_PASSWORD"),
+		DBHost:            getEnvString("DB_HOST"),
+		DBPort:            getEnvInt("DB_PORT"),
+		DBName:            getEnvString("DB_NAME"),
+		UserEmail:         getEnvString("USER_EMAIL"),
+		UserPassword:      getEnvString("USER_PASSWORD"),
+		LogLevel:          getEnvInt("LOG_LEVEL"),
+		JWTSecret:         getEnvString("TOKEN_SECRET"),
+		MaxRetries:        getEnvInt("MAX_RETRIES"),
+		TotalQueueWorkers: getEnvInt("TOTAL_QUEUE_WORKERS"),
+		TotalRetryWorkers: getEnvInt("TOTAL_RETRY_WORKERS"),
+		MasterKey:         getEnvString("MASTER_KEY"),
+		IsDevelopment:     getEnvBool("IS_DEVELOPMENT"),
 	}
 }
 
