@@ -47,7 +47,7 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 		return nil, err
 	}
 	defer rows.Close()
-	var hooks []model.Webhook
+	hooks := make([]model.Webhook, 0)
 	for rows.Next() {
 		var w model.Webhook
 		err = rows.Scan(
@@ -166,7 +166,7 @@ func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.
 	}
 	defer rows.Close()
 
-	var hooks []model.Webhook
+	hooks := make([]model.Webhook, 0)
 	for rows.Next() {
 		var w model.Webhook
 		if err := rows.Scan(
@@ -250,7 +250,7 @@ func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.
 	}
 	defer rows.Close()
 
-	var hooks []model.Webhook
+	hooks := make([]model.Webhook, 0)
 	for rows.Next() {
 		var w model.Webhook
 		if err := rows.Scan(

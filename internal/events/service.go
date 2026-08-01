@@ -188,8 +188,7 @@ func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (mo
 	}
 	// Fetch one extra row so we can tell if there are more pages.
 	reqLimit := opts.Limit + 1
-
-	var found []model.Webhook
+	found := make([]model.Webhook, 0)
 	if opts.Type == model.LookUp {
 		lookOpts := model.LookupOpts{
 			WebhookID: opts.WebhookID,
