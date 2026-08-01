@@ -55,10 +55,6 @@ type Config struct {
 	MaxRequestTime int
 	// MaxRetries is the max number of times a webhook can be forwarded upon failure before giving up.
 	MaxRetries int
-	// RetryIntervalSeconds is the number of seconds a previously failed webhook must be awaited before another forwarding attempt.
-	RetryIntervalSeconds int
-	// FORWARD_TIMEOUT_SECONDS is the max number of seconds a webhook request should take when being forwarded to the destination url.
-	ForwardTimeoutSeconds int
 	// TotalQueueWorkers is the max number of queue workers that may be processing webhooks on first forwarding attempt.
 	TotalQueueWorkers int
 	// TotalRetryWorkers is the max number of queue workers that may be processing webhooks that have previously failed a forwarding attempt.
@@ -93,8 +89,6 @@ func initConfig() Config {
 		ThrottleBacklogTimeout: getEnvInt("THROTTLE_BACKLOG_TIMEOUT"),
 		MaxRequestTime:         getEnvInt("MAX_REQUEST_TIME_LENGTH"),
 		MaxRetries:             getEnvInt("MAX_RETRIES"),
-		RetryIntervalSeconds:   getEnvInt("RETRY_INTERVAL_SECONDS"),
-		ForwardTimeoutSeconds:  getEnvInt("FORWARD_TIMEOUT_SECONDS"),
 		TotalQueueWorkers:      getEnvInt("TOTAL_QUEUE_WORKERS"),
 		TotalRetryWorkers:      getEnvInt("TOTAL_RETRY_WORKERS"),
 		MasterKey:              getEnvString("MASTER_KEY"),

@@ -8,13 +8,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	stripe "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
+)
+
+const (
+	RetryIntervalSeconds = 30
 )
 
 // Worker struct is responsible for processing all webhook events that are
@@ -66,7 +69,7 @@ func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
 // startRetry kicks off a loop that causes the worker to run in the background
 // following the configured retry interval.
 func (w *Worker) startRetry(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(RetryIntervalSeconds) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -212,7 +215,7 @@ func (w *Worker) send(hook *model.Webhook) {
 // setDefaultUpdateValues configures the provided updateWebhook to standard
 // failure values with a scheduled retry.
 func setDefaultUpdateValues(err string, updates *updateWebhook) {
-	nextRetry := time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
+	nextRetry := time.Now().Add(time.Duration(RetryIntervalSeconds) * time.Second)
 	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.lastError = &err
 	updates.nextRetryAt = &nextRetry
@@ -239,7 +242,7 @@ func setFailureUpdateValues(code int, err string, updates *updateWebhook) {
 // setRetryableUpdateValues configures the update for transient 5xx responses.
 // The worker will retry after the configured interval.
 func setRetryableUpdateValues(code int, err string, updates *updateWebhook) {
-	nextRetry := time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
+	nextRetry := time.Now().Add(time.Duration(RetryIntervalSeconds) * time.Second)
 	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code
 	updates.lastError = &err
@@ -254,7 +257,7 @@ func setRateLimitedUpdateValues(code int, err, retryAfter string, updates *updat
 	if secs, parseErr := strconv.Atoi(retryAfter); parseErr == nil && secs > 0 {
 		nextRetry = time.Now().Add(time.Duration(secs) * time.Second)
 	} else {
-		nextRetry = time.Now().Add(time.Duration(config.Envs.RetryIntervalSeconds) * time.Second)
+		nextRetry = time.Now().Add(time.Duration(RetryIntervalSeconds) * time.Second)
 	}
 	updates.deliveryStatus = model.DeliveryStatusFailed
 	updates.responseCode = &code

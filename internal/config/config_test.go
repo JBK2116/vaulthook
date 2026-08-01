@@ -21,7 +21,7 @@ func TestInitConfig(t *testing.T) {
 	if Envs.DBPort != 5432 {
 		t.Fatalf("expected DBPort 5432, got %d", Envs.DBPort)
 	}
-if Envs.DBName != "vaulthooktest" {
+	if Envs.DBName != "vaulthooktest" {
 		t.Fatalf("expected DBName 'vaulthooktest', got %q", Envs.DBName)
 	}
 	if Envs.IsDevelopment != true {
@@ -35,9 +35,6 @@ if Envs.DBName != "vaulthooktest" {
 	}
 	if Envs.MaxRetries != 5 {
 		t.Fatalf("expected MaxRetries 5, got %d", Envs.MaxRetries)
-	}
-if Envs.RetryIntervalSeconds != 30 {
-		t.Fatalf("expected RetryIntervalSeconds 30, got %d", Envs.RetryIntervalSeconds)
 	}
 	if Envs.TotalQueueWorkers != 8 {
 		t.Fatalf("expected TotalQueueWorkers 8, got %d", Envs.TotalQueueWorkers)
@@ -229,12 +226,9 @@ func TestConfig_StructFields(t *testing.T) {
 	if cfg.IsDevelopment != false {
 		t.Error("expected zero-value IsDevelopment to be false")
 	}
-	if cfg.RetryIntervalSeconds != 0 {
-		t.Error("expected zero-value RetryIntervalSeconds to be 0")
-	}
 }
 
-// --- helpers ---
+// helpers
 
 // saveEnv captures the current value of all env vars we may override in tests.
 func saveEnv() map[string]string {
@@ -243,8 +237,8 @@ func saveEnv() map[string]string {
 		"USER_EMAIL", "USER_PASSWORD", "LOG_LEVEL", "TOKEN_SECRET",
 		"ACCESS_TOKEN_TLL", "REFRESH_TOKEN_TTL",
 		"THROTTLE_MAX_CONCURRENT", "THROTTLE_MAX_BACKLOG", "THROTTLE_BACKLOG_TIMEOUT",
-		"MAX_REQUEST_TIME_LENGTH", "MAX_RETRIES", "RETRY_INTERVAL_SECONDS",
-		"FORWARD_TIMEOUT_SECONDS", "TOTAL_QUEUE_WORKERS", "TOTAL_RETRY_WORKERS",
+		"MAX_REQUEST_TIME_LENGTH", "MAX_RETRIES",
+		"TOTAL_QUEUE_WORKERS", "TOTAL_RETRY_WORKERS",
 		"MASTER_KEY", "IS_DEVELOPMENT",
 	}
 	saved := make(map[string]string, len(vars))
@@ -265,8 +259,7 @@ func restoreEnv(saved map[string]string) {
 	}
 }
 
-
-// --- DB & Logger tests ---
+// DB & Logger tests
 
 // TestNewPG verifies that a database connection pool can be created
 // and that it responds to pings.

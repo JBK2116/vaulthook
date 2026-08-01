@@ -4,13 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/model"
 )
-
-func init() {
-	config.Envs.RetryIntervalSeconds = 15
-}
 
 func TestSetDefaultUpdateValues(t *testing.T) {
 	var u updateWebhook
@@ -99,7 +94,7 @@ func TestSetRateLimitedUpdateValues(t *testing.T) {
 			t.Fatal("expected non-nil nextRetryAt")
 		}
 		// Should be roughly 30 seconds from now.
-		expected := time.Now().Add(30 * time.Second)
+		expected := time.Now().Add(RetryIntervalSeconds * time.Second)
 		diff := u.nextRetryAt.Sub(expected)
 		if diff < -time.Second || diff > time.Second {
 			t.Fatalf("expected nextRetryAt ~30s from now, got %v (diff: %v)", u.nextRetryAt, diff)
@@ -113,8 +108,7 @@ func TestSetRateLimitedUpdateValues(t *testing.T) {
 		if u.nextRetryAt == nil {
 			t.Fatal("expected non-nil nextRetryAt")
 		}
-		// Falls back to config.Envs.RetryIntervalSeconds.
-		retrySecs := config.Envs.RetryIntervalSeconds
+		retrySecs := RetryIntervalSeconds
 		expected := time.Now().Add(time.Duration(retrySecs) * time.Second)
 		diff := u.nextRetryAt.Sub(expected)
 		if diff < -time.Second || diff > time.Second {
@@ -129,8 +123,7 @@ func TestSetRateLimitedUpdateValues(t *testing.T) {
 		if u.nextRetryAt == nil {
 			t.Fatal("expected non-nil nextRetryAt")
 		}
-		// Falls back to config.Envs.RetryIntervalSeconds.
-		retrySecs := config.Envs.RetryIntervalSeconds
+		retrySecs := RetryIntervalSeconds
 		expected := time.Now().Add(time.Duration(retrySecs) * time.Second)
 		diff := u.nextRetryAt.Sub(expected)
 		if diff < -time.Second || diff > time.Second {
