@@ -33,7 +33,7 @@ Vaulthook is now running at `http://localhost`.
 See `env_example.txt` for the full reference. Key variables:
 
 | Variable                 | Purpose                                           |
-| ------------------------ | ------------------------------------------------- |
+|--------------------------|---------------------------------------------------|
 | `ADMIN_EMAIL`            | Dashboard login email                             |
 | `ADMIN_PASSWORD`         | Dashboard login password                          |
 | `JWT_SECRET`             | JWT signing secret                                |
@@ -51,10 +51,10 @@ See `env_example.txt` for the full reference. Key variables:
 Tested with k6 across multiple runs, including a ramping arrival rate scenario and a concurrent burst spike scenario, run simultaneously. Payloads randomized between 0–8KB to stress DB storage and JSON parsing.
 
 | Mode                   | p(95) Latency | Error Rate  | Result |
-| ---------------------- | ------------- | ----------- | ------ |
-| Success (baseline)     | 60ms          | 0%          | ✅     |
-| Chaos (TCP drops)      | 115ms         | 0%          | ✅     |
-| Max load (~1000 req/s) | 132ms         | 0% (server) | ✅     |
+|------------------------|---------------|-------------|--------|
+| Success (baseline)     | 60ms          | 0%          | ✅      |
+| Chaos (TCP drops)      | 115ms         | 0%          | ✅      |
+| Max load (~1000 req/s) | 132ms         | 0% (server) | ✅      |
 
 **858,000+ events processed in a single max-load run, sustaining ~1000 req/s with zero application-level (5xx) errors.**
 
@@ -69,7 +69,7 @@ For testing GitHub endpoints locally, follow the official guide: [HERE](https://
 ## Tech Stack
 
 | Layer            | Technology                          |
-| ---------------- | ----------------------------------- |
+|------------------|-------------------------------------|
 | Backend          | Go                                  |
 | Frontend         | SvelteKit, TypeScript, Tailwind CSS |
 | Database         | PostgreSQL                          |
