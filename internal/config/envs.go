@@ -41,8 +41,6 @@ type Config struct {
 	LogLevel int
 	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
 	JWTSecret string
-	// MaxRetries is the max number of times a webhook can be forwarded upon failure before giving up.
-	MaxRetries int
 	// TotalQueueWorkers is the max number of queue workers that may be processing webhooks on first forwarding attempt.
 	TotalQueueWorkers int
 	// TotalRetryWorkers is the max number of queue workers that may be processing webhooks that have previously failed a forwarding attempt.
@@ -70,7 +68,6 @@ func initConfig() Config {
 		UserPassword:      getEnvString("USER_PASSWORD"),
 		LogLevel:          getEnvInt("LOG_LEVEL"),
 		JWTSecret:         getEnvString("TOKEN_SECRET"),
-		MaxRetries:        getEnvInt("MAX_RETRIES"),
 		TotalQueueWorkers: getEnvInt("TOTAL_QUEUE_WORKERS"),
 		TotalRetryWorkers: getEnvInt("TOTAL_RETRY_WORKERS"),
 		MasterKey:         getEnvString("MASTER_KEY"),

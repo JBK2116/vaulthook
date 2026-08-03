@@ -27,9 +27,6 @@ func TestInitConfig(t *testing.T) {
 	if Envs.IsDevelopment != true {
 		t.Fatalf("expected IsDevelopment true, got %v", Envs.IsDevelopment)
 	}
-	if Envs.MaxRetries != 5 {
-		t.Fatalf("expected MaxRetries 5, got %d", Envs.MaxRetries)
-	}
 	if Envs.TotalQueueWorkers != 8 {
 		t.Fatalf("expected TotalQueueWorkers 8, got %d", Envs.TotalQueueWorkers)
 	}
@@ -174,7 +171,6 @@ func TestInitConfig_AllFieldsSet(t *testing.T) {
 	os.Setenv("THROTTLE_MAX_BACKLOG", "100")
 	os.Setenv("THROTTLE_BACKLOG_TIMEOUT", "20")
 	os.Setenv("MAX_REQUEST_TIME_LENGTH", "120")
-	os.Setenv("MAX_RETRIES", "3")
 	os.Setenv("RETRY_INTERVAL_SECONDS", "30")
 	os.Setenv("FORWARD_TIMEOUT_SECONDS", "10")
 	os.Setenv("TOTAL_QUEUE_WORKERS", "4")
@@ -189,9 +185,6 @@ func TestInitConfig_AllFieldsSet(t *testing.T) {
 	}
 	if cfg.DBPort != 5432 {
 		t.Errorf("DBPort: expected 5432, got %d", cfg.DBPort)
-	}
-	if cfg.MaxRetries != 3 {
-		t.Errorf("MaxRetries: expected 3, got %d", cfg.MaxRetries)
 	}
 	if cfg.IsDevelopment != false {
 		t.Errorf("IsDevelopment: expected false, got %v", cfg.IsDevelopment)
@@ -225,7 +218,6 @@ func saveEnv() map[string]string {
 		"USER_EMAIL", "USER_PASSWORD", "LOG_LEVEL", "TOKEN_SECRET",
 		"ACCESS_TOKEN_TLL", "REFRESH_TOKEN_TTL",
 		"THROTTLE_MAX_CONCURRENT", "THROTTLE_MAX_BACKLOG", "THROTTLE_BACKLOG_TIMEOUT",
-		"MAX_REQUEST_TIME_LENGTH", "MAX_RETRIES",
 		"TOTAL_QUEUE_WORKERS", "TOTAL_RETRY_WORKERS",
 		"MASTER_KEY", "IS_DEVELOPMENT",
 	}

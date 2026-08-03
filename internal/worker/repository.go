@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -73,7 +72,6 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	}()
 
 	var query string
-	var args []any
 
 	switch r.kind {
 	case WorkerKindQueue:
@@ -97,7 +95,9 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 				(
 					delivery_status = 'failed'
 					AND next_retry_at <= NOW()
-					AND retry_count < $1
+					AND retry_count < (
+						SELECT max_retries FROM providers WHERE id = webhook_events.provider_id
+					)
 				)
 				OR (
 					(delivery_status = 'processing' OR delivery_status = 'queued' OR delivery_status = 'replaying')
@@ -107,7 +107,6 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 			LIMIT 1
 			FOR UPDATE SKIP LOCKED
 		) RETURNING *`
-		args = append(args, config.Envs.MaxRetries)
 	case WorkerKindReplay:
 		query = `
 		UPDATE webhook_events
@@ -122,7 +121,7 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	}
 
 	var hook model.Webhook
-	err = tx.QueryRow(ctx, query, args...).Scan(
+	err = tx.QueryRow(ctx, query).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
 		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,

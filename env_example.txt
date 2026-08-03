@@ -41,7 +41,6 @@ IS_DEVELOPMENT=false
 IS_TESTING=false
 
 # Webhook delivery
-MAX_RETRIES=3
 
 # Background workers
 TOTAL_QUEUE_WORKERS=8

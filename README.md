@@ -41,7 +41,6 @@ See `env_example.txt` for the full reference. Key variables:
 | `DATABASE_URL`           | PostgreSQL connection string                      |
 | `TOTAL_QUEUE_WORKERS`    | Number of concurrent queue workers                |
 | `TOTAL_RETRY_WORKERS`    | Number of concurrent retry workers                |
-| `MAX_RETRIES`            | Max retry attempts before dead-lettering an event |
 | `RETRY_INTERVAL_SECONDS` | Backoff interval between retries                  |
 
 ---

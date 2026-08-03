@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -65,8 +64,9 @@ func TestGetEvent_RetryWorker_ExhaustedRetries(t *testing.T) {
 
 	ctx := context.Background()
 	provID := getAnyProviderID(ctx, t)
-	// Insert event with retry_count >= MaxRetries.
-	insertWebhookWithStatus(ctx, t, provID, "failed", time.Now().Add(-time.Minute), config.Envs.MaxRetries)
+	// Insert event with retry_count exceeding provider max_retries (5).
+	// The subquery on providers.max_retries filters it out.
+	insertWebhookWithStatus(ctx, t, provID, "failed", time.Now().Add(-time.Minute), 5)
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
 	_, err := repo.GetEvent(ctx)
