@@ -85,31 +85,3 @@ func (r *ProviderRepo) configure(
 	}
 	return p, nil
 }
-
-// GetProviderRouting retrieves the routing configuration for a given provider.
-// It looks up the provider by name and returns its unique identifier along with
-// the destination URL where incoming webhooks should be forwarded.
-//
-// Returns an error if the provider cannot be found or if the query fails.
-func (r *ProviderRepo) GetProviderRouting(ctx context.Context, name string) (model.ProviderRouting, error) {
-	query := `SELECT id, destination_url FROM providers WHERE name = $1`
-	var pr model.ProviderRouting
-	err := r.db.QueryRow(ctx, query, name).Scan(&pr.ID, &pr.ForwardedTo)
-	if err != nil {
-		return model.ProviderRouting{}, err
-	}
-	return pr, nil
-}
-
-// GetSigningKey returns the encrypted signing secret for the provider
-// with the given name. The returned value is the hex-encoded ciphertext
-// as stored in the database.
-func (r *ProviderRepo) GetSigningKey(ctx context.Context, name string) (string, error) {
-	query := `SELECT signing_secret FROM providers WHERE name = $1`
-	var key string
-	err := r.db.QueryRow(ctx, query, name).Scan(&key)
-	if err != nil {
-		return "", err
-	}
-	return key, nil
-}

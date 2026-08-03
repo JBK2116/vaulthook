@@ -99,37 +99,6 @@ func TestGetEvent_ReplayWorker_PicksUpReplayingEvent(t *testing.T) {
 	_ = hook
 }
 
-func TestGetDestinationURL(t *testing.T) {
-	beforeEachWorker(t)
-
-	ctx := context.Background()
-	// Update a provider's destination_url.
-	_, err := testDB.Exec(ctx, `UPDATE providers SET destination_url = 'https://example.com/webhook' WHERE name = 'Stripe'`)
-	if err != nil {
-		t.Fatalf("failed to update test provider: %v", err)
-	}
-
-	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	id := getProviderIDByName(ctx, t, "Stripe")
-	url, err := repo.GetDestinationURL(ctx, id)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if url != "https://example.com/webhook" {
-		t.Fatalf("expected destination URL, got %q", url)
-	}
-}
-
-func TestGetDestinationURL_UnknownProvider(t *testing.T) {
-	beforeEachWorker(t)
-
-	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	_, err := repo.GetDestinationURL(context.Background(), uuid.New())
-	if err == nil {
-		t.Fatal("expected error for unknown provider")
-	}
-}
-
 func TestUpdateEvent(t *testing.T) {
 	beforeEachWorker(t)
 
@@ -230,16 +199,6 @@ func getAnyProviderID(ctx context.Context, t *testing.T) uuid.UUID {
 	err := testDB.QueryRow(ctx, `SELECT id FROM providers LIMIT 1`).Scan(&id)
 	if err != nil {
 		t.Fatalf("no provider found in test DB: %v", err)
-	}
-	return id
-}
-
-func getProviderIDByName(ctx context.Context, t *testing.T, name string) uuid.UUID {
-	t.Helper()
-	var id uuid.UUID
-	err := testDB.QueryRow(ctx, `SELECT id FROM providers WHERE name = $1`, name).Scan(&id)
-	if err != nil {
-		t.Fatalf("provider %q not found: %v", name, err)
 	}
 	return id
 }

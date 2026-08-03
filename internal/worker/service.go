@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"net/http"
-	"strconv"
-	"time"
-
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	stripe "github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 const (
@@ -32,6 +32,7 @@ type Worker struct {
 var (
 	ErrNoHooksToWork = errors.New("[Worker] no webhooks to work at the moment")
 	ErrRateLimited   = errors.New("[Worker] rate limited")
+	ErrProvNotFound  = errors.New("[Worker] provider not found in cache")
 )
 
 // newWorker returns a pointer to a Worker backed by the provided values.
@@ -147,15 +148,20 @@ func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateWebhook, error) {
 	var updates updateWebhook
 	updates.id = hook.ID
+	updates.forwardedTo = &hook.ForwardedTo
+	updates.provName = model.ProviderName(hook.Provider)
+	prov := providers.Cache.Get(model.ProviderName(hook.Provider))
+	if prov == nil {
+		setDefaultUpdateValues(ErrProvNotFound.Error(), &updates)
+		return updates, ErrProvNotFound
+	}
+	if prov.DestinationURL != hook.ForwardedTo {
+		hook.ForwardedTo = prov.DestinationURL
+	}
 	// get the provider's destination URL
 	payload := bytes.NewReader(hook.Payload)
-	url, err := w.repo.GetDestinationURL(ctx, hook.ProviderID)
-	if err != nil {
-		setDefaultUpdateValues(err.Error(), &updates)
-		return updates, err
-	}
 	// configure the HTTP request payload
-	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
+	req, err := http.NewRequestWithContext(ctx, "POST", prov.DestinationURL, payload)
 	if err != nil {
 		setDefaultUpdateValues(err.Error(), &updates)
 		return updates, err

@@ -14,14 +14,6 @@ const (
 	Stripe ProviderName = "Stripe"
 )
 
-// ProviderRouting represents the routing configuration for a webhook provider.
-// It contains the provider's unique identifier and the destination address
-// where incoming webhooks should be forwarded.
-type ProviderRouting struct {
-	ID          uuid.UUID
-	ForwardedTo string
-}
-
 // Provider represents a webhook provider.
 type Provider struct {
 	ID uuid.UUID `json:"id"`

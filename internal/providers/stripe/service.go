@@ -3,6 +3,7 @@ package stripe
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -13,6 +14,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v85"
 	"github.com/stripe/stripe-go/v85/webhook"
+)
+
+var (
+	ErrProvNotFound = errors.New("[Stripe] provider not found in cache")
 )
 
 // safePrefix returns a truncated version of s safe for logging.
@@ -68,11 +73,11 @@ func NewStripeService(logger *zerolog.Logger, eventRepo *events.EventRepo, provi
 // ValidateSecret receives a stripe signature from the `Stripe-Signature` header
 // and ensures that it matches the secret key used for stripe endpoints.
 func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader string, payload []byte) (stripe.Event, error) {
-	endpointSecret, err := s.providerRepo.GetSigningKey(ctx, string(model.Stripe))
-	if err != nil {
-		return stripe.Event{}, err
+	prov := providers.Cache.Get(model.Stripe)
+	if prov == nil {
+		return stripe.Event{}, ErrProvNotFound
 	}
-	decrytedSecret, err := crypto.DecryptSigningKey(endpointSecret)
+	decrytedSecret, err := crypto.DecryptSigningKey(prov.SigningSecret)
 	if err != nil {
 		return stripe.Event{}, err
 	}
@@ -96,18 +101,18 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 //
 // Returns the stored webhook record or an error if any step fails.
 func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, event stripe.Event) (model.Webhook, error) {
-	providerRouting, err := s.providerRepo.GetProviderRouting(ctx, string(model.Stripe))
-	if err != nil {
-		return model.Webhook{}, err
+	prov := providers.Cache.Get(model.Stripe)
+	if prov == nil {
+		return model.Webhook{}, ErrProvNotFound
 	}
 	params := model.CreateWebhookParams{
-		ProviderID:  providerRouting.ID,
+		ProviderID:  prov.ID,
 		Provider:    string(model.Stripe),
 		EventID:     &event.ID,
 		EventType:   string(event.Type),
 		Headers:     headers,
 		Payload:     payload,
-		ForwardedTo: providerRouting.ForwardedTo,
+		ForwardedTo: prov.DestinationURL,
 		ReceivedAt:  time.Now().UTC(),
 	}
 	stripeWebhook, err := s.eventRepo.InsertWebhook(ctx, params)

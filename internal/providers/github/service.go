@@ -17,6 +17,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var (
+	ErrProvNotFound = errors.New("[Github] provider not found in cache")
+)
+
 // SetForwardHeaders applies the appropriate Github-specific HTTP headers
 // to the outgoing forward request. Only a curated allowlist of headers
 // from the original incoming webhook/http request are forwarded.
@@ -69,11 +73,11 @@ func NewGitService(logger *zerolog.Logger, eventRepo *events.EventRepo, provider
 // ValidateSecret receives a GitHub signature from the `X-Hub-Signature-256`
 // header and ensures that it matches the secret key used for GitHub endpoints.
 func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) (err error) {
-	key, err := s.providerRepo.GetSigningKey(ctx, string(model.Github))
-	if err != nil {
-		return err
+	prov := providers.Cache.Get(model.Github)
+	if prov == nil {
+		return ErrProvNotFound
 	}
-	decrypted, err := crypto.DecryptSigningKey(key)
+	decrypted, err := crypto.DecryptSigningKey(prov.SigningSecret)
 	if err != nil {
 		return err
 	}
@@ -88,18 +92,18 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 
 // InsertWebhook creates and stores a Github webhook using the provided data request
 func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, id string, event string) (model.Webhook, error) {
-	routing, err := s.providerRepo.GetProviderRouting(ctx, string(model.Github))
-	if err != nil {
-		return model.Webhook{}, err
+	prov := providers.Cache.Get(model.Github)
+	if prov == nil {
+		return model.Webhook{}, ErrProvNotFound
 	}
 	params := model.CreateWebhookParams{
-		ProviderID:  routing.ID,
+		ProviderID:  prov.ID,
 		Provider:    string(model.Github),
 		EventID:     &id,
 		EventType:   event,
 		Headers:     headers,
 		Payload:     payload,
-		ForwardedTo: routing.ForwardedTo,
+		ForwardedTo: prov.DestinationURL,
 		ReceivedAt:  time.Now().UTC(),
 	}
 	hook, err := s.eventRepo.InsertWebhook(ctx, params)

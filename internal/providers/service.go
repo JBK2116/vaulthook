@@ -79,10 +79,10 @@ func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, 
 	if err != nil {
 		return model.Provider{}, err
 	}
-	// TODO: contine building in here now
 	prov, err := s.repo.configure(ctx, uuidS, encKey, des, maxRetry, maxReqSec)
 	if err != nil {
 		return model.Provider{}, err
 	}
+	Cache.Set(model.ProviderName(prov.Name), &prov)
 	return prov, nil
 }

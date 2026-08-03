@@ -14,10 +14,12 @@ import (
 // used to update a webhook following a forwarding attempt.
 type updateWebhook struct {
 	id             uuid.UUID
+	provName       model.ProviderName
 	nextRetryAt    *time.Time
 	deliveryStatus model.DeliveryStatus
 	responseCode   *int
 	lastError      *string
+	forwardedTo    *string
 }
 
 // WorkerKind enumerates the different types of worker processing strategies.
@@ -37,9 +39,6 @@ const (
 type WorkerRepository interface {
 	// GetEvent queries the database for the next event to be processed.
 	GetEvent(ctx context.Context) (*model.Webhook, error)
-	// GetDestinationURL queries the database for the destination_url of
-	// the provider with the given ID.
-	GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error)
 	// UpdateEvent applies the provided updates to the webhook event.
 	UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error)
 }
@@ -135,18 +134,6 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	return &hook, tx.Commit(ctx)
 }
 
-// GetDestinationURL queries the database for the destination_url of the
-// provider with the given ID.
-func (r *WorkerRepo) GetDestinationURL(ctx context.Context, provID uuid.UUID) (string, error) {
-	query := `SELECT destination_url FROM providers WHERE id = $1`
-	var url string
-	err := r.db.QueryRow(ctx, query, provID).Scan(&url)
-	if err != nil {
-		return "", err
-	}
-	return url, nil
-}
-
 // UpdateEvent applies the provided updates to the webhook event.
 // For retry workers it additionally increments the retry_count.
 func (r *WorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
@@ -159,8 +146,9 @@ func (r *WorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*m
 			delivery_status = $2,
 			response_code   = $3,
 			last_error      = $4,
+			forwarded_to    = $5,
 			retry_count     = retry_count + 1
-		WHERE id = $5
+		WHERE id = $6
 		RETURNING *`
 	} else {
 		query = `
@@ -169,15 +157,16 @@ func (r *WorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*m
 			next_retry_at   = $1,
 			delivery_status = $2,
 			response_code   = $3,
-			last_error      = $4
-		WHERE id = $5
+			last_error      = $4,
+			forwarded_to    = $5
+		WHERE id = $6
 		RETURNING *`
 	}
 
 	var hook model.Webhook
 	err := r.db.QueryRow(ctx, query,
 		updates.nextRetryAt, updates.deliveryStatus,
-		updates.responseCode, updates.lastError, updates.id,
+		updates.responseCode, updates.lastError, updates.forwardedTo, updates.id,
 	).Scan(
 		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,

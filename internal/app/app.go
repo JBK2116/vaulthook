@@ -111,6 +111,9 @@ func New() *App {
 	stripeSvc := stripe.NewStripeService(logger, eventRepo, providerRepo)
 	gitSvc := github.NewGitService(logger, eventRepo, providerRepo)
 
+	// Cache
+	providers.InitProviderCache(appCtx, providerRepo)
+
 	// Background Workers
 	go eventSvc.Start(appCtx)
 	workerCtx, cancelWorkers := context.WithCancel(appCtx)

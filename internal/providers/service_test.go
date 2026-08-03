@@ -167,53 +167,6 @@ func TestProviderService_Configure_WhitespaceSecret(t *testing.T) {
 	}
 }
 
-func TestProviderRepo_GetProviderRouting(t *testing.T) {
-	beforeEachProviders(t)
-	ctx := context.Background()
-
-	repo := NewProviderRepo(testDB)
-
-	routing, err := repo.GetProviderRouting(ctx, "Stripe")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if routing.ID.String() == "" {
-		t.Fatal("expected non-empty provider ID")
-	}
-	// After reset, destination_url should be empty.
-	if routing.ForwardedTo != "" {
-		t.Fatalf("expected empty destination_url after reset, got %q", routing.ForwardedTo)
-	}
-}
-
-func TestProviderRepo_GetProviderRouting_Unknown(t *testing.T) {
-	beforeEachProviders(t)
-	ctx := context.Background()
-
-	repo := NewProviderRepo(testDB)
-
-	_, err := repo.GetProviderRouting(ctx, "UnknownProvider")
-	if err == nil {
-		t.Fatal("expected error for unknown provider")
-	}
-}
-
-func TestProviderRepo_GetSigningKey(t *testing.T) {
-	beforeEachProviders(t)
-	ctx := context.Background()
-
-	repo := NewProviderRepo(testDB)
-
-	key, err := repo.GetSigningKey(ctx, "Stripe")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// After reset, signing_secret should be empty.
-	if key != "" {
-		t.Fatalf("expected empty signing key after reset, got %q", key)
-	}
-}
-
 func TestProviderRepo_GetAll(t *testing.T) {
 	beforeEachProviders(t)
 	ctx := context.Background()
