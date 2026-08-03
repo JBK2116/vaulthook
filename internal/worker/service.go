@@ -158,6 +158,10 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 	if prov.DestinationURL != hook.ForwardedTo {
 		hook.ForwardedTo = prov.DestinationURL
 	}
+	if !limiter.Allow(prov) {
+		setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
+		return updates, ErrRateLimited
+	}
 	// get the provider's destination URL
 	payload := bytes.NewReader(hook.Payload)
 	// configure the HTTP request payload

@@ -114,6 +114,9 @@ func New() *App {
 	// Cache
 	providers.InitProviderCache(appCtx, providerRepo)
 
+	// Rate Limiting
+	worker.InitRateLimiter()
+
 	// Background Workers
 	go eventSvc.Start(appCtx)
 	workerCtx, cancelWorkers := context.WithCancel(appCtx)

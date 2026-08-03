@@ -14,6 +14,9 @@ const (
 	Stripe ProviderName = "Stripe"
 )
 
+// ProviderNames represents all ProviderName objects in the app
+var ProviderNames = []ProviderName{Github, Stripe}
+
 // Provider represents a webhook provider.
 type Provider struct {
 	ID uuid.UUID `json:"id"`
