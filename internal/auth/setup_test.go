@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/config"
+	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -18,25 +19,32 @@ var testRepo *RefreshTokenRepo
 var testService *AuthService
 
 func TestMain(m *testing.M) {
+	// Load .env for non-DB config (JWT secret, user credentials).
 	if err := godotenv.Load("../../.env"); err != nil {
 		panic(err)
 	}
 	config.Init()
+
 	ctx := context.Background()
-	db, err := config.NewPG(ctx)
+	pool, cleanup, err := testutil.NewTestDB(ctx,
+		"../../migrations/00001_create_providers_table.sql",
+		"../../migrations/00002_create_webhook_events_table.sql",
+		"../../migrations/00003_create_refresh_tokens_table.sql",
+	)
 	if err != nil {
 		panic(err)
 	}
-	testDB = db.DB
-	l, err := config.NewLogger()
-	if err != nil {
-		panic(err)
-	}
-	testLogger = l
+	defer cleanup()
+	testDB = pool
+
+	l := zerolog.Nop()
+	testLogger = &l
+
 	r := NewRefreshTokenRepo(testDB)
 	testRepo = r
-	s := NewAuthService(config.Envs.JWTSecret, AccessTokenTTL, RefreshTokenTTL, r, l)
+	s := NewAuthService(config.Envs.JWTSecret, AccessTokenTTL, RefreshTokenTTL, r, &l)
 	testService = s
+
 	code := m.Run()
 	os.Exit(code)
 }

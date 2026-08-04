@@ -8,6 +8,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -215,10 +216,21 @@ func TestForwardEvent_StripeHeadersForwarded(t *testing.T) {
 
 func setProviderDestinationURL(ctx context.Context, t *testing.T, provID uuid.UUID, url string) {
 	t.Helper()
-	_, err := testDB.Exec(ctx, `UPDATE providers SET destination_url = $1 WHERE id = $2`, url, provID)
+	var prov model.Provider
+	err := testDB.QueryRow(ctx, `
+		UPDATE providers SET destination_url = $1 WHERE id = $2
+		RETURNING id, name, signing_secret, destination_url,
+		          max_retries, max_req_second, is_configured, created_at`,
+		url, provID).Scan(
+		&prov.ID, &prov.Name, &prov.SigningSecret,
+		&prov.DestinationURL, &prov.MaxRetries, &prov.MaxReqSecond,
+		&prov.IsConfigured, &prov.CreatedAt,
+	)
 	if err != nil {
 		t.Fatalf("failed to set destination URL: %v", err)
 	}
+	// Update the in-memory cache directly so forwardEvent picks up the new URL.
+	providers.Cache.Set(model.ProviderName(prov.Name), &prov)
 }
 
 func insertStripeWebhook(ctx context.Context, t *testing.T, provID uuid.UUID, status string) model.Webhook {

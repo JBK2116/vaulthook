@@ -5,10 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/JBK2116/vaulthook/internal/config"
+	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 )
 
@@ -16,21 +15,22 @@ var testDB *pgxpool.Pool
 var testLogger *zerolog.Logger
 
 func TestMain(m *testing.M) {
-	if err := godotenv.Load("../../.env"); err != nil {
-		panic(err)
-	}
-	config.Init()
 	ctx := context.Background()
-	db, err := config.NewPG(ctx)
+	pool, cleanup, err := testutil.NewTestDB(ctx,
+		"../../migrations/00001_create_providers_table.sql",
+		"../../migrations/00002_create_webhook_events_table.sql",
+		"../../migrations/00003_create_refresh_tokens_table.sql",
+		"../../migrations/00004_insert_stripe_github_sns_default_config.sql",
+	)
 	if err != nil {
 		panic(err)
 	}
-	testDB = db.DB
-	l, err := config.NewLogger()
-	if err != nil {
-		panic(err)
-	}
-	testLogger = l
+	defer cleanup()
+	testDB = pool
+
+	l := zerolog.Nop()
+	testLogger = &l
+
 	code := m.Run()
 	os.Exit(code)
 }

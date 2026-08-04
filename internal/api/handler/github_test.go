@@ -14,6 +14,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/model"
+	"github.com/JBK2116/vaulthook/internal/providers"
 )
 
 const gitTestSecret = "github_test_secret_for_handler"
@@ -31,6 +32,10 @@ func insertGithubConfig(ctx context.Context, t *testing.T, destURL string, secre
 		encrypted, destURL, model.Github)
 	if err != nil {
 		t.Fatalf("failed to configure github provider: %v", err)
+	}
+	// Refresh the in-memory cache so handler functions see the updated config.
+	if err := providers.InitProviderCache(ctx, testProviderRepo); err != nil {
+		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
 

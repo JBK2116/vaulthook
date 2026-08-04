@@ -107,12 +107,14 @@ func TestUpdateEvent(t *testing.T) {
 	hook := insertWebhook(ctx, t, provID, "processing")
 
 	code := 200
+	forwardedTo := "https://example.com"
 	updates := updateWebhook{
 		id:             hook.ID,
 		deliveryStatus: model.DeliveryStatusDelivered,
 		responseCode:   &code,
 		lastError:      nil,
 		nextRetryAt:    nil,
+		forwardedTo:    &forwardedTo,
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
@@ -137,11 +139,13 @@ func TestUpdateEvent_RetryWorker_IncrementsRetryCount(t *testing.T) {
 
 	nextRetry := time.Now().Add(time.Minute)
 	errMsg := "temporary failure"
+	forwardedTo := "https://example.com"
 	updates := updateWebhook{
 		id:             hook.ID,
 		deliveryStatus: model.DeliveryStatusFailed,
 		lastError:      &errMsg,
 		nextRetryAt:    &nextRetry,
+		forwardedTo:    &forwardedTo,
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
@@ -196,9 +200,9 @@ func insertWebhookWithStatus(ctx context.Context, t *testing.T, provID uuid.UUID
 func getAnyProviderID(ctx context.Context, t *testing.T) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
-	err := testDB.QueryRow(ctx, `SELECT id FROM providers LIMIT 1`).Scan(&id)
+	err := testDB.QueryRow(ctx, `SELECT id FROM providers WHERE name = 'Stripe'`).Scan(&id)
 	if err != nil {
-		t.Fatalf("no provider found in test DB: %v", err)
+		t.Fatalf("no Stripe provider found: %v", err)
 	}
 	return id
 }

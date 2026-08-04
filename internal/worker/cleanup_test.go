@@ -11,8 +11,7 @@ import (
 )
 
 func TestWorkerPool_Notify(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	l := zerolog.Nop()
 	eventSvc := events.NewEventService(&l, events.NewEventRepo(testDB))
@@ -33,8 +32,7 @@ func TestWorker_Send(t *testing.T) {
 	eventSvc := events.NewEventService(&l, events.NewEventRepo(testDB))
 
 	// Start the event service so it flushes periodically.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go eventSvc.Start(ctx)
 
 	// Subscribe to verify the event arrives.
@@ -125,7 +123,7 @@ func TestCleanupWorker_RunCleanup_EmptyTable(t *testing.T) {
 	w := NewCleanupWorker(&l, testDB)
 
 	ctx := context.Background()
-	// Run cleanup on an empty table. 
+	// Run cleanup on an empty table.
 	w.runCleanup(ctx)
 
 	// Table should still be empty.

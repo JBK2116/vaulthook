@@ -85,12 +85,12 @@ func TestDecodeBodyJSON_Malformed(t *testing.T) {
 		body       string
 		wantStatus int
 	}{
-		"bad syntax":        {body: `{bad json}`, wantStatus: http.StatusBadRequest},
-		"unexpected EOF":    {body: `{"name":`, wantStatus: http.StatusBadRequest},
-		"wrong type":        {body: `{"count": "not_an_int"}`, wantStatus: http.StatusBadRequest},
-		"unknown field":     {body: `{"unknown_field":"x"}`, wantStatus: http.StatusBadRequest},
-		"empty body":        {body: ``, wantStatus: http.StatusBadRequest},
-		"multiple objects":  {body: `{"a":1}{"b":2}`, wantStatus: http.StatusBadRequest},
+		"bad syntax":       {body: `{bad json}`, wantStatus: http.StatusBadRequest},
+		"unexpected EOF":   {body: `{"name":`, wantStatus: http.StatusBadRequest},
+		"wrong type":       {body: `{"count": "not_an_int"}`, wantStatus: http.StatusBadRequest},
+		"unknown field":    {body: `{"unknown_field":"x"}`, wantStatus: http.StatusBadRequest},
+		"empty body":       {body: ``, wantStatus: http.StatusBadRequest},
+		"multiple objects": {body: `{"a":1}{"b":2}`, wantStatus: http.StatusBadRequest},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

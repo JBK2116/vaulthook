@@ -93,12 +93,12 @@ func TestSafePrefix(t *testing.T) {
 		input    string
 		expected string
 	}{
-		"long string":   {input: "whsec_1234567890abcdef", expected: "whsec_"},
-		"exactly 6":     {input: "123456", expected: "123456"},
+		"long string":    {input: "whsec_1234567890abcdef", expected: "whsec_"},
+		"exactly 6":      {input: "123456", expected: "123456"},
 		"shorter than 6": {input: "abc", expected: "abc"},
-		"empty string":  {input: "", expected: ""},
-		"single char":   {input: "x", expected: "x"},
-		"exactly 7":     {input: "1234567", expected: "123456"},
+		"empty string":   {input: "", expected: ""},
+		"single char":    {input: "x", expected: "x"},
+		"exactly 7":      {input: "1234567", expected: "123456"},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

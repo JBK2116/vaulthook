@@ -14,6 +14,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
+	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -22,16 +23,31 @@ import (
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
+	// Load .env for non-DB config (MASTER_KEY for crypto).
 	if err := godotenv.Load("../../../.env"); err != nil {
 		panic(err)
 	}
 	config.Init()
+
 	ctx := context.Background()
-	db, err := config.NewPG(ctx)
+	pool, cleanup, err := testutil.NewTestDB(ctx,
+		"../../../migrations/00001_create_providers_table.sql",
+		"../../../migrations/00002_create_webhook_events_table.sql",
+		"../../../migrations/00003_create_refresh_tokens_table.sql",
+		"../../../migrations/00004_insert_stripe_github_sns_default_config.sql",
+	)
 	if err != nil {
 		panic(err)
 	}
-	testDB = db.DB
+	defer cleanup()
+	testDB = pool
+
+	// Populate the in-memory provider cache used by ValidateSecret and InsertWebhook.
+	provRepo := providers.NewProviderRepo(testDB)
+	if err := providers.InitProviderCache(ctx, provRepo); err != nil {
+		panic(err)
+	}
+
 	code := m.Run()
 	os.Exit(code)
 }
@@ -44,6 +60,11 @@ func beforeEachGithub(t *testing.T) {
 		string(model.Github))
 	if err != nil {
 		t.Fatalf("failed to reset github provider: %v", err)
+	}
+	// Refresh the cache so stale values from previous tests don't leak.
+	provRepo := providers.NewProviderRepo(testDB)
+	if err := providers.InitProviderCache(context.Background(), provRepo); err != nil {
+		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
 
@@ -58,6 +79,11 @@ func setGithubSigningSecret(ctx context.Context, t *testing.T, secret string) {
 		encrypted, string(model.Github))
 	if err != nil {
 		t.Fatalf("failed to set github secret: %v", err)
+	}
+	// Refresh the in-memory cache so ValidateSecret sees the updated config.
+	provRepo := providers.NewProviderRepo(testDB)
+	if err := providers.InitProviderCache(ctx, provRepo); err != nil {
+		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
 
@@ -137,15 +163,18 @@ func TestInsertWebhook_Success(t *testing.T) {
 
 	ctx := context.Background()
 	secret := "github_test_secret_12345"
-	setGithubSigningSecret(ctx, t, secret)
 
 	// Set a destination URL for GitHub so InsertWebhook can resolve routing.
+	// Must be done before setGithubSigningSecret so the subsequent cache refresh
+	// picks up both the dest URL and the signing secret.
 	_, err := testDB.Exec(ctx,
 		`UPDATE providers SET destination_url = $1 WHERE name = $2`,
 		"https://example.com/webhooks/github", string(model.Github))
 	if err != nil {
 		t.Fatalf("failed to set destination URL: %v", err)
 	}
+
+	setGithubSigningSecret(ctx, t, secret)
 
 	l := zerolog.Nop()
 	eventRepo := events.NewEventRepo(testDB)

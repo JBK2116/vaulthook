@@ -18,11 +18,11 @@ func TestEncryptSigningKey(t *testing.T) {
 		plaintext string
 		wantErr   bool
 	}{
-		"normal string":  {plaintext: "whsec_abc123", wantErr: false},
-		"empty string":   {plaintext: "", wantErr: false},
-		"long string":    {plaintext: strings.Repeat("x", 1000), wantErr: false},
-		"special chars":  {plaintext: "!@#$%^&*()_+-=[]{}|;':\",./<>?", wantErr: false},
-		"unicode chars":  {plaintext: "héllo wörld 世界 🌍", wantErr: false},
+		"normal string": {plaintext: "whsec_abc123", wantErr: false},
+		"empty string":  {plaintext: "", wantErr: false},
+		"long string":   {plaintext: strings.Repeat("x", 1000), wantErr: false},
+		"special chars": {plaintext: "!@#$%^&*()_+-=[]{}|;':\",./<>?", wantErr: false},
+		"unicode chars": {plaintext: "héllo wörld 世界 🌍", wantErr: false},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {

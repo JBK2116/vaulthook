@@ -21,7 +21,7 @@ func TestInitConfig(t *testing.T) {
 	if Envs.DBPort != 5432 {
 		t.Fatalf("expected DBPort 5432, got %d", Envs.DBPort)
 	}
-	if Envs.DBName != "vaulthooktest" {
+	if Envs.DBName != "vaulthook" {
 		t.Fatalf("expected DBName 'vaulthooktest', got %q", Envs.DBName)
 	}
 	if Envs.IsDevelopment != true {

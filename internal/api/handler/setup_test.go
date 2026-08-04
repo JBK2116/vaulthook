@@ -20,6 +20,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -56,56 +57,72 @@ var gitService *github.GitService
 var gitHandle *GitHandler
 
 func TestMain(m *testing.M) {
+	// Load .env for non-DB config (JWT secret, user credentials).
 	if err := godotenv.Load("../../../.env"); err != nil {
 		panic(err)
 	}
 	config.Init()
+
 	ctx := context.Background()
-	db, err := config.NewPG(ctx)
+	pool, cleanup, err := testutil.NewTestDB(ctx,
+		"../../../migrations/00001_create_providers_table.sql",
+		"../../../migrations/00002_create_webhook_events_table.sql",
+		"../../../migrations/00003_create_refresh_tokens_table.sql",
+		"../../../migrations/00004_insert_stripe_github_sns_default_config.sql",
+	)
 	if err != nil {
 		panic(err)
 	}
-	testDB = db.DB
-	l, err := config.NewLogger()
-	if err != nil {
+	defer cleanup()
+	testDB = pool
+
+	l := zerolog.Nop()
+	testLogger = &l
+
+	// configure the provider variables (needed early for cache init)
+	providerR := providers.NewProviderRepo(testDB)
+	testProviderRepo = providerR
+	providerS := providers.NewProviderService(providerR)
+	testProviderService = providerS
+
+	// Populate the in-memory provider cache and rate-limiter used by
+	// background workers and handler functions.
+	if err := providers.InitProviderCache(ctx, providerR); err != nil {
 		panic(err)
 	}
-	testLogger = l
+	worker.InitRateLimiter()
+
 	// configure the event variables
-	eventR := events.NewEventRepo(db.DB)
+	eventR := events.NewEventRepo(testDB)
 	eventRepo = eventR
-	eventS := events.NewEventService(l, eventR)
+	eventS := events.NewEventService(&l, eventR)
 	eventService = eventS
 	// configure the worker variables
-	workerP := worker.NewWorkerPool(ctx, eventS, l, db.DB)
+	workerP := worker.NewWorkerPool(ctx, eventS, &l, testDB)
 	workerPool = workerP
 	// configure the auth variables
 	authR := auth.NewRefreshTokenRepo(testDB)
 	testAuthRepo = authR
-	authS := auth.NewAuthService(config.Envs.JWTSecret, auth.AccessTokenTTL, auth.RefreshTokenTTL, authR, l)
+	authS := auth.NewAuthService(config.Envs.JWTSecret, auth.AccessTokenTTL, auth.RefreshTokenTTL, authR, &l)
 	testAuthService = authS
-	authH := NewAuthHandler(l, authS)
+	authH := NewAuthHandler(&l, authS)
 	testAuthHandler = authH
-	// configure the provider variables
-	providerR := providers.NewProviderRepo(db.DB)
-	testProviderRepo = providerR
-	providerS := providers.NewProviderService(providerR)
-	testProviderService = providerS
-	providerH := NewProviderHandler(l, providerS)
-	testProviderHandler = providerH
 	// configure the stripe variables
-	stripeS := stripe.NewStripeService(l, eventR, providerR)
+	stripeS := stripe.NewStripeService(&l, eventR, providerR)
 	stripeService = stripeS
-	stripeH := NewStripeHandler(l, stripeS, eventS, workerPool)
+	stripeH := NewStripeHandler(&l, stripeS, eventS, workerPool)
 	stripeHandle = stripeH
 	// configure the github variables
-	gitS := github.NewGitService(l, eventR, providerR)
+	gitS := github.NewGitService(&l, eventR, providerR)
 	gitService = gitS
-	gitH := NewGitHandler(l, gitS, eventS, workerPool)
+	gitH := NewGitHandler(&l, gitS, eventS, workerPool)
 	gitHandle = gitH
 	// configure the events handler
-	eventsH := NewEventsHandler(l, eventS)
+	eventsH := NewEventsHandler(&l, eventS)
 	eventsHandler = eventsH
+	// configure the provider handler (needs providerS from above)
+	providerH := NewProviderHandler(&l, providerS)
+	testProviderHandler = providerH
 	// run the code
 	code := m.Run()
 	os.Exit(code)
@@ -284,6 +301,10 @@ func insertStripeConfig(ctx context.Context, t *testing.T, forwardedTo string, s
 	}
 	query := `UPDATE providers SET destination_url = $1, signing_secret = $2 WHERE name = $3`
 	if _, err := testDB.Exec(ctx, query, forwardedTo, encrypted, model.Stripe); err != nil {
+		t.Fatal(err)
+	}
+	// Refresh the in-memory cache so handler functions see the updated config.
+	if err := providers.InitProviderCache(ctx, testProviderRepo); err != nil {
 		t.Fatal(err)
 	}
 }
