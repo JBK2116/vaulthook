@@ -13,7 +13,6 @@
 ---
 
 ## Quick Start
-
 ```bash
 git clone https://github.com/JBK2116/vaulthook
 cd vaulthook/deploy
