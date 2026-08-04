@@ -112,7 +112,9 @@ func New() *App {
 	gitSvc := github.NewGitService(logger, eventRepo, providerRepo)
 
 	// Cache
-	providers.InitProviderCache(appCtx, providerRepo)
+	if err := providers.InitProviderCache(appCtx, providerRepo); err != nil {
+		panic(err)
+	}
 
 	// Rate Limiting
 	worker.InitRateLimiter()
@@ -176,7 +178,7 @@ func New() *App {
 }
 
 // Run starts the HTTP server and blocks until it terminates.
-// On return all background contexts are cancelled, shutting down
+// On return all background contexts are canceled, shutting down
 // workers and the SSE event loop cleanly.
 func (a *App) Run() {
 	defer a.cancelWorkers()

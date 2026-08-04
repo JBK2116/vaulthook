@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
-	stripe "github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 const (
@@ -260,7 +261,7 @@ func setRetryableUpdateValues(code int, err string, updates *updateWebhook) {
 }
 
 // setRateLimitedUpdateValues configures the update for 429/503 responses.
-// Honours the Retry-After header if present; otherwise falls back to the
+// Honors the Retry-After header if present; otherwise falls back to the
 // configured retry interval.
 func setRateLimitedUpdateValues(code int, err, retryAfter string, updates *updateWebhook) {
 	var nextRetry time.Time
