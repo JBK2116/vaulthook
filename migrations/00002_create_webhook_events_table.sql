@@ -1,6 +1,5 @@
 -- +goose Up
 CREATE TYPE delivery_status AS ENUM ('queued', 'processing', 'delivered', 'retrying', 'failed', 'replaying');
-
 CREATE TABLE IF NOT EXISTS webhook_events (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Webhook ID Generated In Database
     provider_id       UUID NOT NULL REFERENCES providers(id), -- Provider Associated With Webhook
@@ -20,8 +19,9 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW() -- Last Updated Timestamp Generated In Database
 );
 
--- automatically updates updated_at whenever the row is modified
+CREATE INDEX idx_provider_event_id ON webhook_events (provider_id, event_id);
 
+-- automatically updates updated_at whenever the row is modified
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -31,7 +31,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
-
 CREATE TRIGGER trigger_set_updated_at
 BEFORE UPDATE ON webhook_events
 FOR EACH ROW
@@ -40,6 +39,6 @@ EXECUTE FUNCTION set_updated_at();
 -- +goose Down
 DROP TRIGGER IF EXISTS trigger_set_updated_at ON webhook_events;
 DROP FUNCTION IF EXISTS set_updated_at();
-
+DROP INDEX IF EXISTS idx_provider_event_id;
 DROP TABLE IF EXISTS webhook_events;
 DROP TYPE IF EXISTS delivery_status;
