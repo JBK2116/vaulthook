@@ -33,6 +33,8 @@ type Config struct {
 	DBPort int
 	// DBName is the name of the target database, e.g. "vaulthook".
 	DBName string
+	// RedisURL is the string url for the redis dependency.
+	RedisURL string
 	// UserEmail is the email of the authenticated application user.
 	UserEmail string
 	// UserPassword is the password of the authenticated application user.
@@ -64,6 +66,7 @@ func initConfig() Config {
 		DBHost:            getEnvString("DB_HOST"),
 		DBPort:            getEnvInt("DB_PORT"),
 		DBName:            getEnvString("DB_NAME"),
+		RedisURL:          getEnvString("REDIS_URL"),
 		UserEmail:         getEnvString("USER_EMAIL"),
 		UserPassword:      getEnvString("USER_PASSWORD"),
 		LogLevel:          getEnvInt("LOG_LEVEL"),

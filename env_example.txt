@@ -21,6 +21,9 @@ DB_HOST=db                      # use "localhost" for local dev without Docker
 DB_PORT=5432
 DB_NAME=vaulthook
 
+# Redis
+REDIS_URL=redis://localhost:6379
+
 # Docker Postgres container (creates the initial superuser + database)
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=              # must match DB_PASSWORD above
