@@ -1,51 +1,69 @@
 services:
-    app:
-        build:
-            context: ..
-            dockerfile: Dockerfile
-        restart: unless-stopped
-        env_file: ../.env
-        depends_on:
-            db:
-                condition: service_healthy
-        networks:
-            - internal
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
 
-    caddy:
-        build:
-            context: ..
-            dockerfile: Dockerfile.caddy
-        restart: unless-stopped
-        ports:
-            - '80:80'
-            - '443:443'
-        volumes:
-            - caddy_data:/data
-            - caddy_config:/config
-        depends_on:
-            - app
-        networks:
-            - internal
+  caddy:
+    build:
+      context: ..
+      dockerfile: Dockerfile.caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - internal
 
-    db:
-        image: postgres:16-alpine
-        restart: unless-stopped
-        env_file: ../.env
-        volumes:
-            - pg_data:/var/lib/postgresql/data
-        healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        networks:
-            - internal
+  db:
+    image: postgres:16-alpine
+    container_name: app-db
+    restart: unless-stopped
+    env_file: ../.env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: app-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --appendonly yes --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
 volumes:
-    pg_data:
-    caddy_data:
-    caddy_config:
+  pg_data:
+  caddy_data:
+  caddy_config:
+  redis_data:
 
 networks:
-    internal:
-        driver: bridge
+  internal:
+    driver: bridge

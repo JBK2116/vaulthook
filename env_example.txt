@@ -22,7 +22,8 @@ DB_PORT=5432
 DB_NAME=vaulthook
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:6379 (localhost)
+REDIS_URL=redis//redis:6379 (docker)
 
 # Docker Postgres container (creates the initial superuser + database)
 POSTGRES_USER=postgres
