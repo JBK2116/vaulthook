@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
@@ -42,7 +43,10 @@ func TestMain(m *testing.M) {
 	defer cleanup()
 	testDB = pool
 
-	// Populate the in-memory provider cache used by ValidateSecret and InsertWebhook.
+	// Initialise Redis and populate the provider cache used by ValidateSecret and InsertWebhook.
+	if err := cache.InitRedisCache(ctx); err != nil {
+		panic(err)
+	}
 	provRepo := providers.NewProviderRepo(testDB)
 	if err := providers.InitProviderCache(ctx, provRepo); err != nil {
 		panic(err)

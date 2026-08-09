@@ -73,11 +73,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	}
 	exists, err := h.service.Exists(ctx, event.ID)
 	if err != nil {
-		if errors.Is(err, stripe.ErrProvNotFound) {
-			h.logger.Error().Err(err).Msg("[Stripe] provider not found in cache")
-		} else {
-			h.logger.Error().Err(err).Msg("[Stripe] database error checking if webhook exists")
-		}
+		h.logger.Error().Err(err).Msg("[Stripe] error checking if webhook exists")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

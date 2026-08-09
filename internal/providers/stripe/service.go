@@ -3,7 +3,6 @@ package stripe
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -14,10 +13,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v85"
 	"github.com/stripe/stripe-go/v85/webhook"
-)
-
-var (
-	ErrProvNotFound = errors.New("[Stripe] provider not found in cache")
 )
 
 // safePrefix returns a truncated version of s safe for logging.
@@ -73,9 +68,9 @@ func NewStripeService(logger *zerolog.Logger, eventRepo *events.EventRepo, provi
 // ValidateSecret receives a stripe signature from the `Stripe-Signature` header
 // and ensures that it matches the secret key used for stripe endpoints.
 func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader string, payload []byte) (stripe.Event, error) {
-	prov := providers.Cache.Get(model.Stripe)
-	if prov == nil {
-		return stripe.Event{}, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Stripe)
+	if err != nil {
+		return stripe.Event{}, err
 	}
 	decrytedSecret, err := crypto.DecryptSigningKey(prov.SigningSecret)
 	if err != nil {
@@ -97,9 +92,9 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 
 // Exists checks if a stripe webhook with the provided event ID already exists in the database.
 func (s *StripeService) Exists(ctx context.Context, evID string) (bool, error) {
-	prov := providers.Cache.Get(model.Stripe)
-	if prov == nil {
-		return false, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Stripe)
+	if err != nil {
+		return false, err
 	}
 	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
 	return exists, err
@@ -112,9 +107,9 @@ func (s *StripeService) Exists(ctx context.Context, evID string) (bool, error) {
 //
 // Returns the stored webhook record or an error if any step fails.
 func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, event stripe.Event) (model.Webhook, error) {
-	prov := providers.Cache.Get(model.Stripe)
-	if prov == nil {
-		return model.Webhook{}, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Stripe)
+	if err != nil {
+		return model.Webhook{}, err
 	}
 	params := model.CreateWebhookParams{
 		ProviderID:  prov.ID,

@@ -5,9 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/JBK2116/vaulthook/internal/cache"
+	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 )
 
@@ -15,7 +18,16 @@ var testDB *pgxpool.Pool
 var testLogger *zerolog.Logger
 
 func TestMain(m *testing.M) {
+	// Load .env for Redis config.
+	if err := godotenv.Load("../../.env"); err != nil {
+		panic(err)
+	}
+	config.Init()
+
 	ctx := context.Background()
+	if err := cache.InitRedisCache(ctx); err != nil {
+		panic(err)
+	}
 	pool, cleanup, err := testutil.NewTestDB(ctx,
 		"../../migrations/00001_create_providers_table.sql",
 		"../../migrations/00002_create_webhook_events_table.sql",

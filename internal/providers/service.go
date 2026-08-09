@@ -83,6 +83,8 @@ func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, 
 	if err != nil {
 		return model.Provider{}, err
 	}
-	Cache.Set(model.ProviderName(prov.Name), &prov)
+	if err := Cache.Set(ctx, model.ProviderName(prov.Name), prov); err != nil {
+		return model.Provider{}, err
+	}
 	return prov, nil
 }

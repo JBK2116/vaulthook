@@ -77,12 +77,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	evID := r.Header.Get("X-Github-Delivery")
 	exists, err := h.service.Exists(ctx, evID)
 	if err != nil {
-		if errors.Is(err, github.ErrProvNotFound) {
-			h.logger.Error().Err(err).Msg("[Github] provider not found in cache")
-
-		} else {
-			h.logger.Error().Err(err).Msg("[Github] database error checking if webhook exists")
-		}
+		h.logger.Error().Err(err).Msg("[Github] error checking if webhook exists")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

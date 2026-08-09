@@ -229,8 +229,10 @@ func setProviderDestinationURL(ctx context.Context, t *testing.T, provID uuid.UU
 	if err != nil {
 		t.Fatalf("failed to set destination URL: %v", err)
 	}
-	// Update the in-memory cache directly so forwardEvent picks up the new URL.
-	providers.Cache.Set(model.ProviderName(prov.Name), &prov)
+	// Update the Redis-backed provider cache so forwardEvent picks up the new URL.
+	if err := providers.Cache.Set(ctx, model.ProviderName(prov.Name), prov); err != nil {
+		t.Fatalf("failed to update provider cache: %v", err)
+	}
 }
 
 func insertStripeWebhook(ctx context.Context, t *testing.T, provID uuid.UUID, status string) model.Webhook {

@@ -17,10 +17,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var (
-	ErrProvNotFound = errors.New("[Github] provider not found in cache")
-)
-
 // SetForwardHeaders applies the appropriate Github-specific HTTP headers
 // to the outgoing forward request. Only a curated allowlist of headers
 // from the original incoming webhook/http request are forwarded.
@@ -73,9 +69,9 @@ func NewGitService(logger *zerolog.Logger, eventRepo *events.EventRepo, provider
 // ValidateSecret receives a GitHub signature from the `X-Hub-Signature-256`
 // header and ensures that it matches the secret key used for GitHub endpoints.
 func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) (err error) {
-	prov := providers.Cache.Get(model.Github)
-	if prov == nil {
-		return ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Github)
+	if err != nil {
+		return err
 	}
 	decrypted, err := crypto.DecryptSigningKey(prov.SigningSecret)
 	if err != nil {
@@ -92,9 +88,9 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 
 // InsertWebhook creates and stores a Github webhook using the provided data request
 func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, id string, event string) (model.Webhook, error) {
-	prov := providers.Cache.Get(model.Github)
-	if prov == nil {
-		return model.Webhook{}, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Github)
+	if err != nil {
+		return model.Webhook{}, err
 	}
 	params := model.CreateWebhookParams{
 		ProviderID:  prov.ID,
@@ -115,9 +111,9 @@ func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload 
 
 // Exists checks if a github webhook with the provided event_id already exists in the database
 func (s *GitService) Exists(ctx context.Context, evID string) (bool, error) {
-	prov := providers.Cache.Get(model.Github)
-	if prov == nil {
-		return false, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.Github)
+	if err != nil {
+		return false, err
 	}
 	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
 	return exists, err

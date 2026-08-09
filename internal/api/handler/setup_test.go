@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/auth"
+	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
@@ -85,8 +86,11 @@ func TestMain(m *testing.M) {
 	providerS := providers.NewProviderService(providerR)
 	testProviderService = providerS
 
-	// Populate the in-memory provider cache and rate-limiter used by
+	// Initialise Redis and populate the provider cache used by
 	// background workers and handler functions.
+	if err := cache.InitRedisCache(ctx); err != nil {
+		panic(err)
+	}
 	if err := providers.InitProviderCache(ctx, providerR); err != nil {
 		panic(err)
 	}

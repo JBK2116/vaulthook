@@ -36,6 +36,10 @@ func InitRateLimiter() {
 
 // Allow checks if the request is permitted to be executed
 func (rl *RateLimiter) Allow(prov *model.Provider) bool {
+	// NOTE: This function must be updated to use the provider max req seconds from the cache.
+	// Not from the InitRateLimiter function values
+	// The buckets must also be moved to redis as well.
+
 	val, ok := rl.buckets.Load(model.ProviderName(prov.Name))
 	if !ok {
 		// Should never happen in prod realistically

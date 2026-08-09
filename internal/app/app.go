@@ -13,6 +13,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/api/handler"
 	"github.com/JBK2116/vaulthook/internal/auth"
+	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers"
@@ -111,7 +112,10 @@ func New() *App {
 	stripeSvc := stripe.NewStripeService(logger, eventRepo, providerRepo)
 	gitSvc := github.NewGitService(logger, eventRepo, providerRepo)
 
-	// Cache
+	// Caches
+	if err := cache.InitRedisCache(appCtx); err != nil {
+		panic(err)
+	}
 	if err := providers.InitProviderCache(appCtx, providerRepo); err != nil {
 		panic(err)
 	}

@@ -33,7 +33,6 @@ type Worker struct {
 var (
 	ErrNoHooksToWork = errors.New("[Worker] no webhooks to work at the moment")
 	ErrRateLimited   = errors.New("[Worker] rate limited")
-	ErrProvNotFound  = errors.New("[Worker] provider not found in cache")
 )
 
 // newWorker returns a pointer to a Worker backed by the provided values.
@@ -151,15 +150,15 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 	updates.id = hook.ID
 	updates.forwardedTo = &hook.ForwardedTo
 	updates.provName = model.ProviderName(hook.Provider)
-	prov := providers.Cache.Get(model.ProviderName(hook.Provider))
-	if prov == nil {
-		setDefaultUpdateValues(ErrProvNotFound.Error(), &updates)
-		return updates, ErrProvNotFound
+	prov, err := providers.Cache.Get(ctx, model.ProviderName(hook.Provider))
+	if err != nil {
+		setDefaultUpdateValues(err.Error(), &updates)
+		return updates, err
 	}
 	if prov.DestinationURL != hook.ForwardedTo {
 		hook.ForwardedTo = prov.DestinationURL
 	}
-	if !limiter.Allow(prov) {
+	if !limiter.Allow(&prov) {
 		setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
 		return updates, ErrRateLimited
 	}
