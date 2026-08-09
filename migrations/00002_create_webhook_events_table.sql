@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW() -- Last Updated Timestamp Generated In Database
 );
 
-CREATE INDEX idx_provider_event_id ON webhook_events (provider_id, event_id);
+CREATE UNIQUE INDEX idx_provider_event_id ON webhook_events (provider_id, event_id);
 
 -- automatically updates updated_at whenever the row is modified
 -- +goose StatementBegin
