@@ -112,3 +112,13 @@ func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload 
 	}
 	return hook, nil
 }
+
+// Exists checks if a github webhook with the provided event_id already exists in the database
+func (s *GitService) Exists(ctx context.Context, evID string) (bool, error) {
+	prov := providers.Cache.Get(model.Github)
+	if prov == nil {
+		return false, ErrProvNotFound
+	}
+	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
+	return exists, err
+}

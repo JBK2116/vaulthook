@@ -95,6 +95,17 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 	return event, nil
 }
 
+// Exists checks if a stripe webhook with the provided event ID already exists in the database.
+func (s *StripeService) Exists(ctx context.Context, evID string) (bool, error) {
+	prov := providers.Cache.Get(model.Stripe)
+	if prov == nil {
+		return false, ErrProvNotFound
+	}
+	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
+	return exists, err
+
+}
+
 // InsertWebhook creates and stores a Stripe webhook using the incoming request
 // data and parsed event. It resolves the provider routing, builds the insert
 // parameters, and persists the webhook.

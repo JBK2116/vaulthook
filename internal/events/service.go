@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrInvalidUUID = errors.New("invalid uuid received")
+	ErrHookExists  = errors.New("webhook already exists")
 )
 
 // maxBatchSize caps the number of webhook events sent per SSE batch to prevent

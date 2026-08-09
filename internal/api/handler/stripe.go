@@ -11,7 +11,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/config"
 	crypto "github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
-	stripeProvider "github.com/JBK2116/vaulthook/internal/providers/stripe"
+	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -25,13 +25,13 @@ var (
 // StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
 type StripeHandler struct {
 	logger       *zerolog.Logger
-	service      *stripeProvider.StripeService
+	service      *stripe.StripeService
 	eventService *events.EventService
 	workerPool   *worker.WorkerPool
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, service *stripeProvider.StripeService, eventService *events.EventService, workerPool *worker.WorkerPool) *StripeHandler {
+func NewStripeHandler(logger *zerolog.Logger, service *stripe.StripeService, eventService *events.EventService, workerPool *worker.WorkerPool) *StripeHandler {
 	return &StripeHandler{
 		logger:       logger,
 		service:      service,
@@ -71,6 +71,22 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	exists, err := h.service.Exists(ctx, event.ID)
+	if err != nil {
+		if errors.Is(err, stripe.ErrProvNotFound) {
+			h.logger.Error().Err(err).Msg("[Stripe] provider not found in cache")
+		} else {
+			h.logger.Error().Err(err).Msg("[Stripe] database error checking if webhook exists")
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		h.logger.Debug().Msgf("[Stripe] event already exists in database: %s", event.ID)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	h.logger.Debug().Msgf("[Stripe] event validated: %s", event.ID)
 	headersJSON, err := json.Marshal(r.Header)
 	if err != nil {
@@ -80,6 +96,11 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	}
 	stripeWebhook, err := h.service.InsertWebhook(ctx, headersJSON, payload, event)
 	if err != nil {
+		if errors.Is(err, events.ErrHookExists) {
+			h.logger.Error().Err(err).Msgf("[Stripe] event already exists in database: %s", event.ID)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		h.logger.Error().Err(err).Msg("[Stripe] error inserting webhook into database")
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -94,10 +95,14 @@ func (r *EventRepo) getStats(ctx context.Context) (*model.Stats, error) {
 
 // InsertWebhook saves a new webhook event to the database and returns the
 // stored record with all database-generated fields populated.
+//
+// If a row with the same (provider_id, event_id) already exists the
+// insert is a no-op and ErrHookExists is returned.
 func (r *EventRepo) InsertWebhook(ctx context.Context, p model.CreateWebhookParams) (model.Webhook, error) {
 	query := `
 	INSERT INTO webhook_events (provider_id, provider, event_id, event_type, headers, payload, forwarded_to, received_at)
 	VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	ON CONFLICT (provider_id, event_id) DO NOTHING
 	RETURNING id, provider_id, provider, event_id, event_type, headers, payload,
 	          delivery_status, forwarded_to, response_code, retry_count,
 	          next_retry_at, last_error, received_at, created_at, updated_at
@@ -114,6 +119,10 @@ func (r *EventRepo) InsertWebhook(ctx context.Context, p model.CreateWebhookPara
 		&w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
 	)
 	if err != nil {
+		// ON CONFLICT DO NOTHING returns no rows, so pgx returns ErrNoRows.
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Webhook{}, ErrHookExists
+		}
 		return model.Webhook{}, err
 	}
 	return w, nil
@@ -128,6 +137,17 @@ func (r *EventRepo) replayEvent(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return nil
+}
+
+// Exists checks if the webhook event with the provided event id exists in the database.
+func (r *EventRepo) Exists(ctx context.Context, provID uuid.UUID, evID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM webhook_events WHERE provider_id = $1 AND event_id = $2)`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, provID, evID).Scan(&exists)
+	if err != nil {
+		return exists, err
+	}
+	return exists, err
 }
 
 // lookup retrieves webhooks matching either the provided webhook ID or event ID.

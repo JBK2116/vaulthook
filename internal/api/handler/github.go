@@ -74,6 +74,23 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	evID := r.Header.Get("X-Github-Delivery")
+	exists, err := h.service.Exists(ctx, evID)
+	if err != nil {
+		if errors.Is(err, github.ErrProvNotFound) {
+			h.logger.Error().Err(err).Msg("[Github] provider not found in cache")
+
+		} else {
+			h.logger.Error().Err(err).Msg("[Github] database error checking if webhook exists")
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		h.logger.Debug().Msgf("[Github] event already exists in database: %s", evID)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	h.logger.Debug().Msgf("[Github] event validated: %s", hid)
 	headers, err := json.Marshal(r.Header)
 	if err != nil {
@@ -83,6 +100,11 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	}
 	hook, err := h.service.InsertWebhook(ctx, headers, payload, hid, event)
 	if err != nil {
+		if errors.Is(err, events.ErrHookExists) {
+			h.logger.Error().Err(err).Msgf("[Github] event already exists in database: %s", evID)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		h.logger.Error().Err(err).Msg("[Github] error inserting webhook into database")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
