@@ -20,7 +20,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -133,17 +133,17 @@ func New() *App {
 
 	// Router
 	router := chi.NewRouter()
-	router.Use(chimiddleware.Logger)
-	router.Use(chimiddleware.CleanPath)
-	router.Use(chimiddleware.StripSlashes)
-	router.Use(chimiddleware.ThrottleBacklog(
+	router.Use(middleware.Logger)
+	router.Use(middleware.CleanPath)
+	router.Use(middleware.StripSlashes)
+	router.Use(middleware.ThrottleBacklog(
 		ThrottleMaxConcurrent,
 		ThrottleMaxBacklog,
 		time.Duration(ThrottleBacklogTimeout)*time.Second,
 	))
 
 	router.Route("/api", func(r chi.Router) {
-		r.Use(chimiddleware.Timeout(time.Duration(MaxRequestTime) * time.Second))
+		r.Use(middleware.Timeout(time.Duration(MaxRequestTime) * time.Second))
 
 		// Public endpoints
 		authH.RegisterRoutes(r)
