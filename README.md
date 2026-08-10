@@ -10,7 +10,7 @@ Vaulthook's purpose is intentionally kept narrow. Verify, dedupe, log, forward, 
 
 ## Architecture
 
-Inbound requests hit Caddy (TLS termination) first, which then forwards it to the Go backend that verifies the signature and dedupes the event before writing it to Postgres. Only after the write succeeds (the outbox) does a queue worker attempt forwarding, this ensures that a crash or forwarding failure never loses an event, it just retries later.
+Inbound requests hit Caddy (TLS termination) first, which then forwards it to the Go backend that verifies the signature and dedupes the event before writing it to Postgres. Only after the write succeeds (the outbox) does a queue worker attempt forwarding, this ensures that a crash or forwarding failure never loses an event, it just retries later. Events are always processed in a first-in, first-out (FIFO) order, guaranteed by the database.
 
 Queue workers handle first-attempt delivery, a separate retry worker pool handles backoff retries independently, so a backlog of retries can't block new events from being processed. A dedicated replay worker handles manually replayed events on its own pool, isolated from live traffic. Each provider destination has its own rate limiter, so a slow or throttled endpoint only affects deliveries to that destination.
 
