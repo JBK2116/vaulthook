@@ -94,7 +94,7 @@ func TestMain(m *testing.M) {
 	if err := providers.InitProviderCache(ctx, providerR); err != nil {
 		panic(err)
 	}
-	worker.InitRateLimiter()
+	worker.InitRateLimiter(cache.Cache.GetCache())
 
 	// configure the event variables
 	eventR := events.NewEventRepo(testDB)

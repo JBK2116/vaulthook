@@ -158,7 +158,12 @@ func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateW
 	if prov.DestinationURL != hook.ForwardedTo {
 		hook.ForwardedTo = prov.DestinationURL
 	}
-	if !limiter.Allow(&prov) {
+	ok, err := limiter.Allow(ctx, &prov)
+	if err != nil {
+		setDefaultUpdateValues(err.Error(), &updates)
+		return updates, err
+	}
+	if !ok {
 		setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
 		return updates, ErrRateLimited
 	}

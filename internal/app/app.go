@@ -121,7 +121,7 @@ func New() *App {
 	}
 
 	// Rate Limiting
-	worker.InitRateLimiter()
+	worker.InitRateLimiter(cache.Cache.GetCache())
 
 	// Background Workers
 	go eventSvc.Start(appCtx)

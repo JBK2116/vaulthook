@@ -4,11 +4,14 @@ package cache
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/redis/go-redis/v9"
 )
+
+var once sync.Once
 
 // RedisCache provides an interface for interacting with the application cache.
 type RedisCache struct {
@@ -22,15 +25,20 @@ var Cache = RedisCache{
 
 // InitRedisCache initializes the application's Redis cache and in-memory instance.
 func InitRedisCache(ctx context.Context) error {
-	opts, err := redis.ParseURL(config.Envs.RedisURL)
-	if err != nil {
-		return err
-	}
-	Cache.cache = redis.NewClient(opts)
-	if _, err := Cache.cache.Ping(ctx).Result(); err != nil {
-		return err
-	}
-	return nil
+	var err error
+	once.Do(func() {
+		opts, parseErr := redis.ParseURL(config.Envs.RedisURL)
+		if parseErr != nil {
+			err = parseErr
+			return
+		}
+		Cache.cache = redis.NewClient(opts)
+		if _, pingErr := Cache.cache.Ping(ctx).Result(); pingErr != nil {
+			err = pingErr
+			return
+		}
+	})
+	return err
 }
 
 // Get retrieves a value from the redis cache.
@@ -58,4 +66,9 @@ func (r *RedisCache) Mset(ctx context.Context, pairs ...any) error {
 	}
 	err := r.cache.MSet(ctx, pairs...).Err()
 	return err
+}
+
+// GetCache returns the underlying redis client.
+func (r *RedisCache) GetCache() *redis.Client {
+	return r.cache
 }

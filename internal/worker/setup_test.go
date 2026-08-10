@@ -68,5 +68,5 @@ func beforeEachWorker(t *testing.T) {
 		t.Fatalf("failed to init provider cache: %v", err)
 	}
 	// Initialise per-provider rate-limiter buckets.
-	InitRateLimiter()
+	InitRateLimiter(cache.Cache.GetCache())
 }
