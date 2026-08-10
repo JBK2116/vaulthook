@@ -68,6 +68,27 @@ func (c *ProviderCache) Get(ctx context.Context, key model.ProviderName) (model.
 	return prov, nil
 }
 
+// RefreshCache reloads the cache with the latest provider data from the database.
+// Unlike InitProviderCache, it always executes and is safe to call multiple times
+func RefreshCache(ctx context.Context, repo *ProviderRepo) error {
+	provs, err := repo.getAll(ctx)
+	if err != nil {
+		return err
+	}
+	kvPairs := make([]any, 0, len(provs)*2)
+	for _, val := range provs {
+		b, sErr := serialize(val)
+		if sErr != nil {
+			return fmt.Errorf("[Providers] error marshaling provider during cache refresh: %w", sErr)
+		}
+		kvPairs = append(kvPairs, RedisProviderPrefix+val.Name, b)
+	}
+	if len(kvPairs) == 0 {
+		return fmt.Errorf("[Providers] no providers found in database")
+	}
+	return cache.Cache.Mset(ctx, kvPairs...)
+}
+
 // Set updates the value of the provided key to point to the new value
 func (c *ProviderCache) Set(ctx context.Context, key model.ProviderName, val model.Provider) error {
 	b, sErr := serialize(val)
