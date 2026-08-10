@@ -62,9 +62,9 @@ func beforeEachWorker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to insert test provider: %v", err)
 	}
-	// Populate the in-memory provider cache used by forwardEvent.
+	// Populate the provider cache used by forwardEvent.
 	provRepo := providers.NewProviderRepo(testDB)
-	if err := providers.InitProviderCache(context.Background(), provRepo); err != nil {
+	if err := providers.RefreshCache(context.Background(), provRepo); err != nil {
 		t.Fatalf("failed to init provider cache: %v", err)
 	}
 	// Initialise per-provider rate-limiter buckets.

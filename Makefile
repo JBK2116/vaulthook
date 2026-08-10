@@ -37,7 +37,7 @@ tidy:
 ## test: run all tests
 .PHONY: test
 test:
-	go test -v -race -buildvcs ./...
+	go test -v -race -buildvcs -p 1 ./...
 
 test/load/stripe/base: # load test stripe webhook ingestion baseline
 	k6 run internal/tests/load/stripe_ingestion_baseline.js
@@ -48,7 +48,7 @@ test/load/stripe/max: # load test stripe webhook max
 ## test/cover: run all tests and display coverage
 .PHONY: test/cover
 test/cover:
-	go test -v -race -buildvcs -coverprofile=/tmp/coverage.out ./...
+	go test -v -race -buildvcs -p 1 -coverprofile=/tmp/coverage.out ./...
 	go tool cover -html=/tmp/coverage.out
 
 ## build: build the applications
