@@ -59,6 +59,7 @@ See `env_example.txt` for the full reference. Key variables:
 | `JWT_SECRET`             | JWT signing secret                          |
 | `MASTER_KEY`             | AES-256 key for encrypting provider secrets |
 | `DATABASE_URL`           | PostgreSQL connection string                |
+| `REDIS_URL`              | Redis connection string                     |
 | `TOTAL_QUEUE_WORKERS`    | Number of concurrent queue workers          |
 | `TOTAL_RETRY_WORKERS`    | Number of concurrent retry workers          |
 | `RETRY_INTERVAL_SECONDS` | Backoff interval between retries            |
@@ -70,6 +71,7 @@ See `env_example.txt` for the full reference. Key variables:
 | Backend          | Go                                  |
 | Frontend         | SvelteKit, TypeScript, Tailwind CSS |
 | Database         | PostgreSQL                          |
+| Cache            | Redis                               |
 | Migrations       | Goose (Go)                          |
 | Auth             | JWT + Refresh Tokens                |
 | Encryption       | AES-256-GCM                         |
