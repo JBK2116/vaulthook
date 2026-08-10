@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/model"
@@ -21,27 +22,36 @@ type ProviderCache struct {
 // Cache is the global default instance of ProviderCache
 var Cache = ProviderCache{}
 
+var once sync.Once
+
 // InitProviderCache loads the cache with the details of the providers in the database
 func InitProviderCache(ctx context.Context, repo *ProviderRepo) error {
-	provs, err := repo.getAll(ctx)
-	if err != nil {
-		return err
-	}
-	kvPairs := make([]any, 0, len(provs)*2)
-	for _, val := range provs {
-		b, sErr := serialize(val)
-		if sErr != nil {
-			return fmt.Errorf("[Providers] error marshaling provider during cache insertion: %w", sErr)
+	var err error
+	once.Do(func() {
+		provs, getErr := repo.getAll(ctx)
+		if getErr != nil {
+			err = getErr
+			return
 		}
-		kvPairs = append(kvPairs, RedisProviderPrefix+val.Name, b)
-	}
-	if len(kvPairs) == 0 {
-		return fmt.Errorf("[Providers] no providers found in database")
-	}
-	if err := cache.Cache.Mset(ctx, kvPairs...); err != nil {
-		return err
-	}
-	return nil
+		kvPairs := make([]any, 0, len(provs)*2)
+		for _, val := range provs {
+			b, sErr := serialize(val)
+			if sErr != nil {
+				err = fmt.Errorf("[Providers] error marshaling provider during cache insertion: %w", sErr)
+				return
+			}
+			kvPairs = append(kvPairs, RedisProviderPrefix+val.Name, b)
+		}
+		if len(kvPairs) == 0 {
+			err = fmt.Errorf("[Providers] no providers found in database")
+			return
+		}
+		if msetErr := cache.Cache.Mset(ctx, kvPairs...); msetErr != nil {
+			err = msetErr
+			return
+		}
+	})
+	return err
 }
 
 // Get returns a provider from the cache
