@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/testutil"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,6 +34,15 @@ func TestMain(m *testing.M) {
 	defer cleanup()
 	testDB = pool
 
+	// Initialise Redis and populate the provider cache.
+	if err := cache.InitRedisCache(ctx); err != nil {
+		panic(err)
+	}
+	provRepo := NewProviderRepo(testDB)
+	if err := InitProviderCache(ctx, provRepo); err != nil {
+		panic(err)
+	}
+
 	code := m.Run()
 	os.Exit(code)
 }
@@ -44,6 +54,11 @@ func beforeEachProviders(t *testing.T) {
 		`UPDATE providers SET signing_secret = '', destination_url = '', max_retries = 5, max_req_second = 0, is_configured = false`)
 	if err != nil {
 		t.Fatalf("failed to reset providers: %v", err)
+	}
+	// Refresh the cache so tests start with a clean slate.
+	provRepo := NewProviderRepo(testDB)
+	if err := RefreshCache(context.Background(), provRepo); err != nil {
+		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
 

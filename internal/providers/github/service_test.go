@@ -67,7 +67,7 @@ func beforeEachGithub(t *testing.T) {
 	}
 	// Refresh the cache so stale values from previous tests don't leak.
 	provRepo := providers.NewProviderRepo(testDB)
-	if err := providers.InitProviderCache(context.Background(), provRepo); err != nil {
+	if err := providers.RefreshCache(context.Background(), provRepo); err != nil {
 		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
@@ -84,9 +84,9 @@ func setGithubSigningSecret(ctx context.Context, t *testing.T, secret string) {
 	if err != nil {
 		t.Fatalf("failed to set github secret: %v", err)
 	}
-	// Refresh the in-memory cache so ValidateSecret sees the updated config.
+	// Refresh the cache so ValidateSecret sees the updated config.
 	provRepo := providers.NewProviderRepo(testDB)
-	if err := providers.InitProviderCache(ctx, provRepo); err != nil {
+	if err := providers.RefreshCache(ctx, provRepo); err != nil {
 		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }

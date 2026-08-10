@@ -150,6 +150,10 @@ func beforeEach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reset Github provider: %v", err)
 	}
+	// Refresh the provider cache so subsequent tests see the reset state.
+	if err := providers.RefreshCache(context.Background(), testProviderRepo); err != nil {
+		t.Fatalf("failed to refresh provider cache: %v", err)
+	}
 }
 
 // afterEach acts as a teardown function responsible for running code after each test ends
@@ -308,7 +312,7 @@ func insertStripeConfig(ctx context.Context, t *testing.T, forwardedTo string, s
 		t.Fatal(err)
 	}
 	// Refresh the in-memory cache so handler functions see the updated config.
-	if err := providers.InitProviderCache(ctx, testProviderRepo); err != nil {
+	if err := providers.RefreshCache(ctx, testProviderRepo); err != nil {
 		t.Fatal(err)
 	}
 }

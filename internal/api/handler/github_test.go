@@ -33,8 +33,8 @@ func insertGithubConfig(ctx context.Context, t *testing.T, destURL string, secre
 	if err != nil {
 		t.Fatalf("failed to configure github provider: %v", err)
 	}
-	// Refresh the in-memory cache so handler functions see the updated config.
-	if err := providers.InitProviderCache(ctx, testProviderRepo); err != nil {
+	// Refresh the cache so handler functions see the updated config.
+	if err := providers.RefreshCache(ctx, testProviderRepo); err != nil {
 		t.Fatalf("failed to refresh provider cache: %v", err)
 	}
 }
