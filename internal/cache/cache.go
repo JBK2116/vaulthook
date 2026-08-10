@@ -27,16 +27,12 @@ var Cache = RedisCache{
 func InitRedisCache(ctx context.Context) error {
 	var err error
 	once.Do(func() {
-		opts, parseErr := redis.ParseURL(config.Envs.RedisURL)
-		if parseErr != nil {
-			err = parseErr
+		cache, nErr := NewCache(ctx)
+		if nErr != nil {
+			err = nErr
 			return
 		}
-		Cache.cache = redis.NewClient(opts)
-		if _, pingErr := Cache.cache.Ping(ctx).Result(); pingErr != nil {
-			err = pingErr
-			return
-		}
+		Cache.cache = cache
 	})
 	return err
 }
@@ -71,4 +67,17 @@ func (r *RedisCache) Mset(ctx context.Context, pairs ...any) error {
 // GetCache returns the underlying redis client.
 func (r *RedisCache) GetCache() *redis.Client {
 	return r.cache
+}
+
+// NewCache returns a new redis client for use
+func NewCache(ctx context.Context) (*redis.Client, error) {
+	opts, parseErr := redis.ParseURL(config.Envs.RedisURL)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	cache := redis.NewClient(opts)
+	if _, pingErr := cache.Ping(ctx).Result(); pingErr != nil {
+		return nil, pingErr
+	}
+	return cache, nil
 }
