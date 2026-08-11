@@ -25,11 +25,13 @@ type updateWebhook struct {
 // WorkerKind enumerates the different types of worker processing strategies.
 type WorkerKind int
 
-const (
-	QueueWorkerBatch  = 50
-	RetryWorkerBatch  = 25
-	ReplayWorkerBatch = 1
+// sensible batch defaults overrided in app.go
+var (
+	QueueWorkerBatch = 50
+	RetryWorkerBatch = 25
 )
+
+const ReplayWorkerBatch = 1
 
 const (
 	// WorkerKindQueue processes newly ingested webhooks in 'queued' status.

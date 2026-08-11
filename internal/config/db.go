@@ -27,7 +27,7 @@ var (
 //
 // The connection string is assembled from config.Envs. If the pool cannot
 // be created, an error is returned and pgInstance remains nil.
-func NewPG(ctx context.Context) (*postgres, error) {
+func NewPG(ctx context.Context, maxConns int) (*postgres, error) {
 	connString := fmt.Sprintf("%s://%s:%s@%s:%d/%s?timezone=UTC",
 		Envs.DBType,
 		Envs.DBUser,
@@ -40,10 +40,10 @@ func NewPG(ctx context.Context) (*postgres, error) {
 	pgOnce.Do(func() {
 		cfg, cfgErr := pgxpool.ParseConfig(connString)
 		if cfgErr != nil {
-			err = fmt.Errorf("unable to parse connection string: %w", err)
+			err = fmt.Errorf("unable to parse connection string: %w", cfgErr)
 			return
 		}
-		cfg.MaxConns = 50
+		cfg.MaxConns = int32(maxConns)
 		db, pgErr := pgxpool.NewWithConfig(ctx, cfg)
 		if pgErr != nil {
 			err = fmt.Errorf("unable to create connection pool: %w", pgErr)

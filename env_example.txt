@@ -37,18 +37,9 @@ GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgres://postgres:<your-password>@db:5432/vaulthook
 GOOSE_MIGRATION_DIR=./migrations
 
-
-# OPTIONAL: sensible defaults are provided below, adjust as needed
-
 # Environment
 IS_DEVELOPMENT=false
 IS_TESTING=false
-
-# Webhook delivery
-
-# Background workers
-TOTAL_QUEUE_WORKERS=8
-TOTAL_RETRY_WORKERS=12
 
 # Logging (0=debug, 1=info, 2=warn, 3=error)
 LOG_LEVEL=1

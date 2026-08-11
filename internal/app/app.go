@@ -75,11 +75,18 @@ func New() *App {
 	}
 	config.Init()
 
+	// calculate application resource allocations
+	resources := health.ComputeResources()
+	worker.QueueWorkerBatch = resources.QueueBatch
+	worker.RetryWorkerBatch = resources.RetryBatch
+	worker.TotalQueueWorkers = resources.QueueWorkers
+	worker.TotalRetryWorkers = resources.RetryWorkers
+
 	// Infrastructure: Database & Logger
 	dbCtx, cancelDB := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelDB()
 
-	pg, dbErr := config.NewPG(dbCtx)
+	pg, dbErr := config.NewPG(dbCtx, resources.DBMaxConns)
 	if dbErr != nil {
 		panic(dbErr)
 	}

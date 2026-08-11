@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+const (
+	MaxConns = 50
+)
+
 // TestInitConfig verifies that Init() correctly populates all fields of Envs
 // from the .env file loaded during TestMain.
 func TestInitConfig(t *testing.T) {
@@ -26,12 +30,6 @@ func TestInitConfig(t *testing.T) {
 	}
 	if Envs.IsDevelopment != true {
 		t.Fatalf("expected IsDevelopment true, got %v", Envs.IsDevelopment)
-	}
-	if Envs.TotalQueueWorkers != 8 {
-		t.Fatalf("expected TotalQueueWorkers 8, got %d", Envs.TotalQueueWorkers)
-	}
-	if Envs.TotalRetryWorkers != 12 {
-		t.Fatalf("expected TotalRetryWorkers 12, got %d", Envs.TotalRetryWorkers)
 	}
 	if len(Envs.JWTSecret) < 10 {
 		t.Fatalf("expected non-trivial JWTSecret, got length %d", len(Envs.JWTSecret))
@@ -173,8 +171,6 @@ func TestInitConfig_AllFieldsSet(t *testing.T) {
 	os.Setenv("MAX_REQUEST_TIME_LENGTH", "120")
 	os.Setenv("RETRY_INTERVAL_SECONDS", "30")
 	os.Setenv("FORWARD_TIMEOUT_SECONDS", "10")
-	os.Setenv("TOTAL_QUEUE_WORKERS", "4")
-	os.Setenv("TOTAL_RETRY_WORKERS", "6")
 	os.Setenv("MASTER_KEY", "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4")
 	os.Setenv("IS_DEVELOPMENT", "false")
 
@@ -188,12 +184,6 @@ func TestInitConfig_AllFieldsSet(t *testing.T) {
 	}
 	if cfg.IsDevelopment != false {
 		t.Errorf("IsDevelopment: expected false, got %v", cfg.IsDevelopment)
-	}
-	if cfg.TotalQueueWorkers != 4 {
-		t.Errorf("TotalQueueWorkers: expected 4, got %d", cfg.TotalQueueWorkers)
-	}
-	if cfg.TotalRetryWorkers != 6 {
-		t.Errorf("TotalRetryWorkers: expected 6, got %d", cfg.TotalRetryWorkers)
 	}
 }
 
@@ -218,7 +208,6 @@ func saveEnv() map[string]string {
 		"USER_EMAIL", "USER_PASSWORD", "LOG_LEVEL", "TOKEN_SECRET",
 		"ACCESS_TOKEN_TLL", "REFRESH_TOKEN_TTL",
 		"THROTTLE_MAX_CONCURRENT", "THROTTLE_MAX_BACKLOG", "THROTTLE_BACKLOG_TIMEOUT",
-		"TOTAL_QUEUE_WORKERS", "TOTAL_RETRY_WORKERS",
 		"MASTER_KEY", "IS_DEVELOPMENT",
 	}
 	saved := make(map[string]string, len(vars))
@@ -245,7 +234,7 @@ func restoreEnv(saved map[string]string) {
 // and that it responds to pings.
 func TestNewPG(t *testing.T) {
 	ctx := t.Context()
-	pg, err := NewPG(ctx)
+	pg, err := NewPG(ctx, MaxConns)
 	if err != nil {
 		t.Fatalf("NewPG failed: %v", err)
 	}
@@ -265,11 +254,11 @@ func TestNewPG(t *testing.T) {
 // underlying pool (sync.Once semantics).
 func TestNewPG_Singleton(t *testing.T) {
 	ctx := t.Context()
-	pg1, err := NewPG(ctx)
+	pg1, err := NewPG(ctx, MaxConns)
 	if err != nil {
 		t.Fatalf("first NewPG failed: %v", err)
 	}
-	pg2, err := NewPG(ctx)
+	pg2, err := NewPG(ctx, MaxConns)
 	if err != nil {
 		t.Fatalf("second NewPG failed: %v", err)
 	}

@@ -3,10 +3,15 @@ package worker
 import (
 	"context"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+)
+
+// sensible worker count details overidden in app.go
+var (
+	TotalQueueWorkers = 8
+	TotalRetryWorkers = 4
 )
 
 // WorkerPool is a struct that orchestrates all webhook workers.
@@ -22,9 +27,9 @@ type WorkerPool struct {
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration.
 func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *WorkerPool {
-	signal := make(chan struct{}, config.Envs.TotalQueueWorkers)
-	queueWorkers := make([]*Worker, config.Envs.TotalQueueWorkers)
-	retryWorkers := make([]*Worker, config.Envs.TotalRetryWorkers)
+	signal := make(chan struct{}, TotalQueueWorkers)
+	queueWorkers := make([]*Worker, TotalQueueWorkers)
+	retryWorkers := make([]*Worker, TotalRetryWorkers)
 
 	// initialize repos for each worker strategy
 	queueRepo := NewWorkerRepo(db, WorkerKindQueue)

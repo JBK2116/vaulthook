@@ -43,10 +43,6 @@ type Config struct {
 	LogLevel int
 	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
 	JWTSecret string
-	// TotalQueueWorkers is the max number of queue workers that may be processing webhooks on first forwarding attempt.
-	TotalQueueWorkers int
-	// TotalRetryWorkers is the max number of queue workers that may be processing webhooks that have previously failed a forwarding attempt.
-	TotalRetryWorkers int
 	// MasterKey is the AES secret used to handle signing key encryption for providers.
 	MasterKey string
 	// IsDevelopment indicates whether the application is running in a development environment.
@@ -60,21 +56,19 @@ var Envs Config
 // It panics if any required variable is missing or malformed.
 func initConfig() Config {
 	return Config{
-		DBType:            getEnvString("DB_TYPE"),
-		DBUser:            getEnvString("DB_USER"),
-		DBPassword:        getEnvString("DB_PASSWORD"),
-		DBHost:            getEnvString("DB_HOST"),
-		DBPort:            getEnvInt("DB_PORT"),
-		DBName:            getEnvString("DB_NAME"),
-		RedisURL:          getEnvString("REDIS_URL"),
-		UserEmail:         getEnvString("USER_EMAIL"),
-		UserPassword:      getEnvString("USER_PASSWORD"),
-		LogLevel:          getEnvInt("LOG_LEVEL"),
-		JWTSecret:         getEnvString("TOKEN_SECRET"),
-		TotalQueueWorkers: getEnvInt("TOTAL_QUEUE_WORKERS"),
-		TotalRetryWorkers: getEnvInt("TOTAL_RETRY_WORKERS"),
-		MasterKey:         getEnvString("MASTER_KEY"),
-		IsDevelopment:     getEnvBool("IS_DEVELOPMENT"),
+		DBType:        getEnvString("DB_TYPE"),
+		DBUser:        getEnvString("DB_USER"),
+		DBPassword:    getEnvString("DB_PASSWORD"),
+		DBHost:        getEnvString("DB_HOST"),
+		DBPort:        getEnvInt("DB_PORT"),
+		DBName:        getEnvString("DB_NAME"),
+		RedisURL:      getEnvString("REDIS_URL"),
+		UserEmail:     getEnvString("USER_EMAIL"),
+		UserPassword:  getEnvString("USER_PASSWORD"),
+		LogLevel:      getEnvInt("LOG_LEVEL"),
+		JWTSecret:     getEnvString("TOKEN_SECRET"),
+		MasterKey:     getEnvString("MASTER_KEY"),
+		IsDevelopment: getEnvBool("IS_DEVELOPMENT"),
 	}
 }
 
