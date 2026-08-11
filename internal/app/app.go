@@ -16,6 +16,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/cache"
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
+	"github.com/JBK2116/vaulthook/internal/health"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
@@ -123,12 +124,17 @@ func New() *App {
 	// Rate Limiting
 	worker.InitRateLimiter(cache.Cache.GetCache())
 
+	// Health Checks
+	health.InitStartTime()
+	healthSvc := health.NewHealthService(pg.DB, cache.Cache.GetCache())
+
 	// Background Workers
 	go eventSvc.Start(appCtx)
 	workerCtx, cancelWorkers := context.WithCancel(appCtx)
 	workerPool := worker.NewWorkerPool(workerCtx, eventSvc, logger, pg.DB)
 
 	// HTTP handlers
+	healthH := handler.NewHealthHandler(healthSvc, logger)
 	authH := handler.NewAuthHandler(logger, authSvc)
 	providerH := handler.NewProviderHandler(logger, providerSvc)
 	eventsH := handler.NewEventsHandler(logger, eventSvc)
@@ -153,6 +159,7 @@ func New() *App {
 		authH.RegisterRoutes(r)
 		stripeH.RegisterRoutes(r)
 		gitH.RegisterRoutes(r)
+		healthH.RegisterRoutes(r)
 
 		// JWT-protected endpoints
 		r.Group(func(r chi.Router) {
