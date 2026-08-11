@@ -20,7 +20,7 @@ func TestGetEvent_QueueWorker_PicksUpQueuedEvent(t *testing.T) {
 	insertWebhook(ctx, t, provID, "queued")
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	hooks, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvents(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestGetEvent_QueueWorker_NoEvents(t *testing.T) {
 	beforeEachWorker(t)
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	_, err := repo.GetEvent(context.Background())
+	_, err := repo.GetEvents(context.Background())
 	if err == nil {
 		t.Fatal("expected error when no queued events exist")
 	}
@@ -53,7 +53,7 @@ func TestGetEvent_RetryWorker_PicksUpFailedEvent(t *testing.T) {
 	insertWebhookWithStatus(ctx, t, provID, "failed", time.Now().Add(-time.Minute), 0)
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
-	hooks, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvents(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestGetEvent_RetryWorker_ExhaustedRetries(t *testing.T) {
 	insertWebhookWithStatus(ctx, t, provID, "failed", time.Now().Add(-time.Minute), 5)
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
-	_, err := repo.GetEvent(ctx)
+	_, err := repo.GetEvents(ctx)
 	if err == nil {
 		t.Fatal("expected error when retries are exhausted")
 	}
@@ -92,7 +92,7 @@ func TestGetEvent_ReplayWorker_PicksUpReplayingEvent(t *testing.T) {
 	insertWebhookWithStatus(ctx, t, provID, "replaying", time.Now(), 0)
 
 	repo := NewWorkerRepo(testDB, WorkerKindReplay)
-	hooks, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvents(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestUpdateEvent(t *testing.T) {
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	updatedHooks, err := repo.UpdateEvent(ctx, []updateWebhook{updates})
+	updatedHooks, err := repo.UpdateEvents(ctx, []updateWebhook{updates})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestUpdateEvent_RetryWorker_IncrementsRetryCount(t *testing.T) {
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
-	updatedHooks, err := repo.UpdateEvent(ctx, []updateWebhook{updates})
+	updatedHooks, err := repo.UpdateEvents(ctx, []updateWebhook{updates})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
