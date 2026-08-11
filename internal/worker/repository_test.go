@@ -20,12 +20,15 @@ func TestGetEvent_QueueWorker_PicksUpQueuedEvent(t *testing.T) {
 	insertWebhook(ctx, t, provID, "queued")
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	hook, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvent(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if hook.DeliveryStatus != model.DeliveryStatusProcessing {
-		t.Fatalf("expected status 'processing', got %q", hook.DeliveryStatus)
+	if len(hooks) != 1 {
+		t.Fatalf("expected 1 hook, got %d", len(hooks))
+	}
+	if hooks[0].DeliveryStatus != model.DeliveryStatusProcessing {
+		t.Fatalf("expected status 'processing', got %q", hooks[0].DeliveryStatus)
 	}
 }
 
@@ -50,12 +53,15 @@ func TestGetEvent_RetryWorker_PicksUpFailedEvent(t *testing.T) {
 	insertWebhookWithStatus(ctx, t, provID, "failed", time.Now().Add(-time.Minute), 0)
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
-	hook, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvent(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if hook.DeliveryStatus != model.DeliveryStatusRetrying {
-		t.Fatalf("expected status 'retrying', got %q", hook.DeliveryStatus)
+	if len(hooks) != 1 {
+		t.Fatalf("expected 1 hook, got %d", len(hooks))
+	}
+	if hooks[0].DeliveryStatus != model.DeliveryStatusRetrying {
+		t.Fatalf("expected status 'retrying', got %q", hooks[0].DeliveryStatus)
 	}
 }
 
@@ -86,17 +92,19 @@ func TestGetEvent_ReplayWorker_PicksUpReplayingEvent(t *testing.T) {
 	insertWebhookWithStatus(ctx, t, provID, "replaying", time.Now(), 0)
 
 	repo := NewWorkerRepo(testDB, WorkerKindReplay)
-	hook, err := repo.GetEvent(ctx)
+	hooks, err := repo.GetEvent(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if hook.DeliveryStatus != model.DeliveryStatusRetrying { // Replay sets to 'replaying' which is the same
+	if len(hooks) != 1 {
+		t.Fatalf("expected 1 hook, got %d", len(hooks))
+	}
+	if hooks[0].DeliveryStatus != model.DeliveryStatusRetrying { // Replay sets to 'replaying' which is the same
 		// Actually replay worker SETs 'replaying' and SELECTs 'replaying'. Verify it was returned.
-		if hook.DeliveryStatus != "replaying" {
-			t.Fatalf("expected 'replaying', got %q", hook.DeliveryStatus)
+		if hooks[0].DeliveryStatus != "replaying" {
+			t.Fatalf("expected 'replaying', got %q", hooks[0].DeliveryStatus)
 		}
 	}
-	_ = hook
 }
 
 func TestUpdateEvent(t *testing.T) {
@@ -118,10 +126,14 @@ func TestUpdateEvent(t *testing.T) {
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindQueue)
-	updated, err := repo.UpdateEvent(ctx, updates)
+	updatedHooks, err := repo.UpdateEvent(ctx, []updateWebhook{updates})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if len(updatedHooks) != 1 {
+		t.Fatalf("expected 1 updated hook, got %d", len(updatedHooks))
+	}
+	updated := updatedHooks[0]
 	if updated.DeliveryStatus != model.DeliveryStatusDelivered {
 		t.Fatalf("expected 'delivered', got %q", updated.DeliveryStatus)
 	}
@@ -149,10 +161,14 @@ func TestUpdateEvent_RetryWorker_IncrementsRetryCount(t *testing.T) {
 	}
 
 	repo := NewWorkerRepo(testDB, WorkerKindRetry)
-	updated, err := repo.UpdateEvent(ctx, updates)
+	updatedHooks, err := repo.UpdateEvent(ctx, []updateWebhook{updates})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if len(updatedHooks) != 1 {
+		t.Fatalf("expected 1 updated hook, got %d", len(updatedHooks))
+	}
+	updated := updatedHooks[0]
 	if updated.RetryCount != 1 {
 		t.Fatalf("expected retryCount 1, got %d", updated.RetryCount)
 	}

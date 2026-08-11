@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/JBK2116/vaulthook/internal/events"
@@ -100,9 +101,9 @@ func (w *Worker) startReplay(ctx context.Context) {
 // run kicks off the Worker to begin working on webhooks.
 func (w *Worker) run(ctx context.Context) {
 	for {
-		// get the next webhook for processing
+		// get the next batch of webhooks for processing
 		getCtx, cancelGet := context.WithTimeout(ctx, 5*time.Second)
-		hook, err := w.getNext(getCtx)
+		hooks, err := w.getNext(getCtx)
 		cancelGet()
 		if err != nil {
 			if errors.Is(err, ErrNoHooksToWork) {
@@ -113,27 +114,26 @@ func (w *Worker) run(ctx context.Context) {
 		}
 		// forwarding attempt (updates is valid for use even if error is not nil)
 		fwdCtx, cancelFwd := context.WithTimeout(ctx, 10*time.Second)
-		updates, err := w.forwardEvent(fwdCtx, hook)
+		updates := w.forwardEvent(fwdCtx, hooks)
 		cancelFwd()
-		if err != nil {
-			w.logger.Error().Stack().Err(err).Msg("[Worker] error occurred when forwarding webhook")
-		}
-		// update the webhook accordingly after the forwarding attempt
+		// update the webhooks accordingly after the forwarding attempt
 		updCtx, cancelUpd := context.WithTimeout(ctx, 5*time.Second)
-		hook, err = w.updateEvent(updCtx, updates)
+		updatedHooks, err := w.updateEvent(updCtx, updates)
 		cancelUpd()
 		if err != nil {
-			w.logger.Error().Stack().Err(err).Msg("[Worker] error occurred when updating webhook")
+			w.logger.Error().Stack().Err(err).Msg("[Worker] error occurred when updating webhooks")
 			continue
 		}
-		// send the updated webhook to the frontend
-		w.send(hook)
+		// send the updated webhooks to the frontend
+		for i := range updatedHooks {
+			w.send(&updatedHooks[i])
+		}
 	}
 }
 
-// getNext retrieves the next appropriate webhook event required for processing.
-func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
-	evt, err := w.repo.GetEvent(ctx)
+// getNext retrieves the next appropriate batch of webhook events required for processing.
+func (w *Worker) getNext(ctx context.Context) ([]model.Webhook, error) {
+	evt, err := w.repo.GetEvents(ctx)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNoHooksToWork
@@ -144,82 +144,110 @@ func (w *Worker) getNext(ctx context.Context) (*model.Webhook, error) {
 	return evt, nil
 }
 
-// forwardEvent attempts to forward the webhook event to its destination URL.
-func (w *Worker) forwardEvent(ctx context.Context, hook *model.Webhook) (updateWebhook, error) {
-	var updates updateWebhook
-	updates.id = hook.ID
-	updates.forwardedTo = &hook.ForwardedTo
-	updates.provName = model.ProviderName(hook.Provider)
-	prov, err := providers.Cache.Get(ctx, model.ProviderName(hook.Provider))
-	if err != nil {
-		setDefaultUpdateValues(err.Error(), &updates)
-		return updates, err
+// forwardEvent attempts to forward the webhook events to its destination URL.
+func (w *Worker) forwardEvent(ctx context.Context, hooks []model.Webhook) []updateWebhook {
+	ups := make([]updateWebhook, len(hooks))
+	var wg sync.WaitGroup
+
+	for i := range hooks {
+		hook := hooks[i]
+		wg.Add(1)
+		go func(i int, hook model.Webhook) {
+			defer wg.Done()
+
+			// update values for batch insert into the database later
+			var updates updateWebhook
+			updates.id = hook.ID
+			updates.forwardedTo = &hook.ForwardedTo
+			updates.provName = model.ProviderName(hook.Provider)
+
+			// update the destination if it has changed since the object was saved
+			prov, err := providers.Cache.Get(ctx, model.ProviderName(hook.Provider))
+			if err != nil {
+				setDefaultUpdateValues(err.Error(), &updates)
+				ups[i] = updates
+				return
+			}
+			if prov.DestinationURL != hook.ForwardedTo {
+				hook.ForwardedTo = prov.DestinationURL
+			}
+
+			// request only proceeds if the cache permits it
+			ok, err := limiter.Allow(ctx, &prov)
+			if err != nil {
+				setDefaultUpdateValues(err.Error(), &updates)
+				ups[i] = updates
+				return
+			}
+			if !ok {
+				setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
+				ups[i] = updates
+				return
+			}
+
+			// get the provider's destination URL
+			payload := bytes.NewReader(hook.Payload)
+
+			// configure the HTTP request payload
+			req, err := http.NewRequestWithContext(ctx, "POST", prov.DestinationURL, payload)
+			if err != nil {
+				setDefaultUpdateValues(err.Error(), &updates)
+				ups[i] = updates
+				return
+			}
+
+			// set provider-specific headers
+			switch hook.Provider {
+			case string(model.Stripe):
+				if headerErr := stripe.SetForwardHeaders(req, hook.Headers); headerErr != nil {
+					setDefaultUpdateValues(headerErr.Error(), &updates)
+					ups[i] = updates
+					return
+				}
+			case string(model.Github):
+				if headerErr := github.SetForwardHeaders(req, hook.Headers); headerErr != nil {
+					setDefaultUpdateValues(headerErr.Error(), &updates)
+					ups[i] = updates
+					return
+				}
+			}
+
+			// payload and headers are set
+			res, err := w.client.Do(req)
+			if err != nil {
+				// err only contains transport level errors
+				setDefaultUpdateValues(err.Error(), &updates)
+				ups[i] = updates
+				return
+			}
+			defer func() {
+				_ = res.Body.Close()
+			}()
+
+			// handle the response
+			code := res.StatusCode
+			switch {
+			case code >= 200 && code < 300:
+				setSuccessUpdateValues(code, &updates)
+			case code == 429, code == 503:
+				setRateLimitedUpdateValues(code, ErrRateLimited.Error(), res.Header.Get("Retry-After"), &updates)
+			case code >= 400 && code < 500:
+				setFailureUpdateValues(code, res.Status, &updates)
+			case code >= 500:
+				setRetryableUpdateValues(code, res.Status, &updates)
+			}
+
+			ups[i] = updates
+		}(i, hook)
 	}
-	if prov.DestinationURL != hook.ForwardedTo {
-		hook.ForwardedTo = prov.DestinationURL
-	}
-	ok, err := limiter.Allow(ctx, &prov)
-	if err != nil {
-		setDefaultUpdateValues(err.Error(), &updates)
-		return updates, err
-	}
-	if !ok {
-		setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
-		return updates, ErrRateLimited
-	}
-	// get the provider's destination URL
-	payload := bytes.NewReader(hook.Payload)
-	// configure the HTTP request payload
-	req, err := http.NewRequestWithContext(ctx, "POST", prov.DestinationURL, payload)
-	if err != nil {
-		setDefaultUpdateValues(err.Error(), &updates)
-		return updates, err
-	}
-	// set provider-specific headers
-	switch hook.Provider {
-	case string(model.Stripe):
-		if headerErr := stripe.SetForwardHeaders(req, hook.Headers); headerErr != nil {
-			setDefaultUpdateValues(headerErr.Error(), &updates)
-			return updates, headerErr
-		}
-	case string(model.Github):
-		if headerErr := github.SetForwardHeaders(req, hook.Headers); headerErr != nil {
-			setDefaultUpdateValues(headerErr.Error(), &updates)
-			return updates, headerErr
-		}
-	}
-	// payload and headers are set
-	res, err := w.client.Do(req)
-	if err != nil {
-		// err only contains transport level errors
-		setDefaultUpdateValues(err.Error(), &updates)
-		return updates, err
-	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
-	// handle the response
-	code := res.StatusCode
-	switch {
-	case code >= 200 && code < 300:
-		setSuccessUpdateValues(code, &updates)
-	case code == 429, code == 503:
-		setRateLimitedUpdateValues(code, ErrRateLimited.Error(), res.Header.Get("Retry-After"), &updates)
-	case code >= 400 && code < 500:
-		setFailureUpdateValues(code, res.Status, &updates)
-	case code >= 500:
-		setRetryableUpdateValues(code, res.Status, &updates)
-	}
-	return updates, nil
+
+	wg.Wait()
+	return ups
 }
 
-// updateEvent updates the received event's data in the database.
-func (w *Worker) updateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
-	hook, err := w.repo.UpdateEvent(ctx, updates)
-	if err != nil {
-		return nil, err
-	}
-	return hook, nil
+// updateEvent updates the received events' data in the database.
+func (w *Worker) updateEvent(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error) {
+	return w.repo.UpdateEvents(ctx, updates)
 }
 
 // send pushes the received updated event to the frontend via the SSE pipeline.

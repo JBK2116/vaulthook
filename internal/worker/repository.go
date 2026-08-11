@@ -6,6 +6,7 @@ import (
 
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -25,6 +26,12 @@ type updateWebhook struct {
 type WorkerKind int
 
 const (
+	QueueWorkerBatch  = 50
+	RetryWorkerBatch  = 25
+	ReplayWorkerBatch = 1
+)
+
+const (
 	// WorkerKindQueue processes newly ingested webhooks in 'queued' status.
 	WorkerKindQueue WorkerKind = iota
 	// WorkerKindRetry processes webhooks that previously failed and are due for retry.
@@ -36,10 +43,10 @@ const (
 // WorkerRepository defines the contract for webhook event persistence
 // operations required by background workers.
 type WorkerRepository interface {
-	// GetEvent queries the database for the next event to be processed.
-	GetEvent(ctx context.Context) (*model.Webhook, error)
-	// UpdateEvent applies the provided updates to the webhook event.
-	UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error)
+	// GetEvents queries the database for the next batch of events to be processed.
+	GetEvents(ctx context.Context) ([]model.Webhook, error)
+	// UpdateEvents applies the provided updates to the webhook events in batch.
+	UpdateEvents(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error)
 }
 
 // WorkerRepo provides database operations for worker event processing.
@@ -59,10 +66,10 @@ func NewWorkerRepo(db *pgxpool.Pool, kind WorkerKind) WorkerRepository {
 	}
 }
 
-// GetEvent safely queries the database for the next event matching the
+// GetEvents safely queries the database for the next event matching the
 // worker's processing strategy. It uses SELECT FOR UPDATE SKIP LOCKED
 // to prevent duplicate processing across concurrent workers.
-func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
+func (r *WorkerRepo) GetEvents(ctx context.Context) ([]model.Webhook, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -72,24 +79,26 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 	}()
 
 	var query string
+	var limit int
 
 	switch r.kind {
 	case WorkerKindQueue:
 		query = `
 		UPDATE webhook_events
 		SET delivery_status = 'processing'
-		WHERE id = (
+		WHERE id IN (
 			SELECT id FROM webhook_events
 			WHERE delivery_status = 'queued'
 			ORDER BY received_at ASC, id ASC
-			LIMIT 1
+			LIMIT $1
 			FOR UPDATE SKIP LOCKED
 		) RETURNING *`
+		limit = QueueWorkerBatch
 	case WorkerKindRetry:
 		query = `
 		UPDATE webhook_events
 		SET delivery_status = 'retrying'
-		WHERE id = (
+		WHERE id IN (
 			SELECT id FROM webhook_events
 			WHERE
 				(
@@ -104,38 +113,54 @@ func (r *WorkerRepo) GetEvent(ctx context.Context) (*model.Webhook, error) {
 					AND updated_at < NOW() - INTERVAL '1 minute'
 				)
 			ORDER BY next_retry_at ASC, id ASC
-			LIMIT 1
+			LIMIT $1
 			FOR UPDATE SKIP LOCKED
 		) RETURNING *`
+		limit = RetryWorkerBatch
 	case WorkerKindReplay:
 		query = `
 		UPDATE webhook_events
 		SET delivery_status = 'replaying'
-		WHERE id = (
+		WHERE id IN (
 			SELECT id FROM webhook_events
 			WHERE delivery_status = 'replaying'
 			ORDER BY received_at ASC, id ASC
-			LIMIT 1
+			LIMIT $1
 			FOR UPDATE SKIP LOCKED
 		) RETURNING *`
+		limit = ReplayWorkerBatch
 	}
-
-	var hook model.Webhook
-	err = tx.QueryRow(ctx, query).Scan(
-		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
-		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
-		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
-		&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
-	)
+	var hooks []model.Webhook
+	rows, err := tx.Query(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
-	return &hook, tx.Commit(ctx)
+	defer rows.Close()
+	for rows.Next() {
+		var hook model.Webhook
+		if err := rows.Scan(&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
+			&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
+			&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
+			&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
+		); err != nil {
+			return hooks, err
+		}
+		hooks = append(hooks, hook)
+	}
+	if rErr := rows.Err(); rErr != nil {
+		return nil, rErr
+	}
+	return hooks, tx.Commit(ctx)
 }
 
-// UpdateEvent applies the provided updates to the webhook event.
+// UpdateEvents applies the provided updates to the webhook events in batch.
 // For retry workers it additionally increments the retry_count.
-func (r *WorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*model.Webhook, error) {
+// Uses pgx.Batch to send all updates in a single network round-trip.
+func (r *WorkerRepo) UpdateEvents(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error) {
+	if len(updates) == 0 {
+		return []model.Webhook{}, nil
+	}
+
 	var query string
 	if r.kind == WorkerKindRetry {
 		query = `
@@ -162,18 +187,30 @@ func (r *WorkerRepo) UpdateEvent(ctx context.Context, updates updateWebhook) (*m
 		RETURNING *`
 	}
 
-	var hook model.Webhook
-	err := r.db.QueryRow(ctx, query,
-		updates.nextRetryAt, updates.deliveryStatus,
-		updates.responseCode, updates.lastError, updates.forwardedTo, updates.id,
-	).Scan(
-		&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
-		&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
-		&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
-		&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
+	batch := &pgx.Batch{}
+	for _, u := range updates {
+		batch.Queue(query,
+			u.nextRetryAt, u.deliveryStatus,
+			u.responseCode, u.lastError, u.forwardedTo, u.id,
+		)
 	}
-	return &hook, nil
+
+	br := r.db.SendBatch(ctx, batch)
+	defer br.Close()
+
+	hooks := make([]model.Webhook, 0, len(updates))
+	for range updates {
+		var hook model.Webhook
+		err := br.QueryRow().Scan(
+			&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
+			&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
+			&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
+			&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
+		)
+		if err != nil {
+			return hooks, err
+		}
+		hooks = append(hooks, hook)
+	}
+	return hooks, nil
 }
