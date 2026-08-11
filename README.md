@@ -46,7 +46,7 @@ Vaulthook ships as a single Docker image behind Caddy. All config lives in your 
 - `Caddyfile` - TLS termination and reverse proxy config
 - `entrypoint.sh` - runs database migrations then starts the binary
 
-Replace `:80` in `deploy/Caddyfile` with your actual domain (e.g. `example.com`) — Caddy will automatically request a Let's Encrypt TLS certificate. Then point your providers at `https://yourdomain.com/api/webhooks/:provider`.
+Replace `:80` in `deploy/Caddyfile` with your actual domain (e.g. `example.com`) and Caddy will automatically request a Let's Encrypt TLS certificate. Then point your providers at `https://yourdomain.com/api/webhooks/:provider`.
 
 ## Environment Variables
 
@@ -60,8 +60,6 @@ See `env_example.txt` for the full reference. Key variables:
 | `MASTER_KEY`             | AES-256 key for encrypting provider secrets |
 | `DATABASE_URL`           | PostgreSQL connection string                |
 | `REDIS_URL`              | Redis connection string                     |
-| `TOTAL_QUEUE_WORKERS`    | Number of concurrent queue workers          |
-| `TOTAL_RETRY_WORKERS`    | Number of concurrent retry workers          |
 | `RETRY_INTERVAL_SECONDS` | Backoff interval between retries            |
 
 ## Tech Stack
