@@ -24,16 +24,16 @@ type loginRequestBody struct {
 // It relies on an AuthService for business logic and a logger for
 // structured error reporting.
 type AuthHandler struct {
-	logger  *zerolog.Logger
-	service *auth.AuthService
+	logger *zerolog.Logger
+	svc    *auth.AuthService
 }
 
 // NewAuthHandler returns an AuthHandler configured with the provided
 // logger and AuthService.
-func NewAuthHandler(logger *zerolog.Logger, service *auth.AuthService) *AuthHandler {
+func NewAuthHandler(logger *zerolog.Logger, svc *auth.AuthService) *AuthHandler {
 	return &AuthHandler{
-		logger:  logger,
-		service: service,
+		logger: logger,
+		svc:    svc,
 	}
 }
 
@@ -48,7 +48,7 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	accessT, refreshT, err := h.service.Login(ctx, body.Email, body.Password)
+	accessT, refreshT, err := h.svc.Login(ctx, body.Email, body.Password)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -72,7 +72,7 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
 	defer cancel()
-	if err := h.service.DeleteRefreshToken(ctx, refreshT.Value); err != nil {
+	if err := h.svc.DeleteRefreshToken(ctx, refreshT.Value); err != nil {
 		h.logger.Error().Stack().Err(err).Msg("[Auth] error occurred deleting refresh token")
 		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
 		return
@@ -94,7 +94,7 @@ func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	accessT, refreshT, err := h.service.RefreshToken(ctx, token.Value)
+	accessT, refreshT, err := h.svc.RefreshToken(ctx, token.Value)
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, auth.ErrInvalidToken) || errors.Is(err, auth.ErrTokenNotFound) || errors.Is(err, auth.ErrTokenKeyMissing) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -118,7 +118,7 @@ func (h *AuthHandler) me(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	_, err = h.service.ValidateAccessToken(token.Value)
+	_, err = h.svc.ValidateAccessToken(token.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

@@ -32,14 +32,14 @@ var (
 // must be exactly 32 bytes or an error is returned.
 func EncryptSigningKey(plaintext string) (string, error) {
 	plaintextBytes := []byte(plaintext)
-	// create the encryption key and iv key used for AES encrpytion
+	// create the encryption key and iv key used for AES encryption
 	keyBytes := []byte(config.Envs.MasterKey) // MasterKey is 32 bytes
 	// block serves as the lock for keeping the plaintext data secure
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrEncryption, err)
 	}
-	// introduce gcm to further enhance encrpytion
+	// introduce gcm to further enhance encryption
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrEncryption, err)

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	crypto "github.com/JBK2116/vaulthook/internal/crypto"
+	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
@@ -72,16 +72,16 @@ func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader stri
 	if err != nil {
 		return stripe.Event{}, err
 	}
-	decrytedSecret, err := crypto.DecryptSigningKey(prov.SigningSecret)
+	decrypted, err := crypto.DecryptSigningKey(prov.SigningSecret)
 	if err != nil {
 		return stripe.Event{}, err
 	}
-	event, err := webhook.ConstructEvent(payload, signatureHeader, decrytedSecret)
+	event, err := webhook.ConstructEvent(payload, signatureHeader, decrypted)
 	if err != nil {
 		s.logger.Error().
 			Err(err).
-			Int("secret_len", len(decrytedSecret)).
-			Str("secret_prefix", safePrefix(decrytedSecret)).
+			Int("secret_len", len(decrypted)).
+			Str("secret_prefix", safePrefix(decrypted)).
 			Str("sig_prefix", safePrefix(signatureHeader)).
 			Int("payload_len", len(payload)).
 			Msg("[Stripe] failed to validate stripe webhook secret")

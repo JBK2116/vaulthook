@@ -46,7 +46,7 @@ func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
 // Start kicks off the background batching loop for processing webhooks.
 //
 // On each ticker pulse it drains all pending events from the broadcast channel
-// in bulk (holding the mutex once) before flushing. Between ticks it consumes
+// in bulk (holding the mutex once) before flushing. Between ticks, it consumes
 // events one at a time. This avoids the original single-event-per-iteration
 // bottleneck and prevents the ticker from starving event consumption.
 func (s *EventService) Start(ctx context.Context) {
@@ -181,7 +181,7 @@ func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 	return nil
 }
 
-// Search returns all webhooks that meet thre requirements listed in the provided options payload
+// Search returns all webhooks that meet the requirements listed in the provided options payload
 func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (model.SearchResponse, error) {
 	// Default to a sensible page size when none is provided.
 	if opts.Limit <= 0 {
@@ -237,6 +237,6 @@ func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (mo
 
 // convTime is a helper function to convert a valid ISO8601 string to a time object
 func convTime(iso string) *time.Time {
-	time, _ := time.Parse(time.RFC3339, iso)
-	return &time
+	t, _ := time.Parse(time.RFC3339, iso)
+	return &t
 }

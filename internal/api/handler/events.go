@@ -47,9 +47,9 @@ func (h *EventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 	}
-	// client disconncection handling
+	// client disconnection handling
 	clientGone := r.Context().Done()
-	// subcriber handling
+	// subscriber handling
 	ch, unsub := h.service.Subscribe()
 	defer unsub()
 	rc := http.NewResponseController(w)
@@ -157,13 +157,13 @@ func (h *EventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 		}
 		cursor = &t
 	}
-	events, err := h.service.GetAll(ctx, cursor)
+	evs, err := h.service.GetAll(ctx, cursor)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Events] error retrieving all webhook events from the database")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	rBody, err := json.Marshal(events)
+	rBody, err := json.Marshal(evs)
 	if err != nil {
 		h.logger.Error().Stack().Err(err).Msg("[Events] error marshaling webhook events")
 		w.WriteHeader(http.StatusInternalServerError)

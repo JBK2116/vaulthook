@@ -25,7 +25,7 @@ type updateWebhook struct {
 // WorkerKind enumerates the different types of worker processing strategies.
 type WorkerKind int
 
-// sensible batch defaults overrided in app.go
+// sensible batch defaults override in app.go
 var (
 	QueueWorkerBatch = 50
 	RetryWorkerBatch = 25

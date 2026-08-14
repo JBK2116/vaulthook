@@ -25,7 +25,7 @@ func NewEventRepo(db *pgxpool.Pool) *EventRepo {
 	}
 }
 
-// getAll retreives all webhook events from the database.
+// getAll retrieves all webhook events from the database.
 func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
 	var query string
 	var rows pgx.Rows

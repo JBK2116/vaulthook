@@ -25,7 +25,7 @@ func NewHealthHandler(svc *health.HealthService, logger *zerolog.Logger) *Health
 	}
 }
 
-// getHealth handles GET /health requests providing a health check covering the applications status.
+// getHealth handles GET /health requests providing a health check covering the applications' status.
 func (h *HealthHandler) getHealth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()

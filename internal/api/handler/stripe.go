@@ -17,26 +17,25 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var (
-	ErrStripeUnhandledEvent = errors.New("unhandled stripe webhook event type")
-	ErrStripeWebhookParsing = errors.New("error parsing webhook JSON")
+const (
+	StripeMaxBodyBytes = int64(65539)
 )
 
 // StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
 type StripeHandler struct {
-	logger       *zerolog.Logger
-	service      *stripe.StripeService
-	eventService *events.EventService
-	workerPool   *worker.WorkerPool
+	logger   *zerolog.Logger
+	svc      *stripe.StripeService
+	eventSvc *events.EventService
+	pool     *worker.WorkerPool
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, service *stripe.StripeService, eventService *events.EventService, workerPool *worker.WorkerPool) *StripeHandler {
+func NewStripeHandler(logger *zerolog.Logger, svc *stripe.StripeService, eventSvc *events.EventService, pool *worker.WorkerPool) *StripeHandler {
 	return &StripeHandler{
-		logger:       logger,
-		service:      service,
-		eventService: eventService,
-		workerPool:   workerPool,
+		logger:   logger,
+		svc:      svc,
+		eventSvc: eventSvc,
+		pool:     pool,
 	}
 }
 
@@ -46,8 +45,7 @@ func NewStripeHandler(logger *zerolog.Logger, service *stripe.StripeService, eve
 func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	const maxBodyBytes = int64(65539)
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, StripeMaxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Stripe] error receiving webhook request")
@@ -55,7 +53,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	signatureHeader := r.Header.Get("Stripe-Signature")
-	event, err := h.service.ValidateSecret(ctx, signatureHeader, payload)
+	event, err := h.svc.ValidateSecret(ctx, signatureHeader, payload)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Stripe] failed to validate webhook secret")
 		if errors.Is(err, crypto.ErrDecryption) {
@@ -71,7 +69,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	exists, err := h.service.Exists(ctx, event.ID)
+	exists, err := h.svc.Exists(ctx, event.ID)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Stripe] error checking if webhook exists")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -90,7 +88,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	stripeWebhook, err := h.service.InsertWebhook(ctx, headersJSON, payload, event)
+	stripeWebhook, err := h.svc.InsertWebhook(ctx, headersJSON, payload, event)
 	if err != nil {
 		if errors.Is(err, events.ErrHookExists) {
 			h.logger.Error().Err(err).Msgf("[Stripe] event already exists in database: %s", event.ID)
@@ -102,9 +100,9 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// notify the frontend
-	h.eventService.Send(stripeWebhook)
+	h.eventSvc.Send(stripeWebhook)
 	// alert the workers to begin processing
-	h.workerPool.Notify()
+	h.pool.Notify()
 	// send a response back to stripe
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // Explicitly set 200

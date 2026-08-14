@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	crypto "github.com/JBK2116/vaulthook/internal/crypto"
+	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 )

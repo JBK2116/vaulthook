@@ -17,29 +17,32 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	GitMaxBodyBytes = 25_000_000
+)
+
 // GitHandler handles webhook logic for all events that reach `/webhooks/github`
 type GitHandler struct {
-	logger       *zerolog.Logger
-	service      *github.GitService
-	eventService *events.EventService
-	workerPool   *worker.WorkerPool
+	logger     *zerolog.Logger
+	gitSvc     *github.GitService
+	eventSvc   *events.EventService
+	workerPool *worker.WorkerPool
 }
 
 // NewGitHandler returns an GitHandler configured with the provided logger and services.
-func NewGitHandler(logger *zerolog.Logger, service *github.GitService, eventService *events.EventService, workerPool *worker.WorkerPool) *GitHandler {
+func NewGitHandler(logger *zerolog.Logger, svc *github.GitService, evSvc *events.EventService, pool *worker.WorkerPool) *GitHandler {
 	return &GitHandler{
-		logger:       logger,
-		service:      service,
-		eventService: eventService,
-		workerPool:   workerPool,
+		logger:     logger,
+		gitSvc:     svc,
+		eventSvc:   evSvc,
+		workerPool: pool,
 	}
 }
 
 func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
 	defer cancel()
-	const maxBodyBytes = int64(25_000_000)
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, GitMaxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Github] error receiving webhook request")
@@ -59,7 +62,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	signature := r.Header.Get("X-Hub-Signature-256")
-	if secErr := h.service.ValidateSecret(ctx, signature, payload); secErr != nil {
+	if secErr := h.gitSvc.ValidateSecret(ctx, signature, payload); secErr != nil {
 		h.logger.Error().Err(secErr).Msg("[Github] failed to validate webhook secret")
 		if errors.Is(secErr, crypto.ErrDecryption) {
 			h.logger.Error().Err(secErr).Msg("[Github] failed to decrypt signing key")
@@ -75,7 +78,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	evID := r.Header.Get("X-Github-Delivery")
-	exists, err := h.service.Exists(ctx, evID)
+	exists, err := h.gitSvc.Exists(ctx, evID)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Github] error checking if webhook exists")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -93,7 +96,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	hook, err := h.service.InsertWebhook(ctx, headers, payload, hid, event)
+	hook, err := h.gitSvc.InsertWebhook(ctx, headers, payload, hid, event)
 	if err != nil {
 		if errors.Is(err, events.ErrHookExists) {
 			h.logger.Error().Err(err).Msgf("[Github] event already exists in database: %s", evID)
@@ -105,7 +108,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// notify the frontend
-	h.eventService.Send(hook)
+	h.eventSvc.Send(hook)
 	// alert the workers to begin processing
 	h.workerPool.Notify()
 	// send a response back to stripe
@@ -120,7 +123,7 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// RegisterRoutes mounts the github endpoints onto the provided router
+// RegisterRoutes mounts the GitHub endpoints onto the provided router
 func (h *GitHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/webhooks/github", h.Receive)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// sensible worker count details overidden in app.go
+// sensible worker count details overridden in app.go
 var (
 	TotalQueueWorkers = 8
 	TotalRetryWorkers = 4

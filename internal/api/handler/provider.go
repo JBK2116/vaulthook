@@ -39,13 +39,13 @@ func NewProviderHandler(logger *zerolog.Logger, service *providers.ProviderServi
 func (h *ProviderHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
 	defer cancel()
-	providers, err := h.service.GetAll(ctx)
+	provs, err := h.service.GetAll(ctx)
 	if err != nil {
 		h.logger.Error().Stack().Err(err).Msg("[Provider] error retrieving all providers from database")
 		http.Error(w, "error retrieving all providers from database", http.StatusInternalServerError)
 		return
 	}
-	rBody, err := json.Marshal(providers)
+	rBody, err := json.Marshal(provs)
 	if err != nil {
 		h.logger.Error().Stack().Err(err).Msg("[Provider] error marshaling providers")
 		http.Error(w, "error marshaling providers", http.StatusInternalServerError)

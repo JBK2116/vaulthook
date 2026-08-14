@@ -86,7 +86,7 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 	return nil
 }
 
-// InsertWebhook creates and stores a Github webhook using the provided data request
+// InsertWebhook creates and stores a GitHub webhook using the provided data request
 func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, id string, event string) (model.Webhook, error) {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload 
 	return hook, nil
 }
 
-// Exists checks if a github webhook with the provided event_id already exists in the database
+// Exists checks if a GitHub webhook with the provided event_id already exists in the database
 func (s *GitService) Exists(ctx context.Context, evID string) (bool, error) {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
