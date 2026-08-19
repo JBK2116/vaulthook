@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// configureRequestBody is a dto used to update a providers configuration variables
+// configureRequestBody is a dto used to update a providers configuration variables.
 type configureRequestBody struct {
 	SigningSecret  string `json:"signing_secret"`
 	DestinationURL string `json:"destination_url"`
@@ -35,9 +35,16 @@ func NewProviderHandler(logger *zerolog.Logger, service *providers.ProviderServi
 	}
 }
 
+const (
+	// getTimeout bounds the amount of time spent conducting a get providers response.
+	getTimeout = time.Second * 2
+	// configureTimeout bounds the amount of time spent conducting a configure providers response.
+	configureTimeout = time.Second * 2
+)
+
 // GetAll handles GET /providers, returning all providers as JSON.
 func (h *ProviderHandler) getAll(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
+	ctx, cancel := context.WithTimeout(r.Context(), getTimeout)
 	defer cancel()
 	provs, err := h.service.GetAll(ctx)
 	if err != nil {
@@ -53,8 +60,8 @@ func (h *ProviderHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Provider] error sending providers json to frontend")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Stack().Err(wErr).Msg("[Provider] error sending providers json to frontend")
 		return
 	}
 }
@@ -68,11 +75,21 @@ func (h *ProviderHandler) configure(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
+	ctx, cancel := context.WithTimeout(r.Context(), configureTimeout)
 	defer cancel()
-	provider, err := h.service.Configure(ctx, id, body.SigningSecret, body.DestinationURL, body.MaxRetries, body.MaxReqSecond)
+	provider, err := h.service.Configure(
+		ctx,
+		id,
+		body.SigningSecret,
+		body.DestinationURL,
+		body.MaxRetries,
+		body.MaxReqSecond,
+	)
 	if err != nil {
-		if errors.Is(err, providers.ErrMissingSigningSecret) || errors.Is(err, providers.ErrMissingDestination) || errors.Is(err, providers.ErrInvalidRetryCount) || errors.Is(err, providers.ErrInvalidReqSecond) {
+		if errors.Is(err, providers.ErrMissingSigningSecret) ||
+			errors.Is(err, providers.ErrMissingDestination) ||
+			errors.Is(err, providers.ErrInvalidRetryCount) ||
+			errors.Is(err, providers.ErrInvalidReqSecond) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -88,8 +105,8 @@ func (h *ProviderHandler) configure(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Provider] error sending providers json to frontend")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Stack().Err(wErr).Msg("[Provider] error sending providers json to frontend")
 		return
 	}
 }

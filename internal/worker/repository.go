@@ -25,7 +25,7 @@ type updateWebhook struct {
 // WorkerKind enumerates the different types of worker processing strategies.
 type WorkerKind int
 
-// sensible batch defaults override in app.go
+// sensible batch defaults override in app.go.
 var (
 	QueueWorkerBatch = 50
 	RetryWorkerBatch = 25
@@ -42,27 +42,27 @@ const (
 	WorkerKindReplay
 )
 
-// WorkerRepository defines the contract for webhook event persistence
+// Repository defines the contract for webhook event persistence
 // operations required by background workers.
-type WorkerRepository interface {
+type Repository interface {
 	// GetEvents queries the database for the next batch of events to be processed.
 	GetEvents(ctx context.Context) ([]model.Webhook, error)
 	// UpdateEvents applies the provided updates to the webhook events in batch.
 	UpdateEvents(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error)
 }
 
-// WorkerRepo provides database operations for worker event processing.
+// Repo provides database operations for worker event processing.
 // A single type handles queue, retry, and replay strategies via its
 // WorkerKind field, avoiding duplicate code across previously separate
 // repository types.
-type WorkerRepo struct {
+type Repo struct {
 	db   *pgxpool.Pool
 	kind WorkerKind
 }
 
 // NewWorkerRepo returns a WorkerRepo configured for the given processing kind.
-func NewWorkerRepo(db *pgxpool.Pool, kind WorkerKind) WorkerRepository {
-	return &WorkerRepo{
+func NewWorkerRepo(db *pgxpool.Pool, kind WorkerKind) Repository {
+	return &Repo{
 		db:   db,
 		kind: kind,
 	}
@@ -71,7 +71,7 @@ func NewWorkerRepo(db *pgxpool.Pool, kind WorkerKind) WorkerRepository {
 // GetEvents safely queries the database for the next event matching the
 // worker's processing strategy. It uses SELECT FOR UPDATE SKIP LOCKED
 // to prevent duplicate processing across concurrent workers.
-func (r *WorkerRepo) GetEvents(ctx context.Context) ([]model.Webhook, error) {
+func (r *Repo) GetEvents(ctx context.Context) ([]model.Webhook, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -140,12 +140,12 @@ func (r *WorkerRepo) GetEvents(ctx context.Context) ([]model.Webhook, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var hook model.Webhook
-		if err := rows.Scan(&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
+		if rErr := rows.Scan(&hook.ID, &hook.ProviderID, &hook.Provider, &hook.EventID,
 			&hook.EventType, &hook.Headers, &hook.Payload, &hook.DeliveryStatus,
 			&hook.ForwardedTo, &hook.ResponseCode, &hook.RetryCount, &hook.NextRetryAt,
 			&hook.LastError, &hook.ReceivedAt, &hook.CreatedAt, &hook.UpdatedAt,
-		); err != nil {
-			return hooks, err
+		); rErr != nil {
+			return hooks, rErr
 		}
 		hooks = append(hooks, hook)
 	}
@@ -158,7 +158,7 @@ func (r *WorkerRepo) GetEvents(ctx context.Context) ([]model.Webhook, error) {
 // UpdateEvents applies the provided updates to the webhook events in batch.
 // For retry workers it additionally increments the retry_count.
 // Uses pgx.Batch to send all updates in a single network round-trip.
-func (r *WorkerRepo) UpdateEvents(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error) {
+func (r *Repo) UpdateEvents(ctx context.Context, updates []updateWebhook) ([]model.Webhook, error) {
 	if len(updates) == 0 {
 		return []model.Webhook{}, nil
 	}
@@ -198,7 +198,9 @@ func (r *WorkerRepo) UpdateEvents(ctx context.Context, updates []updateWebhook) 
 	}
 
 	br := r.db.SendBatch(ctx, batch)
-	defer br.Close()
+	defer func(br pgx.BatchResults) {
+		_ = br.Close()
+	}(br)
 
 	hooks := make([]model.Webhook, 0, len(updates))
 	for range updates {

@@ -15,7 +15,10 @@ var (
 	ErrMissingSigningSecret = errors.New("error field is empty: signing_secret")
 	ErrMissingDestination   = errors.New("error missing field: destination_url")
 	ErrInvalidRetryCount    = fmt.Errorf("error field is invalid: retry_count must be between 0 and %d", maxRetryCount)
-	ErrInvalidReqSecond     = fmt.Errorf("error field is invalid: max_req_second must be between 0 and %d", maxReqSecond)
+	ErrInvalidReqSecond     = fmt.Errorf(
+		"error field is invalid: max_req_second must be between 0 and %d",
+		maxReqSecond,
+	)
 )
 
 const (
@@ -45,7 +48,8 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) 
 		if !prov.IsConfigured {
 			continue
 		}
-		decKey, err := crypto.DecryptSigningKey(prov.SigningSecret)
+		var decKey string
+		decKey, err = crypto.DecryptSigningKey(prov.SigningSecret)
 		if err != nil {
 			return nil, err
 		}
@@ -57,16 +61,23 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) 
 // Configure updates a providers configuration settings by ID,
 // setting is_configured to true. Returns an error if the ID is invalid,
 // any field is empty or a database error occurs.
-func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, des string, maxRetry int, maxReqSec int) (model.Provider, error) {
-	uuidS, err := uuid.Parse(ID)
+func (s *ProviderService) Configure(
+	ctx context.Context,
+	id string,
+	sec string,
+	des string,
+	maxRetry int,
+	maxReqSec int,
+) (model.Provider, error) {
+	uuidS, err := uuid.Parse(id)
 	sec = strings.TrimSpace(sec)
 	if err != nil {
 		return model.Provider{}, err
 	}
-	if len(sec) <= 0 {
+	if len(sec) == 0 {
 		return model.Provider{}, ErrMissingSigningSecret
 	}
-	if len(des) <= 0 {
+	if len(des) == 0 {
 		return model.Provider{}, ErrMissingDestination
 	}
 	if maxRetry < 0 || maxRetry > maxRetryCount {
@@ -83,7 +94,8 @@ func (s *ProviderService) Configure(ctx context.Context, ID string, sec string, 
 	if err != nil {
 		return model.Provider{}, err
 	}
-	if err := Cache.Set(ctx, model.ProviderName(prov.Name), prov); err != nil {
+	err = Cache.Set(ctx, model.ProviderName(prov.Name), prov)
+	if err != nil {
 		return model.Provider{}, err
 	}
 	return prov, nil

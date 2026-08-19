@@ -18,11 +18,11 @@ type postgres struct {
 var (
 	pgInstance *postgres       // singleton postgres instance.
 	pgOnce     sync.Once       // guards pool initialization.
-	PgErr      *pgconn.PgError // represents all possible pgx errors
+	ErrPg      *pgconn.PgError // represents all possible pgx errors
 )
 
 // NewPG constructs and returns a singleton postgres instance backed by a
-// pgxpool connection pool. The pool is initialized exactly once via sync.Once.
+// pgxpool connection pool. The pool is initialized exactly once via [sync.Once].
 // Subsequent calls return the existing instance.
 //
 // The connection string is assembled from config.Envs. If the pool cannot

@@ -2,12 +2,20 @@ package auth
 
 import "net/http"
 
-// NewAccessCookie creates an http.Cookie for the access token with the
+const (
+	// accessCookieName is the name of the cookie carrying the access token.
+	accessCookieName = "access_token"
+	// refreshCookieName is the name of the cookie carrying the refresh token.
+	refreshCookieName = "refresh_token"
+)
+
+// NewAccessCookie creates an [http.Cookie] for the access token with the
 // provided value, max-age in seconds, and Secure flag. Use a negative
 // maxAge to expire the cookie immediately.
 func NewAccessCookie(value string, maxAge int, secure bool) *http.Cookie {
+	//nolint:gosec // The Secure flag is intentionally driven by the environment (false in development).
 	return &http.Cookie{
-		Name:     "access_token",
+		Name:     accessCookieName,
 		Value:    value,
 		MaxAge:   maxAge,
 		HttpOnly: true,
@@ -16,12 +24,13 @@ func NewAccessCookie(value string, maxAge int, secure bool) *http.Cookie {
 	}
 }
 
-// NewRefreshCookie creates an http.Cookie for the refresh token with the
+// NewRefreshCookie creates an [http.Cookie] for the refresh token with the
 // provided value, max-age in seconds, and Secure flag. Use a negative
 // maxAge to expire the cookie immediately.
 func NewRefreshCookie(value string, maxAge int, secure bool) *http.Cookie {
+	//nolint:gosec // The Secure flag is intentionally driven by the environment (false in development).
 	return &http.Cookie{
-		Name:     "refresh_token",
+		Name:     refreshCookieName,
 		Value:    value,
 		MaxAge:   maxAge,
 		HttpOnly: true,

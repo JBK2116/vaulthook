@@ -42,7 +42,7 @@ var testAuthService *auth.AuthService
 var testAuthHandler *AuthHandler
 
 // WORKERS
-var workerPool *worker.WorkerPool
+var workerPool *worker.Pool
 
 // PROVIDERS
 var testProviderRepo *providers.ProviderRepo

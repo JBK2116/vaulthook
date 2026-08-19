@@ -56,7 +56,10 @@ func (w *cleanupWorker) runCleanup(ctx context.Context) {
 		return
 	}
 	if age.RowsAffected() > 0 {
-		w.logger.Info().Int64("rows_removed", age.RowsAffected()).Int("retention_days", retentionDays).Msg("[Cleanup] age purge complete")
+		w.logger.Info().
+			Int64("rows_removed", age.RowsAffected()).
+			Int("retention_days", retentionDays).
+			Msg("[Cleanup] age purge complete")
 	}
 	// if still over limit, evict oldest first
 	var count int
@@ -81,5 +84,8 @@ func (w *cleanupWorker) runCleanup(ctx context.Context) {
 		w.logger.Error().Err(err).Msg("[Cleanup] eviction error")
 		return
 	}
-	w.logger.Info().Int64("rows_removed", evict.RowsAffected()).Int("max_rows", maxRows).Msg("[cleanup] eviction complete")
+	w.logger.Info().
+		Int64("rows_removed", evict.RowsAffected()).
+		Int("max_rows", maxRows).
+		Msg("[cleanup] eviction complete")
 }

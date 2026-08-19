@@ -27,7 +27,7 @@ type CreateWebhookParams struct {
 	ReceivedAt time.Time
 }
 
-// Webhook struct represents a webhook event received by a provider
+// Webhook struct represents a webhook event received by a provider.
 type Webhook struct {
 	// Webhook ID
 	ID uuid.UUID `json:"id"`

@@ -69,7 +69,7 @@ func (r *RedisCache) GetCache() *redis.Client {
 	return r.cache
 }
 
-// NewCache returns a new redis client for use
+// NewCache returns a new redis client for use.
 func NewCache(ctx context.Context) (*redis.Client, error) {
 	opts, parseErr := redis.ParseURL(config.Envs.RedisURL)
 	if parseErr != nil {

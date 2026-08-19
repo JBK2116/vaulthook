@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -17,6 +18,16 @@ import (
 
 var (
 	ErrClientDisconnected = errors.New("[Events] client disconnected from backend sse")
+)
+
+const (
+	// SSEHeartbeatInterval is how often a comment-only frame is sent to
+	// keep the SSE connection alive when no events are arriving.
+	SSEHeartbeatInterval = time.Second * 15
+
+	// requestTimeout bounds the service calls made by the non-SSE event
+	// endpoints.
+	requestTimeout = time.Second * 3
 )
 
 // EventsHandler handles SSE event logic for sending webhook related data to the frontend.
@@ -54,15 +65,10 @@ func (h *EventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 	defer unsub()
 	rc := http.NewResponseController(w)
 	// needs to be sent immediately to confirm connection and keep it running
-	if _, err := fmt.Fprintf(w, "event: connected\ndata: {}\n\n"); err != nil {
-		h.logger.Error().Err(err).Msg("[Events] failed to send initial connection string to frontend via sse")
-	}
-	if err := rc.Flush(); err != nil {
-		h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
-	}
+	h.announceConnected(w, rc)
 	h.logger.Info().Msg("[Events] client sse connected")
 	// heartbeat for sse to keep it running when no events are coming in
-	ticker := time.NewTicker(15 * time.Second)
+	ticker := time.NewTicker(SSEHeartbeatInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -70,47 +76,79 @@ func (h *EventsHandler) SSE(w http.ResponseWriter, r *http.Request) {
 			h.logger.Error().Err(ErrClientDisconnected).Msg(ErrClientDisconnected.Error())
 			return
 		case <-ticker.C:
-			// heartbeat
-			if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
-				h.logger.Error().Err(err).Msg("[Events] failed to send heartbeat")
-				return
-			}
-			if err := rc.Flush(); err != nil {
-				h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
+			if err := h.sendHeartbeat(w, rc); err != nil {
 				return
 			}
 		case batch := <-ch:
-			data, err := json.Marshal(batch)
-			if err != nil {
-				h.logger.Error().Err(err).Msg("[Events] failed to marshal batch")
-				continue
-			}
-			// send the entire array under one 'data:' identifier
-			if _, err := fmt.Fprintf(w, "data: %s\n\n", data); err != nil {
-				h.logger.Error().Err(err).Msg("[Events] failed to send batch to frontend")
+			if err := h.streamBatch(w, rc, batch); err != nil {
 				return
-			}
-			if err := rc.Flush(); err != nil {
-				h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
-				return
-			}
-			// Signal overflow so the client can resync from the REST API
-			if dropped := h.service.Dropped(); dropped > 0 {
-				if _, err := fmt.Fprintf(w, "event: overflow\ndata: {\"count\":%d}\n\n", dropped); err != nil {
-					h.logger.Error().Err(err).Msg("[Events] failed to send overflow event")
-					return
-				}
-				if err := rc.Flush(); err != nil {
-					h.logger.Error().Err(err).Msg("[Events] failed to flush overflow")
-					return
-				}
 			}
 		}
 	}
 }
 
+// announceConnected sends the initial SSE frame that confirms the connection
+// to the client. Errors are logged but not fatal, since the connection is
+// kept alive regardless.
+func (h *EventsHandler) announceConnected(w io.Writer, rc *http.ResponseController) {
+	if _, err := fmt.Fprintf(w, "event: connected\ndata: {}\n\n"); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] failed to send initial connection string to frontend via sse")
+	}
+	if err := rc.Flush(); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
+	}
+}
+
+// sendHeartbeat writes a comment-only SSE frame to keep the connection alive
+// and flushes the response. It returns an error when the connection should
+// be closed.
+func (h *EventsHandler) sendHeartbeat(w io.Writer, rc *http.ResponseController) error {
+	if _, err := fmt.Fprintf(w, ": heartbeat\n\n"); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] failed to send heartbeat")
+		return err
+	}
+	if err := rc.Flush(); err != nil {
+		h.logger.Error().Err(err).Msg("[Events] failed to flush sse buffer")
+		return err
+	}
+	return nil
+}
+
+// streamBatch marshals the webhook batch and writes it as a single SSE data
+// frame, followed by an overflow frame when events were dropped. It returns
+// an error when the connection should be closed; marshal failures are logged
+// and the batch is skipped.
+func (h *EventsHandler) streamBatch(w io.Writer, rc *http.ResponseController, batch []model.Webhook) error {
+	data, err := json.Marshal(batch)
+	if err != nil {
+		h.logger.Error().Err(err).Msg("[Events] failed to marshal batch")
+		return nil
+	}
+	// send the entire array under one 'data:' identifier
+	if _, pErr := fmt.Fprintf(w, "data: %s\n\n", data); pErr != nil {
+		h.logger.Error().Err(pErr).Msg("[Events] failed to send batch to frontend")
+		return pErr
+	}
+	if fErr := rc.Flush(); fErr != nil {
+		h.logger.Error().Err(fErr).Msg("[Events] failed to flush sse buffer")
+		return fErr
+	}
+	// Signal overflow so the client can resync from the REST API
+	if dropped := h.service.Dropped(); dropped > 0 {
+		if _, dErr := fmt.Fprintf(w, "event: overflow\ndata: {\"count\":%d}\n\n", dropped); dErr != nil {
+			h.logger.Error().Err(dErr).Msg("[Events] failed to send overflow event")
+			return dErr
+		}
+		if oErr := rc.Flush(); oErr != nil {
+			h.logger.Error().Err(oErr).Msg("[Events] failed to flush overflow")
+			return oErr
+		}
+	}
+	return nil
+}
+
 func (h *EventsHandler) search(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 	var opts model.SearchRequest
 	if err := json.NewDecoder(r.Body).Decode(&opts); err != nil {
@@ -137,16 +175,15 @@ func (h *EventsHandler) search(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Err(err).Msg("[Events] error sending webhook events to frontend")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Err(wErr).Msg("[Events] error sending webhook events to frontend")
 		return
 	}
-
 }
 
 // getAll handles GET /events, returning all webhook events as JSON.
 func (h *EventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 	var cursor *time.Time
 	if c := r.URL.Query().Get("cursor"); c != "" {
@@ -171,15 +208,15 @@ func (h *EventsHandler) getAll(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Events] error sending webhook events to frontend")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Stack().Err(wErr).Msg("[Events] error sending webhook events to frontend")
 		return
 	}
 }
 
-// getStats retrieves statistics for webhooks
+// getStats retrieves statistics for webhooks.
 func (h *EventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 	stats, err := h.service.GetStats(ctx)
 	if err != nil {
@@ -195,16 +232,16 @@ func (h *EventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Events] error sending stats to frontend")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Stack().Err(wErr).Msg("[Events] error sending stats to frontend")
 		return
 	}
 }
 
-// replayEvent sets the webhook with the provided id to status 'queued' allowing it to be replayed by queue workers
+// replayEvent sets the webhook with the provided id to status 'queued' allowing it to be replayed by queue workers.
 func (h *EventsHandler) replayEvent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 	if err := h.service.ReplayEvent(ctx, id); err != nil {
 		if errors.Is(err, events.ErrInvalidUUID) {

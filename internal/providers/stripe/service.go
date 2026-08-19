@@ -15,12 +15,16 @@ import (
 	"github.com/stripe/stripe-go/v85/webhook"
 )
 
+const (
+	secretPrefixLength = 6
+)
+
 // safePrefix returns a truncated version of s safe for logging.
 func safePrefix(s string) string {
-	if len(s) <= 6 {
+	if len(s) <= secretPrefixLength {
 		return s
 	}
-	return s[:6]
+	return s[:secretPrefixLength]
 }
 
 // SetForwardHeaders applies the appropriate Stripe-specific HTTP headers
@@ -57,7 +61,11 @@ type StripeService struct {
 
 // NewStripeService returns a StripeService configured with the provided
 // logger, event repository, and provider repository.
-func NewStripeService(logger *zerolog.Logger, eventRepo *events.EventRepo, providerRepo *providers.ProviderRepo) *StripeService {
+func NewStripeService(
+	logger *zerolog.Logger,
+	eventRepo *events.EventRepo,
+	providerRepo *providers.ProviderRepo,
+) *StripeService {
 	return &StripeService{
 		logger:       logger,
 		eventRepo:    eventRepo,
@@ -67,7 +75,11 @@ func NewStripeService(logger *zerolog.Logger, eventRepo *events.EventRepo, provi
 
 // ValidateSecret receives a stripe signature from the `Stripe-Signature` header
 // and ensures that it matches the secret key used for stripe endpoints.
-func (s *StripeService) ValidateSecret(ctx context.Context, signatureHeader string, payload []byte) (stripe.Event, error) {
+func (s *StripeService) ValidateSecret(
+	ctx context.Context,
+	signatureHeader string,
+	payload []byte,
+) (stripe.Event, error) {
 	prov, err := providers.Cache.Get(ctx, model.Stripe)
 	if err != nil {
 		return stripe.Event{}, err
@@ -98,7 +110,6 @@ func (s *StripeService) Exists(ctx context.Context, evID string) (bool, error) {
 	}
 	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
 	return exists, err
-
 }
 
 // InsertWebhook creates and stores a Stripe webhook using the incoming request
@@ -106,7 +117,12 @@ func (s *StripeService) Exists(ctx context.Context, evID string) (bool, error) {
 // parameters, and persists the webhook.
 //
 // Returns the stored webhook record or an error if any step fails.
-func (s *StripeService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, event stripe.Event) (model.Webhook, error) {
+func (s *StripeService) InsertWebhook(
+	ctx context.Context,
+	headers []byte,
+	payload []byte,
+	event stripe.Event,
+) (model.Webhook, error) {
 	prov, err := providers.Cache.Get(ctx, model.Stripe)
 	if err != nil {
 		return model.Webhook{}, err

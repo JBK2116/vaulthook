@@ -58,7 +58,11 @@ type GitService struct {
 
 // NewGitService returns a GitService configured with the provided logger,
 // event repository, and provider repository.
-func NewGitService(logger *zerolog.Logger, eventRepo *events.EventRepo, providerRepo *providers.ProviderRepo) *GitService {
+func NewGitService(
+	logger *zerolog.Logger,
+	eventRepo *events.EventRepo,
+	providerRepo *providers.ProviderRepo,
+) *GitService {
 	return &GitService{
 		logger:       logger,
 		eventRepo:    eventRepo,
@@ -68,7 +72,7 @@ func NewGitService(logger *zerolog.Logger, eventRepo *events.EventRepo, provider
 
 // ValidateSecret receives a GitHub signature from the `X-Hub-Signature-256`
 // header and ensures that it matches the secret key used for GitHub endpoints.
-func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) (err error) {
+func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) error {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
 		return err
@@ -86,8 +90,14 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 	return nil
 }
 
-// InsertWebhook creates and stores a GitHub webhook using the provided data request
-func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload []byte, id string, event string) (model.Webhook, error) {
+// InsertWebhook creates and stores a GitHub webhook using the provided data request.
+func (s *GitService) InsertWebhook(
+	ctx context.Context,
+	headers []byte,
+	payload []byte,
+	id string,
+	event string,
+) (model.Webhook, error) {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
 		return model.Webhook{}, err
@@ -109,7 +119,7 @@ func (s *GitService) InsertWebhook(ctx context.Context, headers []byte, payload 
 	return hook, nil
 }
 
-// Exists checks if a GitHub webhook with the provided event_id already exists in the database
+// Exists checks if a GitHub webhook with the provided event_id already exists in the database.
 func (s *GitService) Exists(ctx context.Context, evID string) (bool, error) {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {

@@ -19,14 +19,40 @@ import (
 )
 
 const (
+	// RetryIntervalSeconds is how long the worker waits before retrying
+	// a failed webhook delivery.
 	RetryIntervalSeconds = 30
+
+	// workerInterval is how often the worker wakes to poll for webhooks.
+	workerInterval = 30 * time.Second
+
+	// replayInterval is how often the worker wakes to process replay events.
+	replayInterval = 2 * time.Second
+
+	// getEventsTimeout bounds the database fetch for the next batch of webhooks.
+	getEventsTimeout = 5 * time.Second
+
+	// forwardEventTimeout bounds forwarding a batch of webhooks to their destinations.
+	forwardEventTimeout = 10 * time.Second
+
+	// updateEventsTimeout bounds persisting delivery results to the database.
+	updateEventsTimeout = 5 * time.Second
+
+	// httpClientTimeout is the overall timeout for each forwarded HTTP request.
+	httpClientTimeout = 10 * time.Second
+
+	// maxIdleConns caps the number of idle keep-alive connections the client retains.
+	maxIdleConns = 100
+
+	// idleConnTimeout is how long an idle keep-alive connection is retained.
+	idleConnTimeout = 90 * time.Second
 )
 
 // Worker struct is responsible for processing all webhook events that are
 // stored in the database.
 type Worker struct {
 	sse    *events.EventService
-	repo   WorkerRepository
+	repo   Repository
 	logger *zerolog.Logger
 	client *http.Client
 }
@@ -37,16 +63,16 @@ var (
 )
 
 // newWorker returns a pointer to a Worker backed by the provided values.
-func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.Logger) *Worker {
+func newWorker(svc *events.EventService, repo Repository, logger *zerolog.Logger) *Worker {
 	return &Worker{
 		sse:    svc,
 		repo:   repo,
 		logger: logger,
 		client: &http.Client{
-			Timeout: time.Second * 10,
+			Timeout: httpClientTimeout,
 			Transport: &http.Transport{
-				MaxIdleConns:    100,
-				IdleConnTimeout: 90 * time.Second,
+				MaxIdleConns:    maxIdleConns,
+				IdleConnTimeout: idleConnTimeout,
 			},
 		},
 	}
@@ -54,7 +80,7 @@ func newWorker(svc *events.EventService, repo WorkerRepository, logger *zerolog.
 
 // start kicks off a loop that causes the worker to run in the background.
 func (w *Worker) start(ctx context.Context, signal <-chan struct{}) {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(workerInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -86,7 +112,7 @@ func (w *Worker) startRetry(ctx context.Context) {
 // startReplay kicks off a loop that causes the worker to run in the background
 // following a short interval for replay events.
 func (w *Worker) startReplay(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 2)
+	ticker := time.NewTicker(replayInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -102,7 +128,7 @@ func (w *Worker) startReplay(ctx context.Context) {
 func (w *Worker) run(ctx context.Context) {
 	for {
 		// get the next batch of webhooks for processing
-		getCtx, cancelGet := context.WithTimeout(ctx, 5*time.Second)
+		getCtx, cancelGet := context.WithTimeout(ctx, getEventsTimeout)
 		hooks, err := w.getNext(getCtx)
 		cancelGet()
 		if err != nil {
@@ -113,11 +139,11 @@ func (w *Worker) run(ctx context.Context) {
 			break
 		}
 		// forwarding attempt (updates is valid for use even if error is not nil)
-		fwdCtx, cancelFwd := context.WithTimeout(ctx, 10*time.Second)
+		fwdCtx, cancelFwd := context.WithTimeout(ctx, forwardEventTimeout)
 		updates := w.forwardEvent(fwdCtx, hooks)
 		cancelFwd()
 		// update the webhooks accordingly after the forwarding attempt
-		updCtx, cancelUpd := context.WithTimeout(ctx, 5*time.Second)
+		updCtx, cancelUpd := context.WithTimeout(ctx, updateEventsTimeout)
 		updatedHooks, err := w.updateEvent(updCtx, updates)
 		cancelUpd()
 		if err != nil {
@@ -180,7 +206,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hooks []model.Webhook) []upda
 				return
 			}
 			if !ok {
-				setRateLimitedUpdateValues(429, ErrRateLimited.Error(), "", &updates)
+				setRateLimitedUpdateValues(http.StatusTooManyRequests, ErrRateLimited.Error(), "", &updates)
 				ups[i] = updates
 				return
 			}
@@ -189,7 +215,7 @@ func (w *Worker) forwardEvent(ctx context.Context, hooks []model.Webhook) []upda
 			payload := bytes.NewReader(hook.Payload)
 
 			// configure the HTTP request payload
-			req, err := http.NewRequestWithContext(ctx, "POST", prov.DestinationURL, payload)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, prov.DestinationURL, payload)
 			if err != nil {
 				setDefaultUpdateValues(err.Error(), &updates)
 				ups[i] = updates
@@ -229,11 +255,11 @@ func (w *Worker) forwardEvent(ctx context.Context, hooks []model.Webhook) []upda
 			switch {
 			case code >= 200 && code < 300:
 				setSuccessUpdateValues(code, &updates)
-			case code == 429, code == 503:
+			case code == http.StatusTooManyRequests, code == http.StatusServiceUnavailable:
 				setRateLimitedUpdateValues(code, ErrRateLimited.Error(), res.Header.Get("Retry-After"), &updates)
-			case code >= 400 && code < 500:
+			case code >= http.StatusBadRequest && code < http.StatusInternalServerError:
 				setFailureUpdateValues(code, res.Status, &updates)
-			case code >= 500:
+			case code >= http.StatusInternalServerError:
 				setRetryableUpdateValues(code, res.Status, &updates)
 			}
 

@@ -14,6 +14,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Request timeouts for the service calls made by the auth handlers.
+const (
+	loginTimeout   = 3 * time.Second
+	logoutTimeout  = 2 * time.Second
+	refreshTimeout = 3 * time.Second
+)
+
+// Conversion factors for expressing token TTLs, which are configured in
+// minutes (access) and hours (refresh), as cookie max-age in seconds.
+const (
+	secondsPerMinute = 60
+	secondsPerHour   = 60 * 60
+)
+
 // loginRequestBody holds the expected JSON fields for a login request.
 type loginRequestBody struct {
 	Email    string `json:"email"`
@@ -46,7 +60,7 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), err.Status)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), loginTimeout)
 	defer cancel()
 	accessT, refreshT, err := h.svc.Login(ctx, body.Email, body.Password)
 	if err != nil {
@@ -59,8 +73,8 @@ func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secure := !config.Envs.IsDevelopment
-	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*60, secure))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*60*60, secure))
+	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*secondsPerMinute, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*secondsPerHour, secure))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -70,10 +84,10 @@ func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing refresh token cookie", http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*2)
+	ctx, cancel := context.WithTimeout(r.Context(), logoutTimeout)
 	defer cancel()
-	if err := h.svc.DeleteRefreshToken(ctx, refreshT.Value); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Auth] error occurred deleting refresh token")
+	if delErr := h.svc.DeleteRefreshToken(ctx, refreshT.Value); delErr != nil {
+		h.logger.Error().Stack().Err(delErr).Msg("[Auth] error occurred deleting refresh token")
 		http.Error(w, "error occurred logging out", http.StatusInternalServerError)
 		return
 	}
@@ -92,11 +106,13 @@ func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), refreshTimeout)
 	defer cancel()
 	accessT, refreshT, err := h.svc.RefreshToken(ctx, token.Value)
 	if err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, auth.ErrInvalidToken) || errors.Is(err, auth.ErrTokenNotFound) || errors.Is(err, auth.ErrTokenKeyMissing) {
+		if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, auth.ErrInvalidToken) ||
+			errors.Is(err, auth.ErrTokenNotFound) ||
+			errors.Is(err, auth.ErrTokenKeyMissing) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -105,8 +121,8 @@ func (h *AuthHandler) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secure := !config.Envs.IsDevelopment
-	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*60, secure))
-	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*60*60, secure))
+	http.SetCookie(w, auth.NewAccessCookie(accessT, auth.AccessTokenTTL*secondsPerMinute, secure))
+	http.SetCookie(w, auth.NewRefreshCookie(refreshT, auth.RefreshTokenTTL*secondsPerHour, secure))
 	w.WriteHeader(http.StatusOK)
 }
 

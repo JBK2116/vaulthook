@@ -12,7 +12,7 @@ import (
 func Jwt(s *AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, err := r.Cookie("access_token")
+			token, err := r.Cookie(accessCookieName)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return

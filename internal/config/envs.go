@@ -1,22 +1,11 @@
-// Package config loads and validates all application-level configuration from environment variables.
-//
-// Configuration is initialized once at startup via a package-level variable.
-// Any missing or malformed variable causes an immediate panic, preventing the
-// application from starting in a misconfigured state.
-//
-// # Initialization Order
-//
-//  1. Load environment variables from .env via godotenv.
-//
-//  2. Validate and parse each required variable into its target type.
-//
-//  3. Return a populated Config struct assigned to the package-level Envs variable.
 package config
 
 import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/rs/zerolog"
 )
 
 // Config holds all environment variables required for the application to run.
@@ -40,7 +29,7 @@ type Config struct {
 	// UserPassword is the password of the authenticated application user.
 	UserPassword string
 	// LogLevel is the zerolog log level, e.g. 0 for debug.
-	LogLevel int
+	LogLevel zerolog.Level
 	// JWTSecret is the HMAC secret used to sign and verify JWT tokens.
 	JWTSecret string
 	// MasterKey is the AES secret used to handle signing key encryption for providers.
@@ -49,7 +38,7 @@ type Config struct {
 	IsDevelopment bool
 }
 
-// Envs is the package-level Config instance, initialized once at startup.
+//nolint:gochecknoglobals // Envs is the package-level Config instance, initialized once at startup.
 var Envs Config
 
 // initConfig loads environment variables from .env and populates a Config.
@@ -65,14 +54,14 @@ func initConfig() Config {
 		RedisURL:      getEnvString("REDIS_URL"),
 		UserEmail:     getEnvString("USER_EMAIL"),
 		UserPassword:  getEnvString("USER_PASSWORD"),
-		LogLevel:      getEnvInt("LOG_LEVEL"),
+		LogLevel:      getEnvLevel("LOG_LEVEL"),
 		JWTSecret:     getEnvString("TOKEN_SECRET"),
 		MasterKey:     getEnvString("MASTER_KEY"),
 		IsDevelopment: getEnvBool("IS_DEVELOPMENT"),
 	}
 }
 
-// Init configures the `Envs` variable that stores all environment variables used in this project
+// Init configures the `Envs` variable that stores all environment variables used in this project.
 func Init() {
 	Envs = initConfig()
 }
@@ -113,4 +102,19 @@ func getEnvInt(name string) int {
 		panic(fmt.Sprintf("Environment variable %s must be a int, got: %s", name, value))
 	}
 	return intValue
+}
+
+// getEnvLevel returns the zerolog log level parsed from the named environment
+// variable. It panics if the variable is not set or cannot be parsed as a
+// valid zerolog level.
+func getEnvLevel(name string) zerolog.Level {
+	value := os.Getenv(name)
+	if len(value) == 0 {
+		panic(fmt.Sprintf("Set the %s environment variable", name))
+	}
+	level, err := zerolog.ParseLevel(value)
+	if err != nil {
+		panic(fmt.Sprintf("Environment variable %s must be a valid log level, got: %s", name, value))
+	}
+	return level
 }

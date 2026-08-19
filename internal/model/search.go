@@ -7,15 +7,17 @@ import (
 	"unicode/utf8"
 )
 
-// SearchType is the type of search to execute when querying for events
+// SearchType is the type of search to execute when querying for events.
 type SearchType string
+
+const MaxStringSearchLength int = 255
 
 const (
 	LookUp SearchType = "lookup"
 	Filter SearchType = "filter"
 )
 
-// SearchRequest contains options to be used when querying for events
+// SearchRequest contains options to be used when querying for events.
 type SearchRequest struct {
 	Type             SearchType `json:"type"`
 	WebhookID        *string    `json:"webhook_id"`
@@ -33,7 +35,7 @@ type SearchRequest struct {
 	Limit            int        `json:"limit"`
 }
 
-// LookupOpts contains options to be used when executing lookup queries for events
+// LookupOpts contains options to be used when executing lookup queries for events.
 type LookupOpts struct {
 	WebhookID *string
 	EventID   *string
@@ -41,7 +43,7 @@ type LookupOpts struct {
 	Limit     int
 }
 
-// FilterOpts contains the options to be used when executing filter queries for events
+// FilterOpts contains the options to be used when executing filter queries for events.
 type FilterOpts struct {
 	Providers        []string
 	EventType        *string
@@ -78,7 +80,7 @@ var (
 	ErrEventTypeTooLong  = errors.New("event type must be 255 characters or fewer")
 )
 
-// Validate verifies that all fields are set to valid values
+// Validate verifies that all fields are set to valid values.
 func (p *SearchRequest) Validate() error {
 	switch p.Type {
 	case LookUp:
@@ -96,7 +98,7 @@ func (p *SearchRequest) Validate() error {
 	}
 }
 
-// validateLookup ensures that the SearchPayload is valid for lookup queries
+// validateLookup ensures that the SearchPayload is valid for lookup queries.
 func (p *SearchRequest) validateLookup() error {
 	id := strings.TrimSpace(derefStr(p.WebhookID))
 	evID := strings.TrimSpace(derefStr(p.EventID))
@@ -109,7 +111,9 @@ func (p *SearchRequest) validateLookup() error {
 	return nil
 }
 
-// validateFilter ensures that the SearchPayload is valid for filter queries
+// validateFilter ensures that the SearchPayload is valid for filter queries.
+//
+//nolint:gocognit // it's best to keep everything contained in here for now.
 func (p *SearchRequest) validateFilter() error {
 	if len(p.Providers) == 0 {
 		return ErrNoProviders
@@ -140,20 +144,20 @@ func (p *SearchRequest) validateFilter() error {
 	}
 	if p.PayloadSearch != nil {
 		strVal := derefStr(p.PayloadSearch)
-		if utf8.RuneCountInString(strVal) > 255 {
+		if utf8.RuneCountInString(strVal) > MaxStringSearchLength {
 			return ErrSearchTooLong
 		}
 	}
 	if p.EventType != nil {
 		strVal := derefStr(p.EventType)
-		if utf8.RuneCountInString(strVal) > 255 {
+		if utf8.RuneCountInString(strVal) > MaxStringSearchLength {
 			return ErrEventTypeTooLong
 		}
 	}
 	return nil
 }
 
-// derefStr returns the string value of the provided pointer to string
+// derefStr returns the string value of the provided pointer to string.
 func derefStr(str *string) string {
 	if str == nil {
 		return ""

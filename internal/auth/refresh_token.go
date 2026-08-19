@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	// AccessTokenTTL in minutes
+	// AccessTokenTTL in minutes.
 	AccessTokenTTL = 10
-	// RefreshTokenTTL in hours
+	// RefreshTokenTTL in hours.
 	RefreshTokenTTL = 24
 )
 
@@ -35,7 +35,12 @@ func NewRefreshTokenRepo(db *pgxpool.Pool) *RefreshTokenRepo {
 
 // Create inserts a new refresh token into the database with the given
 // expiry and issued-at timestamps, and returns the created record.
-func (r *RefreshTokenRepo) Create(ctx context.Context, token string, exp time.Time, iat time.Time) (*refreshToken, error) {
+func (r *RefreshTokenRepo) Create(
+	ctx context.Context,
+	token string,
+	exp time.Time,
+	iat time.Time,
+) (*refreshToken, error) {
 	query := `INSERT INTO refresh_tokens (token, expires_at, created_at) VALUES ($1, $2, $3) RETURNING id`
 	var id uuid.UUID
 	err := r.db.QueryRow(ctx, query, token, exp, iat).Scan(&id)

@@ -18,7 +18,7 @@ var (
 )
 
 // allowScript atomically leaks the bucket and permits the request if there's room.
-// KEYS[1] = bucket key, ARGV[1] = max_req_second, ARGV[2] = now (unix seconds float)
+// KEYS[1] = bucket key, ARGV[1] = max_req_second, ARGV[2] = now (unix seconds float).
 var allowScript = redis.NewScript(`
 local level = tonumber(redis.call("HGET", KEYS[1], "level") or "0")
 local lastLeak = tonumber(redis.call("HGET", KEYS[1], "last_leak") or ARGV[2])
@@ -69,7 +69,7 @@ func (rl *RateLimiter) Allow(ctx context.Context, prov *model.Provider) (bool, e
 		return false, ErrRedisNotConfigured
 	}
 	key := fmt.Sprintf("ratelimit:%s", prov.Name)
-	now := float64(time.Now().UnixMilli()) / 1000.0
+	now := float64(time.Now().UnixMilli()) / 1000.0 //nolint:mnd // used only for this calculation
 	res, err := allowScript.Run(ctx, rl.rdb, []string{key}, prov.MaxReqSecond, now).Int()
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

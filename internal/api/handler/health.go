@@ -11,13 +11,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	// healthTimeout bounds the amount of time spent conducting a health check response.
+	healthTimeout = time.Second * 3
+)
+
 // HealthHandler handles health check endpoints.
 type HealthHandler struct {
 	svc    *health.HealthService
 	logger *zerolog.Logger
 }
 
-// NewHealthHandler returns a `HealthHandler` configured with the provided svc
+// NewHealthHandler returns a `HealthHandler` configured with the provided svc.
 func NewHealthHandler(svc *health.HealthService, logger *zerolog.Logger) *HealthHandler {
 	return &HealthHandler{
 		svc:    svc,
@@ -27,7 +32,7 @@ func NewHealthHandler(svc *health.HealthService, logger *zerolog.Logger) *Health
 
 // getHealth handles GET /health requests providing a health check covering the applications' status.
 func (h *HealthHandler) getHealth(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), healthTimeout)
 	defer cancel()
 
 	check := h.svc.GetHealthCheck(ctx)
@@ -43,13 +48,13 @@ func (h *HealthHandler) getHealth(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	if _, err := w.Write(rBody); err != nil {
-		h.logger.Error().Err(err).Msg("[Health] error sending health check response")
+	if _, wErr := w.Write(rBody); wErr != nil {
+		h.logger.Error().Err(wErr).Msg("[Health] error sending health check response")
 		return
 	}
 }
 
-// RegisterRoutes mounts the health check endpoint onto the provided router
+// RegisterRoutes mounts the health check endpoint onto the provided router.
 func (h *HealthHandler) RegisterRoutes(r chi.Router) {
 	r.Get("/health", h.getHealth)
 }

@@ -37,17 +37,17 @@ func EncryptSigningKey(plaintext string) (string, error) {
 	// block serves as the lock for keeping the plaintext data secure
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrEncryption, err)
+		return "", fmt.Errorf("%w: %w", ErrEncryption, err)
 	}
 	// introduce gcm to further enhance encryption
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrEncryption, err)
+		return "", fmt.Errorf("%w: %w", ErrEncryption, err)
 	}
 	// nonce is a unique random number used for each encryption process
 	nonce := make([]byte, gcm.NonceSize())
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrEncryption, err)
+	if _, readErr := io.ReadFull(rand.Reader, nonce); readErr != nil {
+		return "", fmt.Errorf("%w: %w", ErrEncryption, readErr)
 	}
 	ciphertext := gcm.Seal(nonce, nonce, plaintextBytes, nil)
 	encoded := hex.EncodeToString(ciphertext)
@@ -66,20 +66,20 @@ func DecryptSigningKey(encoded string) (string, error) {
 	}
 	decodedCipherText, err := hex.DecodeString(encoded)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrDecryption, err)
+		return "", fmt.Errorf("%w: %w", ErrDecryption, err)
 	}
 	keyBytes := []byte(config.Envs.MasterKey)
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrDecryption, err)
+		return "", fmt.Errorf("%w: %w", ErrDecryption, err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrDecryption, err)
+		return "", fmt.Errorf("%w: %w", ErrDecryption, err)
 	}
 	decryptedData, err := gcm.Open(nil, decodedCipherText[:gcm.NonceSize()], decodedCipherText[gcm.NonceSize():], nil)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrDecryption, err)
+		return "", fmt.Errorf("%w: %w", ErrDecryption, err)
 	}
 	return string(decryptedData), nil
 }

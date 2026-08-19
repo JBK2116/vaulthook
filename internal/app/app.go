@@ -46,7 +46,7 @@ type App struct {
 	gitService      *github.GitService
 
 	// workers
-	workerPool *worker.WorkerPool
+	workerPool *worker.Pool
 
 	// HTTP
 	router chi.Router
@@ -132,7 +132,6 @@ func New() *App {
 	worker.InitRateLimiter(cache.Cache.GetCache())
 
 	// Health Checks
-	health.InitStartTime()
 	healthSvc := health.NewHealthService(pg.DB, cache.Cache.GetCache())
 
 	// Background Workers

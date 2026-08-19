@@ -16,9 +16,14 @@ import (
 const (
 	HEALTHY   = "healthy"
 	UNHEALTHY = "unhealthy"
+
+	bytesPerMB   = 1024 * 1024
+	checkTimeout = 2 * time.Second
 )
 
 // HealthCheck holds the state of the most recent health check.
+//
+//nolint:revive // Retained for a clear public API name; avoid broad renames.
 type HealthCheck struct {
 	Status        string                     `json:"status"`
 	UptimeSeconds int64                      `json:"uptime_seconds"`
@@ -44,26 +49,21 @@ type ResourceStats struct {
 	DiskFreeMB   uint64 `json:"disk_free_mb"`
 }
 
-var startTime time.Time
-
 // HealthService is a health check service that provides a health check for the application and it's dependencies.
-type HealthService struct {
-	db  *pgxpool.Pool
-	rdb *redis.Client
-}
-
-// InitStartTime tracks the start time of the server.
 //
-// It is to be called in app.go
-func InitStartTime() {
-	startTime = time.Now()
+//nolint:revive // Retained for a clear public API name; avoid broad renames.
+type HealthService struct {
+	db        *pgxpool.Pool
+	rdb       *redis.Client
+	startTime time.Time
 }
 
-// NewHealthService returns a health service configured with the provided db & redis connection
+// NewHealthService returns a health service configured with the provided db & redis connection.
 func NewHealthService(pool *pgxpool.Pool, rdb *redis.Client) *HealthService {
 	return &HealthService{
-		db:  pool,
-		rdb: rdb,
+		db:        pool,
+		rdb:       rdb,
+		startTime: time.Now(),
 	}
 }
 
@@ -71,13 +71,14 @@ func NewHealthService(pool *pgxpool.Pool, rdb *redis.Client) *HealthService {
 func (h *HealthService) GetHealthCheck(ctx context.Context) HealthCheck {
 	var health HealthCheck
 	health.Checks = make(map[string]DependencyCheck)
-	health.UptimeSeconds = getUpTime()
+	health.UptimeSeconds = h.getUpTime()
 	health.Version = getVersion()
 	health.Timestamp = getTimeStamp()
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	wg.Add(2)
+	wgSize := 2
+	wg.Add(wgSize)
 
 	go func() {
 		defer wg.Done()
@@ -93,7 +94,6 @@ func (h *HealthService) GetHealthCheck(ctx context.Context) HealthCheck {
 		mu.Lock()
 		health.Checks["redis"] = check
 		mu.Unlock()
-
 	}()
 
 	wg.Wait()
@@ -110,7 +110,7 @@ func (h *HealthService) GetHealthCheck(ctx context.Context) HealthCheck {
 // checkRedis returns a health check for the redis dependency.
 func (h *HealthService) checkRedis(ctx context.Context) DependencyCheck {
 	var check DependencyCheck
-	ctxR, cancel := context.WithTimeout(ctx, time.Second*2)
+	ctxR, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 
 	start := time.Now()
@@ -128,7 +128,7 @@ func (h *HealthService) checkRedis(ctx context.Context) DependencyCheck {
 // checkDB returns a health check for the postgresql dependency.
 func (h *HealthService) checkDB(ctx context.Context) DependencyCheck {
 	var check DependencyCheck
-	ctxD, cancel := context.WithTimeout(ctx, time.Second*2)
+	ctxD, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 
 	start := time.Now()
@@ -144,12 +144,12 @@ func (h *HealthService) checkDB(ctx context.Context) DependencyCheck {
 }
 
 // getUpTime returns the amount of seconds that the server has been running since the last reset.
-func getUpTime() int64 {
-	diff := time.Since(startTime).Seconds()
+func (h *HealthService) getUpTime() int64 {
+	diff := time.Since(h.startTime).Seconds()
 	return int64(diff)
 }
 
-// getTimeStamp returns the current time in ISO8601 format
+// getTimeStamp returns the current time in ISO8601 format.
 func getTimeStamp() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
@@ -179,13 +179,15 @@ func getResources() ResourceStats {
 	if err := syscall.Statfs("/", &fs); err != nil {
 		diskFreeMB = 0
 	} else {
-		diskFreeMB = (fs.Bavail * uint64(fs.Bsize)) / 1024 / 1024
+		//nolint:gosec // Bsize is a positive OS-reported block size, so the int64->uint64 conversion is safe.
+		diskFreeMB = fs.Bavail * uint64(fs.Bsize) / bytesPerMB
 	}
 
 	res := ResourceStats{
-		AllocMB:      m.Alloc / 1024 / 1024,
-		TotalAllocMB: m.TotalAlloc / 1024 / 1024,
-		SysMB:        m.Sys / 1024 / 1024,
+		AllocMB:      m.Alloc / bytesPerMB,
+		TotalAllocMB: m.TotalAlloc / bytesPerMB,
+		SysMB:        m.Sys / bytesPerMB,
+		//nolint:gosec // NumGoroutine can never return a negative value.
 		NumGoroutine: uint64(runtime.NumGoroutine()),
 		NumGC:        uint64(m.NumGC),
 		DiskFreeMB:   diskFreeMB,

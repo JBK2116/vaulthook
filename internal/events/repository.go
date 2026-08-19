@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const webhookColumns = "id, provider_id, provider, event_id, event_type, headers, payload, delivery_status, forwarded_to, response_code, retry_count, next_retry_at, last_error, received_at, created_at, updated_at"
+
 // EventRepo provides database operations for universally handling web events.
 type EventRepo struct {
 	db *pgxpool.Pool
@@ -31,17 +33,17 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 	var rows pgx.Rows
 	var err error
 	if createdAt != nil {
-		query = `
-            SELECT * FROM webhook_events
+		query = fmt.Sprintf(`
+            SELECT %s FROM webhook_events
             WHERE created_at < $1
             ORDER BY created_at DESC
-            LIMIT 5`
+            LIMIT 5`, webhookColumns)
 		rows, err = r.db.Query(ctx, query, createdAt)
 	} else {
-		query = `
-            SELECT * FROM webhook_events
+		query = fmt.Sprintf(`
+            SELECT %s FROM webhook_events
             ORDER BY created_at DESC
-            LIMIT 25`
+            LIMIT 25`, webhookColumns)
 		rows, err = r.db.Query(ctx, query)
 	}
 	if err != nil {
@@ -68,7 +70,7 @@ func (r *EventRepo) getAll(ctx context.Context, createdAt *time.Time) ([]model.W
 	return hooks, nil
 }
 
-// getStats retrieves the count statistics of the webhook processing events that took place in the last 7 days
+// getStats retrieves the count statistics of the webhook processing events that took place in the last 7 days.
 func (r *EventRepo) getStats(ctx context.Context) (*model.Stats, error) {
 	query := ` 
 	SELECT 
@@ -171,10 +173,11 @@ func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.
 	}
 
 	query := fmt.Sprintf(`
-		SELECT * FROM webhook_events
+		SELECT %s FROM webhook_events
 		WHERE %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`,
+		webhookColumns,
 		strings.Join(conditions, " OR "),
 		argIdx, argIdx+1,
 	)
@@ -189,17 +192,18 @@ func (r *EventRepo) lookup(ctx context.Context, opts model.LookupOpts) ([]model.
 	hooks := make([]model.Webhook, 0)
 	for rows.Next() {
 		var w model.Webhook
-		if err := rows.Scan(
+		err = rows.Scan(
 			&w.ID, &w.ProviderID, &w.Provider, &w.EventID,
 			&w.EventType, &w.Headers, &w.Payload, &w.DeliveryStatus,
 			&w.ForwardedTo, &w.ResponseCode, &w.RetryCount, &w.NextRetryAt,
 			&w.LastError, &w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, err
 		}
 		hooks = append(hooks, w)
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return hooks, nil
@@ -255,10 +259,11 @@ func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.
 	}
 
 	query := fmt.Sprintf(`
-		SELECT * FROM webhook_events
+		SELECT %s FROM webhook_events
 		WHERE %s
 		ORDER BY created_at DESC
 		LIMIT $%d OFFSET $%d`,
+		webhookColumns,
 		strings.Join(conditions, " AND "),
 		argIdx, argIdx+1,
 	)
@@ -273,17 +278,18 @@ func (r *EventRepo) filter(ctx context.Context, opts model.FilterOpts) ([]model.
 	hooks := make([]model.Webhook, 0)
 	for rows.Next() {
 		var w model.Webhook
-		if err := rows.Scan(
+		err = rows.Scan(
 			&w.ID, &w.ProviderID, &w.Provider, &w.EventID,
 			&w.EventType, &w.Headers, &w.Payload, &w.DeliveryStatus,
 			&w.ForwardedTo, &w.ResponseCode, &w.RetryCount, &w.NextRetryAt,
 			&w.LastError, &w.ReceivedAt, &w.CreatedAt, &w.UpdatedAt,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, err
 		}
 		hooks = append(hooks, w)
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return hooks, nil

@@ -20,6 +20,8 @@ type malformedRequest struct {
 	Message string
 }
 
+const MaxBodyBytes = 1048576
+
 // Error implements the error interface for malformedRequest.
 func (mr *malformedRequest) Error() string {
 	return mr.Message
@@ -46,7 +48,7 @@ func DecodeBodyJSON(writer http.ResponseWriter, request *http.Request, destinati
 		}
 	}
 
-	request.Body = http.MaxBytesReader(writer, request.Body, 1048576)
+	request.Body = http.MaxBytesReader(writer, request.Body, MaxBodyBytes)
 
 	decoder := json.NewDecoder(request.Body)
 	decoder.DisallowUnknownFields()
@@ -67,7 +69,11 @@ func DecodeBodyJSON(writer http.ResponseWriter, request *http.Request, destinati
 			return &malformedRequest{Status: http.StatusBadRequest, Message: msg}
 
 		case errors.As(err, &unmarshalTypeError):
-			msg := fmt.Sprintf("Request body contains an invalid value for the %q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
+			msg := fmt.Sprintf(
+				"Request body contains an invalid value for the %q field (at position %d)",
+				unmarshalTypeError.Field,
+				unmarshalTypeError.Offset,
+			)
 			return &malformedRequest{Status: http.StatusBadRequest, Message: msg}
 
 		case strings.HasPrefix(err.Error(), "json: unknown field "):

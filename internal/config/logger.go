@@ -12,16 +12,16 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-// once guards logger initialization so it occurs exactly once per process.
+//nolint:gochecknoglobals // once guards logger initialization so it occurs exactly once per process.
 var once sync.Once
 
-// logger is the package-level singleton instance.
+//nolint:gochecknoglobals // logger is the package-level singleton instance.
 var logger zerolog.Logger
 
 // NewLogger constructs and returns a singleton zerolog.Logger configured with
 // console output, RFC3339Nano timestamps, and stack trace marshaling.
 //
-// The logger is initialized exactly once via sync.Once. Subsequent calls
+// The logger is initialized exactly once via [sync.Once]. Subsequent calls
 // return the same instance. The log level is sourced from config.Envs.LOG_LEVEL.
 //
 // Each log entry includes the git revision and Go version extracted from
@@ -30,7 +30,9 @@ var logger zerolog.Logger
 func NewLogger() (*zerolog.Logger, error) {
 	var err error
 	once.Do(func() {
+		//nolint:reassign // zerolog's globals are intentionally configured once at startup.
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+		//nolint:reassign // zerolog's globals are intentionally configured once at startup.
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 		var output io.Writer = zerolog.ConsoleWriter{
 			Out:        os.Stdout,
@@ -51,7 +53,13 @@ func NewLogger() (*zerolog.Logger, error) {
 				break
 			}
 		}
-		logger = zerolog.New(output).Level(zerolog.Level(Envs.LogLevel)).With().Timestamp().Str("git_revision", gitRevision).Str("go_version", goVersion).Logger()
+		logger = zerolog.New(output).
+			Level(Envs.LogLevel).
+			With().
+			Timestamp().
+			Str("git_revision", gitRevision).
+			Str("go_version", goVersion).
+			Logger()
 	})
 	return &logger, err
 }

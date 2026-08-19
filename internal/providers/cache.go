@@ -15,16 +15,17 @@ const (
 	RedisProviderPrefix = "provider+"
 )
 
-// ProviderCache is a Redis-backed cache used by workers when managing webooks
+// ProviderCache is a Redis-backed cache used by workers when managing webhooks.
 type ProviderCache struct {
 }
 
-// Cache is the global default instance of ProviderCache
+//nolint:gochecknoglobals // Cache is the global default instance of ProviderCache.
 var Cache = ProviderCache{}
 
+//nolint:gochecknoglobals // once guards provider cache initialization so it occurs exactly once.
 var once sync.Once
 
-// InitProviderCache loads the cache with the details of the providers in the database
+// InitProviderCache loads the cache with the details of the providers in the database.
 func InitProviderCache(ctx context.Context, repo *ProviderRepo) error {
 	var err error
 	once.Do(func() {
@@ -33,7 +34,7 @@ func InitProviderCache(ctx context.Context, repo *ProviderRepo) error {
 			err = getErr
 			return
 		}
-		kvPairs := make([]any, 0, len(provs)*2)
+		kvPairs := make([]any, 0, len(provs)*2) //nolint:mnd // two represents a key, value pair with provider and key
 		for _, val := range provs {
 			b, sErr := serialize(val)
 			if sErr != nil {
@@ -54,7 +55,7 @@ func InitProviderCache(ctx context.Context, repo *ProviderRepo) error {
 	return err
 }
 
-// Get returns a provider from the cache
+// Get returns a provider from the cache.
 func (c *ProviderCache) Get(ctx context.Context, key model.ProviderName) (model.Provider, error) {
 	val, gErr := cache.Cache.GetBytes(ctx, RedisProviderPrefix+string(key))
 	if gErr != nil {
@@ -69,13 +70,13 @@ func (c *ProviderCache) Get(ctx context.Context, key model.ProviderName) (model.
 }
 
 // RefreshCache reloads the cache with the latest provider data from the database.
-// Unlike InitProviderCache, it always executes and is safe to call multiple times
+// Unlike InitProviderCache, it always executes and is safe to call multiple times.
 func RefreshCache(ctx context.Context, repo *ProviderRepo) error {
 	provs, err := repo.getAll(ctx)
 	if err != nil {
 		return err
 	}
-	kvPairs := make([]any, 0, len(provs)*2)
+	kvPairs := make([]any, 0, len(provs)*2) //nolint:mnd // 2 represents a pair of prov key and value
 	for _, val := range provs {
 		b, sErr := serialize(val)
 		if sErr != nil {
@@ -89,7 +90,7 @@ func RefreshCache(ctx context.Context, repo *ProviderRepo) error {
 	return cache.Cache.Mset(ctx, kvPairs...)
 }
 
-// Set updates the value of the provided key to point to the new value
+// Set updates the value of the provided key to point to the new value.
 func (c *ProviderCache) Set(ctx context.Context, key model.ProviderName, val model.Provider) error {
 	b, sErr := serialize(val)
 	if sErr != nil {
@@ -102,7 +103,7 @@ func (c *ProviderCache) Set(ctx context.Context, key model.ProviderName, val mod
 	return nil
 }
 
-// serialize converts an in-memory object into a serialized json object
+// serialize converts an in-memory object into a serialized json object.
 func serialize(val any) ([]byte, error) {
 	b, err := json.Marshal(val)
 	if err != nil {

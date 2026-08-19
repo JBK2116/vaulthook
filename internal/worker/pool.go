@@ -8,16 +8,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// sensible worker count details overridden in app.go
+// Default worker counts, tuned in app.go based on computed resources before the pool is constructed.
 var (
+	//nolint:gochecknoglobals // Tunable worker-count config, assigned from app.go at startup; intentional.
 	TotalQueueWorkers = 8
+	//nolint:gochecknoglobals // Tunable worker-count config, assigned from app.go at startup; intentional.
 	TotalRetryWorkers = 4
 )
 
-// WorkerPool is a struct that orchestrates all webhook workers.
+// Pool is a struct that orchestrates all webhook workers.
 //
 // There must be only one worker pool present throughout the entire application.
-type WorkerPool struct {
+type Pool struct {
 	signal       chan struct{}
 	queueWorkers []*Worker
 	retryWorkers []*Worker
@@ -26,7 +28,7 @@ type WorkerPool struct {
 }
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration.
-func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *WorkerPool {
+func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *Pool {
 	signal := make(chan struct{}, TotalQueueWorkers)
 	queueWorkers := make([]*Worker, TotalQueueWorkers)
 	retryWorkers := make([]*Worker, TotalRetryWorkers)
@@ -37,11 +39,11 @@ func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolo
 	replayRepo := NewWorkerRepo(db, WorkerKindReplay)
 
 	// initialize the QueueWorkers
-	for i := range len(queueWorkers) {
+	for i := range queueWorkers {
 		queueWorkers[i] = newWorker(svc, queueRepo, logger)
 	}
 	// initialize the RetryWorkers
-	for i := range len(retryWorkers) {
+	for i := range retryWorkers {
 		retryWorkers[i] = newWorker(svc, retryRepo, logger)
 	}
 	// initialize the replayWorker
@@ -49,7 +51,7 @@ func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolo
 	// initialize the cleanupWorker
 	cleanupW := NewCleanupWorker(logger, db)
 	// initialize the worker pool
-	pool := &WorkerPool{
+	pool := &Pool{
 		signal:       signal,
 		queueWorkers: queueWorkers,
 		retryWorkers: retryWorkers,
@@ -61,7 +63,7 @@ func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolo
 }
 
 // start kicks off the worker runtime cycle for each worker in the pool.
-func (p *WorkerPool) start(ctx context.Context) {
+func (p *Pool) start(ctx context.Context) {
 	for _, w := range p.queueWorkers {
 		go w.start(ctx, p.signal)
 	}
@@ -73,7 +75,7 @@ func (p *WorkerPool) start(ctx context.Context) {
 }
 
 // Notify alerts all workers in the pool that one or more webhooks need to be processed.
-func (p *WorkerPool) Notify() {
+func (p *Pool) Notify() {
 	select {
 	case p.signal <- struct{}{}:
 	default:

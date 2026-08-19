@@ -21,6 +21,15 @@ var (
 // overwhelming the browser with multi-megabyte JSON payloads at high throughput.
 const maxBatchSize = 200
 
+// maxBufferSize caps the number of webhook events that can be stored in-memory to be sent to the frontend.
+const maxBufferSize = 10000
+
+// maxHooksPerChannel caps the number of webhooks that can stored in a channel for processing.
+const maxHooksPerChannel = 100
+
+// flushInterval controls the time spent between each sse flush.
+const flushInterval = 100 * time.Millisecond
+
 // EventService provides the main universal business logic for handling webhook events pertaining to all providers.
 type EventService struct {
 	logger      *zerolog.Logger
@@ -38,7 +47,7 @@ func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
 		logger:      logger,
 		repo:        repo,
 		buffer:      make([]model.Webhook, 0),
-		broadcast:   make(chan model.Webhook, 10000),
+		broadcast:   make(chan model.Webhook, maxBufferSize),
 		subscribers: make(map[chan []model.Webhook]struct{}),
 	}
 }
@@ -50,7 +59,7 @@ func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
 // events one at a time. This avoids the original single-event-per-iteration
 // bottleneck and prevents the ticker from starving event consumption.
 func (s *EventService) Start(ctx context.Context) {
-	ticker := time.NewTicker(100 * time.Millisecond) // 10 flushes per second. Update as necessary.
+	ticker := time.NewTicker(flushInterval) // 10 flushes per second. Update as necessary.
 	defer ticker.Stop()
 	for {
 		select {
@@ -118,9 +127,9 @@ func (s *EventService) flush() {
 	s.mu.Unlock()
 }
 
-// Subscribe now returns a channel that receives SLICES of webhooks
+// Subscribe now returns a channel that receives SLICES of webhooks.
 func (s *EventService) Subscribe() (<-chan []model.Webhook, func()) {
-	ch := make(chan []model.Webhook, 100)
+	ch := make(chan []model.Webhook, maxHooksPerChannel)
 	s.mu.Lock()
 	s.subscribers[ch] = struct{}{}
 	s.mu.Unlock()
@@ -168,7 +177,7 @@ func (s *EventService) Dropped() int64 {
 	return s.dropped.Swap(0)
 }
 
-// ReplayEvent marks the webhook event as "queued", allowing it to be picked by up workers to be replayed
+// ReplayEvent marks the webhook event as "queued", allowing it to be picked by up workers to be replayed.
 func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 	uuidS, err := uuid.Parse(id)
 	if err != nil {
@@ -181,7 +190,7 @@ func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 	return nil
 }
 
-// Search returns all webhooks that meet the requirements listed in the provided options payload
+// Search returns all webhooks that meet the requirements listed in the provided options' payload.
 func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (model.SearchResponse, error) {
 	// Default to a sensible page size when none is provided.
 	if opts.Limit <= 0 {
@@ -235,7 +244,7 @@ func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (mo
 	return model.SearchResponse{Events: found, HasMore: hasMore}, nil
 }
 
-// convTime is a helper function to convert a valid ISO8601 string to a time object
+// convTime is a helper function to convert a valid ISO8601 string to a time object.
 func convTime(iso string) *time.Time {
 	t, _ := time.Parse(time.RFC3339, iso)
 	return &t

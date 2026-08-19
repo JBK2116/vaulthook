@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/crypto"
@@ -21,16 +20,21 @@ const (
 	StripeMaxBodyBytes = int64(65539)
 )
 
-// StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`
+// StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`.
 type StripeHandler struct {
 	logger   *zerolog.Logger
 	svc      *stripe.StripeService
 	eventSvc *events.EventService
-	pool     *worker.WorkerPool
+	pool     *worker.Pool
 }
 
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
-func NewStripeHandler(logger *zerolog.Logger, svc *stripe.StripeService, eventSvc *events.EventService, pool *worker.WorkerPool) *StripeHandler {
+func NewStripeHandler(
+	logger *zerolog.Logger,
+	svc *stripe.StripeService,
+	eventSvc *events.EventService,
+	pool *worker.Pool,
+) *StripeHandler {
 	return &StripeHandler{
 		logger:   logger,
 		svc:      svc,
@@ -41,9 +45,9 @@ func NewStripeHandler(logger *zerolog.Logger, svc *stripe.StripeService, eventSv
 
 // Receive handles /api/webhooks/stripe. It receives the incoming webhook,
 // validates it using the signing key, saves it to the database if necessary and
-// sets it's status for processing
+// sets its status for processing.
 func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	ctx, cancel := context.WithTimeout(r.Context(), receiveTimeout)
 	defer cancel()
 	r.Body = http.MaxBytesReader(w, r.Body, StripeMaxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
@@ -61,7 +65,7 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if errors.As(err, &config.PgErr) {
+		if errors.As(err, &config.ErrPg) {
 			h.logger.Error().Err(err).Msg("[Stripe] database error validating webhook")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -106,11 +110,11 @@ func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	// send a response back to stripe
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // Explicitly set 200
-	if err := json.NewEncoder(w).Encode(map[string]string{
+	if cErr := json.NewEncoder(w).Encode(map[string]string{
 		"status": "queued",
 		"id":     event.ID,
-	}); err != nil {
-		h.logger.Error().Stack().Err(err).Msg("[Stripe] error encoding response")
+	}); cErr != nil {
+		h.logger.Error().Stack().Err(cErr).Msg("[Stripe] error encoding response")
 	}
 }
 
