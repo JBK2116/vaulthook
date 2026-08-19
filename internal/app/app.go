@@ -11,6 +11,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/api/handler"
 	"github.com/JBK2116/vaulthook/internal/auth"
 	"github.com/JBK2116/vaulthook/internal/cache"
@@ -21,11 +27,6 @@ import (
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
-	"github.com/rs/zerolog"
 )
 
 // App holds all runtime dependencies for the vaulthook application.
@@ -42,7 +43,7 @@ type App struct {
 	authService     *auth.AuthService
 	providerService *providers.ProviderService
 	eventService    *events.EventService
-	stripeService   *stripe.StripeService
+	stripeService   *stripe.Service
 	gitService      *github.GitService
 
 	// workers

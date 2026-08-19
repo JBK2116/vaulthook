@@ -50,7 +50,7 @@ var testProviderService *providers.ProviderService
 var testProviderHandler *ProviderHandler
 
 // STRIPE
-var stripeService *stripe.StripeService
+var stripeService *stripe.Service
 var stripeHandle *StripeHandler
 
 // GITHUB

@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/health"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/health"
 )
 
 const (

@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/JBK2116/vaulthook/internal/model"
 )
 
 const webhookColumns = "id, provider_id, provider, event_id, event_type, headers, payload, delivery_status, forwarded_to, response_code, retry_count, next_retry_at, last_error, received_at, created_at, updated_at"

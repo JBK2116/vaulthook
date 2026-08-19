@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/auth"
-	"github.com/JBK2116/vaulthook/internal/config"
-	"github.com/JBK2116/vaulthook/internal/helpers"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/auth"
+	"github.com/JBK2116/vaulthook/internal/config"
+	"github.com/JBK2116/vaulthook/internal/helpers"
 )
 
 // Request timeouts for the service calls made by the auth handlers.

@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/JBK2116/vaulthook/internal/model"
 )
 
 // updateWebhook is a struct representing all the necessary fields that may be
@@ -22,10 +23,12 @@ type updateWebhook struct {
 	forwardedTo    *string
 }
 
-// WorkerKind enumerates the different types of worker processing strategies.
-type WorkerKind int
+// Kind enumerates the different types of worker processing strategies.
+type Kind int
 
 // sensible batch defaults override in app.go.
+//
+//nolint:gochecknoglobals // Tunable batch-size config, assigned from app.go at startup; intentional.
 var (
 	QueueWorkerBatch = 50
 	RetryWorkerBatch = 25
@@ -35,7 +38,7 @@ const ReplayWorkerBatch = 1
 
 const (
 	// WorkerKindQueue processes newly ingested webhooks in 'queued' status.
-	WorkerKindQueue WorkerKind = iota
+	WorkerKindQueue Kind = iota
 	// WorkerKindRetry processes webhooks that previously failed and are due for retry.
 	WorkerKindRetry
 	// WorkerKindReplay processes webhooks that have been manually requested for replay.
@@ -53,15 +56,15 @@ type Repository interface {
 
 // Repo provides database operations for worker event processing.
 // A single type handles queue, retry, and replay strategies via its
-// WorkerKind field, avoiding duplicate code across previously separate
+// Kind field, avoiding duplicate code across previously separate
 // repository types.
 type Repo struct {
 	db   *pgxpool.Pool
-	kind WorkerKind
+	kind Kind
 }
 
 // NewWorkerRepo returns a WorkerRepo configured for the given processing kind.
-func NewWorkerRepo(db *pgxpool.Pool, kind WorkerKind) Repository {
+func NewWorkerRepo(db *pgxpool.Pool, kind Kind) Repository {
 	return &Repo{
 		db:   db,
 		kind: kind,

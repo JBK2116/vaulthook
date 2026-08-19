@@ -15,6 +15,7 @@ type postgres struct {
 	DB *pgxpool.Pool
 }
 
+//nolint:gochecknoglobals // Singleton postgres instance and its init guard; intentional.
 var (
 	pgInstance *postgres       // singleton postgres instance.
 	pgOnce     sync.Once       // guards pool initialization.

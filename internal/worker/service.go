@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
-	"github.com/jackc/pgx/v5"
-	"github.com/rs/zerolog"
 )
 
 const (

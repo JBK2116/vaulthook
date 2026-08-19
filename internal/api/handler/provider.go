@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/helpers"
-	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/helpers"
+	"github.com/JBK2116/vaulthook/internal/providers"
 )
 
 // configureRequestBody is a dto used to update a providers configuration variables.

@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog"
 )
 
 var (

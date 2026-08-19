@@ -7,8 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/JBK2116/vaulthook/internal/model"
 )
 
 var (
@@ -19,6 +20,8 @@ var (
 
 // allowScript atomically leaks the bucket and permits the request if there's room.
 // KEYS[1] = bucket key, ARGV[1] = max_req_second, ARGV[2] = now (unix seconds float).
+//
+//nolint:gochecknoglobals // Precompiled Lua script shared by the singleton limiter; intentional.
 var allowScript = redis.NewScript(`
 local level = tonumber(redis.call("HGET", KEYS[1], "level") or "0")
 local lastLeak = tonumber(redis.call("HGET", KEYS[1], "last_leak") or ARGV[2])
@@ -41,9 +44,12 @@ redis.call("EXPIRE", KEYS[1], 60)
 return allowed
 `)
 
+//nolint:gochecknoglobals // Singleton init guard for the rate limiter; intentional.
 var once sync.Once
 
 // limiter provides an interface for interacting with the redis rate limiter used in the webhook forwarding pipeline.
+//
+//nolint:gochecknoglobals // Shared application-wide rate limiter; intentional.
 var limiter = &RateLimiter{}
 
 type RateLimiter struct {
@@ -75,7 +81,7 @@ func (rl *RateLimiter) Allow(ctx context.Context, prov *model.Provider) (bool, e
 		if errors.Is(err, context.DeadlineExceeded) {
 			return false, ErrRedisTimeout
 		}
-		return false, fmt.Errorf("%w %v", ErrRedis, err)
+		return false, fmt.Errorf("%w: %w", ErrRedis, err)
 	}
 	return res == 1, nil
 }

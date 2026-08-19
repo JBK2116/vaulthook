@@ -7,9 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/model"
 )
 
 var (
@@ -168,7 +169,6 @@ func (s *EventService) GetStats(ctx context.Context) (*model.Stats, error) {
 		return nil, err
 	}
 	return stats, nil
-
 }
 
 // Dropped returns the number of events that were dropped from SSE batches due

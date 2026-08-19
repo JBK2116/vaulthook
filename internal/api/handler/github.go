@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
 	"github.com/JBK2116/vaulthook/internal/worker"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -48,6 +49,7 @@ func NewGitHandler(
 	}
 }
 
+//nolint:funlen // function will be refactored later
 func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), receiveTimeout)
 	defer cancel()

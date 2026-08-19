@@ -7,13 +7,14 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
-	"github.com/go-chi/chi/v5"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -23,7 +24,7 @@ const (
 // StripeHandler handles webhook logic for all events that reach `/webhooks/stripe endpoint`.
 type StripeHandler struct {
 	logger   *zerolog.Logger
-	svc      *stripe.StripeService
+	svc      *stripe.Service
 	eventSvc *events.EventService
 	pool     *worker.Pool
 }
@@ -31,7 +32,7 @@ type StripeHandler struct {
 // NewStripeHandler returns an stripeHandler configured with the provided logger and service.
 func NewStripeHandler(
 	logger *zerolog.Logger,
-	svc *stripe.StripeService,
+	svc *stripe.Service,
 	eventSvc *events.EventService,
 	pool *worker.Pool,
 ) *StripeHandler {
@@ -46,6 +47,8 @@ func NewStripeHandler(
 // Receive handles /api/webhooks/stripe. It receives the incoming webhook,
 // validates it using the signing key, saves it to the database if necessary and
 // sets its status for processing.
+//
+//nolint:funlen // function will be refactored later.
 func (h *StripeHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), receiveTimeout)
 	defer cancel()

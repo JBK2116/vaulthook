@@ -3,9 +3,10 @@ package worker
 import (
 	"context"
 
-	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/events"
 )
 
 // Default worker counts, tuned in app.go based on computed resources before the pool is constructed.

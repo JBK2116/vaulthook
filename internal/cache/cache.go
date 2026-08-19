@@ -7,10 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/JBK2116/vaulthook/internal/config"
 )
 
+//nolint:gochecknoglobals // Singleton init guard for the shared cache; intentional.
 var once sync.Once
 
 // RedisCache provides an interface for interacting with the application cache.
@@ -19,6 +21,8 @@ type RedisCache struct {
 }
 
 // Cache is an in-memory instance implementation of RedisCache.
+//
+//nolint:gochecknoglobals // Shared application-wide cache singleton; intentional.
 var Cache = RedisCache{
 	cache: nil,
 }
