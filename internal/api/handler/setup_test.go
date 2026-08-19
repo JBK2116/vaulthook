@@ -33,12 +33,12 @@ var testLogger *zerolog.Logger
 
 // EVENT HANDLING
 var eventRepo *events.EventRepo
-var eventService *events.EventService
+var eventService *events.Service
 var eventsHandler *EventsHandler
 
 // AUTH
 var testAuthRepo *auth.RefreshTokenRepo
-var testAuthService *auth.AuthService
+var testAuthService *auth.Service
 var testAuthHandler *AuthHandler
 
 // WORKERS
@@ -46,7 +46,7 @@ var workerPool *worker.Pool
 
 // PROVIDERS
 var testProviderRepo *providers.ProviderRepo
-var testProviderService *providers.ProviderService
+var testProviderService *providers.Service
 var testProviderHandler *ProviderHandler
 
 // STRIPE
@@ -54,7 +54,7 @@ var stripeService *stripe.Service
 var stripeHandle *StripeHandler
 
 // GITHUB
-var gitService *github.GitService
+var gitService *github.Service
 var gitHandle *GitHandler
 
 func TestMain(m *testing.M) {

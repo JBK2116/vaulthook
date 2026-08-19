@@ -52,7 +52,7 @@ const (
 // Worker struct is responsible for processing all webhook events that are
 // stored in the database.
 type Worker struct {
-	sse    *events.EventService
+	sse    *events.Service
 	repo   Repository
 	logger *zerolog.Logger
 	client *http.Client
@@ -64,7 +64,7 @@ var (
 )
 
 // newWorker returns a pointer to a Worker backed by the provided values.
-func newWorker(svc *events.EventService, repo Repository, logger *zerolog.Logger) *Worker {
+func newWorker(svc *events.Service, repo Repository, logger *zerolog.Logger) *Worker {
 	return &Worker{
 		sse:    svc,
 		repo:   repo,

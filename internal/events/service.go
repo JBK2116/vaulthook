@@ -31,8 +31,8 @@ const maxHooksPerChannel = 100
 // flushInterval controls the time spent between each sse flush.
 const flushInterval = 100 * time.Millisecond
 
-// EventService provides the main universal business logic for handling webhook events pertaining to all providers.
-type EventService struct {
+// Service provides the main universal business logic for handling webhook events pertaining to all providers.
+type Service struct {
 	logger      *zerolog.Logger
 	mu          sync.Mutex
 	repo        *EventRepo
@@ -42,9 +42,9 @@ type EventService struct {
 	dropped     atomic.Int64 // events dropped from SSE batches due to capping
 }
 
-// NewEventService returns a EventService configured with the provided logger and repo.
-func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
-	return &EventService{
+// NewEventService returns a Service configured with the provided logger and repo.
+func NewEventService(logger *zerolog.Logger, repo *EventRepo) *Service {
+	return &Service{
 		logger:      logger,
 		repo:        repo,
 		buffer:      make([]model.Webhook, 0),
@@ -59,7 +59,7 @@ func NewEventService(logger *zerolog.Logger, repo *EventRepo) *EventService {
 // in bulk (holding the mutex once) before flushing. Between ticks, it consumes
 // events one at a time. This avoids the original single-event-per-iteration
 // bottleneck and prevents the ticker from starving event consumption.
-func (s *EventService) Start(ctx context.Context) {
+func (s *Service) Start(ctx context.Context) {
 	ticker := time.NewTicker(flushInterval) // 10 flushes per second. Update as necessary.
 	defer ticker.Stop()
 	for {
@@ -82,7 +82,7 @@ func (s *EventService) Start(ctx context.Context) {
 // drainBroadcast empties the broadcast channel into the buffer in a single
 // mutex acquisition, avoiding the O(n) lock/unlock overhead of the previous
 // per-event approach.
-func (s *EventService) drainBroadcast() {
+func (s *Service) drainBroadcast() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for {
@@ -100,7 +100,7 @@ func (s *EventService) drainBroadcast() {
 // When the buffer exceeds maxBatchSize the oldest events are dropped from the
 // SSE feed (they remain persisted in the database) and the dropped count is
 // accumulated so the SSE handler can signal an overflow to the client.
-func (s *EventService) flush() {
+func (s *Service) flush() {
 	s.mu.Lock()
 	if len(s.buffer) == 0 {
 		s.mu.Unlock()
@@ -129,7 +129,7 @@ func (s *EventService) flush() {
 }
 
 // Subscribe now returns a channel that receives SLICES of webhooks.
-func (s *EventService) Subscribe() (<-chan []model.Webhook, func()) {
+func (s *Service) Subscribe() (<-chan []model.Webhook, func()) {
 	ch := make(chan []model.Webhook, maxHooksPerChannel)
 	s.mu.Lock()
 	s.subscribers[ch] = struct{}{}
@@ -148,7 +148,7 @@ func (s *EventService) Subscribe() (<-chan []model.Webhook, func()) {
 // internal channel is full the event is dropped from the live feed (it remains
 // safely persisted in the database). This prevents a slow SSE consumer from
 // blocking incoming HTTP handlers.
-func (s *EventService) Send(event model.Webhook) {
+func (s *Service) Send(event model.Webhook) {
 	select {
 	case s.broadcast <- event:
 	default:
@@ -158,12 +158,12 @@ func (s *EventService) Send(event model.Webhook) {
 }
 
 // GetAll retrieves all webhooks from the repository, optionally filtered by the provided creation timestamp.
-func (s *EventService) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
+func (s *Service) GetAll(ctx context.Context, createdAt *time.Time) ([]model.Webhook, error) {
 	return s.repo.getAll(ctx, createdAt)
 }
 
 // GetStats retrieves and returns the aggregated statistics from the repository.
-func (s *EventService) GetStats(ctx context.Context) (*model.Stats, error) {
+func (s *Service) GetStats(ctx context.Context) (*model.Stats, error) {
 	stats, err := s.repo.getStats(ctx)
 	if err != nil {
 		return nil, err
@@ -173,12 +173,12 @@ func (s *EventService) GetStats(ctx context.Context) (*model.Stats, error) {
 
 // Dropped returns the number of events that were dropped from SSE batches due
 // to the maxBatchSize cap since the last call. The counter is reset atomically.
-func (s *EventService) Dropped() int64 {
+func (s *Service) Dropped() int64 {
 	return s.dropped.Swap(0)
 }
 
 // ReplayEvent marks the webhook event as "queued", allowing it to be picked by up workers to be replayed.
-func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
+func (s *Service) ReplayEvent(ctx context.Context, id string) error {
 	uuidS, err := uuid.Parse(id)
 	if err != nil {
 		return ErrInvalidUUID
@@ -191,7 +191,7 @@ func (s *EventService) ReplayEvent(ctx context.Context, id string) error {
 }
 
 // Search returns all webhooks that meet the requirements listed in the provided options' payload.
-func (s *EventService) Search(ctx context.Context, opts model.SearchRequest) (model.SearchResponse, error) {
+func (s *Service) Search(ctx context.Context, opts model.SearchRequest) (model.SearchResponse, error) {
 	// Default to a sensible page size when none is provided.
 	if opts.Limit <= 0 {
 		opts.Limit = 25

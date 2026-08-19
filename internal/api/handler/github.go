@@ -29,16 +29,16 @@ const (
 // GitHandler handles webhook logic for all events that reach `/webhooks/github`.
 type GitHandler struct {
 	logger     *zerolog.Logger
-	gitSvc     *github.GitService
-	eventSvc   *events.EventService
+	gitSvc     *github.Service
+	eventSvc   *events.Service
 	workerPool *worker.Pool
 }
 
 // NewGitHandler returns an GitHandler configured with the provided logger and services.
 func NewGitHandler(
 	logger *zerolog.Logger,
-	svc *github.GitService,
-	evSvc *events.EventService,
+	svc *github.Service,
+	evSvc *events.Service,
 	pool *worker.Pool,
 ) *GitHandler {
 	return &GitHandler{

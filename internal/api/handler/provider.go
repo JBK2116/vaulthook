@@ -25,11 +25,11 @@ type configureRequestBody struct {
 // ProviderHandler handles HTTP requests for provider operations.
 type ProviderHandler struct {
 	logger  *zerolog.Logger
-	service *providers.ProviderService
+	service *providers.Service
 }
 
 // NewProviderHandler returns a new providerHandler with the given logger and service.
-func NewProviderHandler(logger *zerolog.Logger, service *providers.ProviderService) *ProviderHandler {
+func NewProviderHandler(logger *zerolog.Logger, service *providers.Service) *ProviderHandler {
 	return &ProviderHandler{
 		logger:  logger,
 		service: service,

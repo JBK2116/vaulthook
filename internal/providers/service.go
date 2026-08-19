@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/model"
-	"github.com/google/uuid"
 )
 
 var (
@@ -26,20 +27,20 @@ const (
 	maxReqSecond  = 1000
 )
 
-// ProviderService handles business logic for providers.
-type ProviderService struct {
+// Service handles business logic for providers.
+type Service struct {
 	repo *ProviderRepo
 }
 
-// NewProviderService returns an ProviderService configured with the provided repo.
-func NewProviderService(repo *ProviderRepo) *ProviderService {
-	return &ProviderService{
+// NewProviderService returns an Service configured with the provided repo.
+func NewProviderService(repo *ProviderRepo) *Service {
+	return &Service{
 		repo: repo,
 	}
 }
 
 // GetAll retrieves all providers.
-func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) {
+func (s *Service) GetAll(ctx context.Context) ([]model.Provider, error) {
 	provs, err := s.repo.getAll(ctx)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func (s *ProviderService) GetAll(ctx context.Context) ([]model.Provider, error) 
 // Configure updates a providers configuration settings by ID,
 // setting is_configured to true. Returns an error if the ID is invalid,
 // any field is empty or a database error occurs.
-func (s *ProviderService) Configure(
+func (s *Service) Configure(
 	ctx context.Context,
 	id string,
 	sec string,

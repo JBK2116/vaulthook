@@ -10,12 +10,39 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/JBK2116/vaulthook/internal/crypto"
 	"github.com/JBK2116/vaulthook/internal/events"
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
-	"github.com/rs/zerolog"
 )
+
+// ErrInvalidSignature is returned when a webhook signature does not match
+// the expected HMAC.
+var ErrInvalidSignature = errors.New("invalid GitHub webhook signature")
+
+// Service provides the main business logic for handling webhook events
+// pertaining to the GitHub provider.
+type Service struct {
+	logger       *zerolog.Logger
+	eventRepo    *events.EventRepo
+	providerRepo *providers.ProviderRepo
+}
+
+// NewGitService returns a Service configured with the provided logger,
+// event repository, and provider repository.
+func NewGitService(
+	logger *zerolog.Logger,
+	eventRepo *events.EventRepo,
+	providerRepo *providers.ProviderRepo,
+) *Service {
+	return &Service{
+		logger:       logger,
+		eventRepo:    eventRepo,
+		providerRepo: providerRepo,
+	}
+}
 
 // SetForwardHeaders applies the appropriate Github-specific HTTP headers
 // to the outgoing forward request. Only a curated allowlist of headers
@@ -44,35 +71,9 @@ func SetForwardHeaders(r *http.Request, headers []byte) error {
 	return nil
 }
 
-// ErrInvalidSignature is returned when a webhook signature does not match
-// the expected HMAC.
-var ErrInvalidSignature = errors.New("invalid GitHub webhook signature")
-
-// GitService provides the main business logic for handling webhook events
-// pertaining to the GitHub provider.
-type GitService struct {
-	logger       *zerolog.Logger
-	eventRepo    *events.EventRepo
-	providerRepo *providers.ProviderRepo
-}
-
-// NewGitService returns a GitService configured with the provided logger,
-// event repository, and provider repository.
-func NewGitService(
-	logger *zerolog.Logger,
-	eventRepo *events.EventRepo,
-	providerRepo *providers.ProviderRepo,
-) *GitService {
-	return &GitService{
-		logger:       logger,
-		eventRepo:    eventRepo,
-		providerRepo: providerRepo,
-	}
-}
-
 // ValidateSecret receives a GitHub signature from the `X-Hub-Signature-256`
 // header and ensures that it matches the secret key used for GitHub endpoints.
-func (s *GitService) ValidateSecret(ctx context.Context, signature string, payload []byte) error {
+func (s *Service) ValidateSecret(ctx context.Context, signature string, payload []byte) error {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
 		return err
@@ -91,7 +92,7 @@ func (s *GitService) ValidateSecret(ctx context.Context, signature string, paylo
 }
 
 // InsertWebhook creates and stores a GitHub webhook using the provided data request.
-func (s *GitService) InsertWebhook(
+func (s *Service) InsertWebhook(
 	ctx context.Context,
 	headers []byte,
 	payload []byte,
@@ -120,7 +121,7 @@ func (s *GitService) InsertWebhook(
 }
 
 // Exists checks if a GitHub webhook with the provided event_id already exists in the database.
-func (s *GitService) Exists(ctx context.Context, evID string) (bool, error) {
+func (s *Service) Exists(ctx context.Context, evID string) (bool, error) {
 	prov, err := providers.Cache.Get(ctx, model.Github)
 	if err != nil {
 		return false, err

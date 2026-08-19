@@ -16,7 +16,7 @@ import (
 var testDB *pgxpool.Pool
 var testLogger *zerolog.Logger
 var testRepo *RefreshTokenRepo
-var testService *AuthService
+var testService *Service
 
 func TestMain(m *testing.M) {
 	// Load .env for non-DB config (JWT secret, user credentials).

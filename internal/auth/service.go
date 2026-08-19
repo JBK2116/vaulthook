@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/JBK2116/vaulthook/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
+
+	"github.com/JBK2116/vaulthook/internal/config"
 )
 
 // Sentinel errors returned by AuthService methods.
@@ -19,8 +20,8 @@ var (
 	ErrTokenKeyMissing    = errors.New("[Auth] missing key in token claims")
 )
 
-// AuthService handles JWT issuance, validation, and refresh token rotation.
-type AuthService struct {
+// Service handles JWT issuance, validation, and refresh token rotation.
+type Service struct {
 	jwtSecret        []byte
 	accessTokenTTL   time.Duration
 	refreshTokenTTL  time.Duration
@@ -38,8 +39,8 @@ func NewAuthService(
 	refreshTokenTTL int,
 	refreshTokenRepo *RefreshTokenRepo,
 	logger *zerolog.Logger,
-) *AuthService {
-	return &AuthService{
+) *Service {
+	return &Service{
 		jwtSecret:        []byte(jwtSecret),
 		accessTokenTTL:   time.Duration(accessTokenTTL) * time.Minute,
 		refreshTokenTTL:  time.Duration(refreshTokenTTL) * time.Hour,
@@ -52,7 +53,7 @@ func NewAuthService(
 // issues a new access and refresh token pair, and persists the refresh token.
 //
 // It returns ErrInvalidCredentials if the email or password do not match.
-func (s *AuthService) Login(ctx context.Context, email string, password string) (string, string, error) {
+func (s *Service) Login(ctx context.Context, email string, password string) (string, string, error) {
 	if email != config.Envs.UserEmail || password != config.Envs.UserPassword {
 		return "", "", ErrInvalidCredentials
 	}
@@ -79,7 +80,7 @@ func (s *AuthService) Login(ctx context.Context, email string, password string) 
 // If the token does not exist in the database, ErrTokenNotFound is returned
 // and no deletion is attempted. If the token exists but fails validation,
 // it is deleted before returning the error to prevent reuse.
-func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, string, error) {
+func (s *Service) RefreshToken(ctx context.Context, token string) (string, string, error) {
 	claims, err := s.validateRefreshToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, ErrTokenNotFound) {
@@ -94,8 +95,8 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 	if !ok {
 		return "", "", ErrTokenKeyMissing
 	}
-	if err := s.refreshTokenRepo.Delete(ctx, token); err != nil {
-		return "", "", err
+	if delErr := s.refreshTokenRepo.Delete(ctx, token); delErr != nil {
+		return "", "", delErr
 	}
 	now := time.Now()
 	accessStr, err := s.GenerateAccessToken(email, now.Add(s.accessTokenTTL), now)
@@ -115,7 +116,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, token string) (string, s
 
 // GenerateAccessToken creates a signed HS256 JWT access token for the given
 // email, expiry, and issued-at time.
-func (s *AuthService) GenerateAccessToken(email string, exp time.Time, iat time.Time) (string, error) {
+func (s *Service) GenerateAccessToken(email string, exp time.Time, iat time.Time) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":   fmt.Sprintf("access token | %s", email),
 		"email": email,
@@ -132,7 +133,7 @@ func (s *AuthService) GenerateAccessToken(email string, exp time.Time, iat time.
 
 // GenerateRefreshToken creates a signed HS256 JWT refresh token for the given
 // email, expiry, and issued-at time.
-func (s *AuthService) GenerateRefreshToken(email string, exp time.Time, iat time.Time) (string, error) {
+func (s *Service) GenerateRefreshToken(email string, exp time.Time, iat time.Time) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":   fmt.Sprintf("refresh token | %s", email),
 		"email": email,
@@ -152,7 +153,7 @@ func (s *AuthService) GenerateRefreshToken(email string, exp time.Time, iat time
 //
 // It returns jwt.ErrTokenExpired if the token has expired, or ErrInvalidToken
 // for any other validation failure.
-func (s *AuthService) ValidateAccessToken(tokenStr string) (jwt.MapClaims, error) {
+func (s *Service) ValidateAccessToken(tokenStr string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		return s.jwtSecret, nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
@@ -174,7 +175,7 @@ func (s *AuthService) ValidateAccessToken(tokenStr string) (jwt.MapClaims, error
 //
 // It returns ErrTokenNotFound if the token is absent from the database,
 // jwt.ErrTokenExpired if expired, or ErrInvalidToken for any other failure.
-func (s *AuthService) validateRefreshToken(ctx context.Context, tokenStr string) (jwt.MapClaims, error) {
+func (s *Service) validateRefreshToken(ctx context.Context, tokenStr string) (jwt.MapClaims, error) {
 	exists, err := s.refreshTokenRepo.Exists(ctx, tokenStr)
 	if err != nil {
 		return nil, err
@@ -199,7 +200,7 @@ func (s *AuthService) validateRefreshToken(ctx context.Context, tokenStr string)
 
 // DeleteRefreshToken removes the given refresh token from the repository.
 // Returns an error if the deletion fails.
-func (s *AuthService) DeleteRefreshToken(ctx context.Context, tokenStr string) error {
+func (s *Service) DeleteRefreshToken(ctx context.Context, tokenStr string) error {
 	if err := s.refreshTokenRepo.Delete(ctx, tokenStr); err != nil {
 		return err
 	}

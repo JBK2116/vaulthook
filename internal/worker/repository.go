@@ -71,6 +71,12 @@ func NewWorkerRepo(db *pgxpool.Pool, kind Kind) Repository {
 	}
 }
 
+// SetWorkerBatchSizes sets the sizes used by workers in batch processing webhooks.
+func SetWorkerBatchSizes(queue int, retry int) {
+	QueueWorkerBatch = queue
+	RetryWorkerBatch = retry
+}
+
 // GetEvents safely queries the database for the next event matching the
 // worker's processing strategy. It uses SELECT FOR UPDATE SKIP LOCKED
 // to prevent duplicate processing across concurrent workers.

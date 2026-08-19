@@ -7,7 +7,7 @@ package app
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -29,6 +29,12 @@ import (
 	"github.com/JBK2116/vaulthook/internal/worker"
 )
 
+const (
+	// DBTimeout bounds the max amount of time allowed in connecting to the database.
+	DBTimeout         = time.Second * 10
+	ReadHeaderTimeout = time.Second * 5
+)
+
 // App holds all runtime dependencies for the vaulthook application.
 // It is constructed via New and started via Run.
 type App struct {
@@ -40,11 +46,11 @@ type App struct {
 	cancelWorkers context.CancelFunc
 
 	// services
-	authService     *auth.AuthService
-	providerService *providers.ProviderService
-	eventService    *events.EventService
+	authService     *auth.Service
+	providerService *providers.Service
+	eventService    *events.Service
 	stripeService   *stripe.Service
-	gitService      *github.GitService
+	gitService      *github.Service
 
 	// workers
 	workerPool *worker.Pool
@@ -69,22 +75,21 @@ const (
 //
 // Any failure during initialization panics to prevent a misconfigured
 // server from accepting traffic.
+//
+//nolint:funlen // This function will be refactored later.
 func New() *App {
 	// Environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Printf("warning: .env file not found, using system environment: %v", err)
+		slog.Warn("no .env file found, using system environment", "error", err)
 	}
 	config.Init()
 
 	// calculate application resource allocations
 	resources := health.ComputeResources()
-	worker.QueueWorkerBatch = resources.QueueBatch
-	worker.RetryWorkerBatch = resources.RetryBatch
-	worker.TotalQueueWorkers = resources.QueueWorkers
-	worker.TotalRetryWorkers = resources.RetryWorkers
+	worker.SetWorkerBatchSizes(resources.QueueBatch, resources.RetryBatch)
 
 	// Infrastructure: Database & Logger
-	dbCtx, cancelDB := context.WithTimeout(context.Background(), 10*time.Second)
+	dbCtx, cancelDB := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancelDB()
 
 	pg, dbErr := config.NewPG(dbCtx, resources.DBMaxConns)
@@ -122,11 +127,11 @@ func New() *App {
 	gitSvc := github.NewGitService(logger, eventRepo, providerRepo)
 
 	// Caches
-	if err := cache.InitRedisCache(appCtx); err != nil {
-		panic(err)
+	if redisErr := cache.InitRedisCache(appCtx); redisErr != nil {
+		panic(redisErr)
 	}
-	if err := providers.InitProviderCache(appCtx, providerRepo); err != nil {
-		panic(err)
+	if provErr := providers.InitProviderCache(appCtx, providerRepo); provErr != nil {
+		panic(provErr)
 	}
 
 	// Rate Limiting
@@ -203,8 +208,9 @@ func (a *App) Run() {
 	defer a.cancelApp()
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: a.router,
+		Addr:              ":8080",
+		Handler:           a.router,
+		ReadHeaderTimeout: ReadHeaderTimeout,
 	}
 	a.logger.Info().Str("addr", server.Addr).Msg("[Main] server starting")
 	if err := server.ListenAndServe(); err != nil {

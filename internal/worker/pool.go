@@ -29,7 +29,7 @@ type Pool struct {
 }
 
 // NewWorkerPool returns a WorkerPool backed by the provided configuration.
-func NewWorkerPool(ctx context.Context, svc *events.EventService, logger *zerolog.Logger, db *pgxpool.Pool) *Pool {
+func NewWorkerPool(ctx context.Context, svc *events.Service, logger *zerolog.Logger, db *pgxpool.Pool) *Pool {
 	signal := make(chan struct{}, TotalQueueWorkers)
 	queueWorkers := make([]*Worker, TotalQueueWorkers)
 	retryWorkers := make([]*Worker, TotalRetryWorkers)

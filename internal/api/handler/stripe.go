@@ -25,7 +25,7 @@ const (
 type StripeHandler struct {
 	logger   *zerolog.Logger
 	svc      *stripe.Service
-	eventSvc *events.EventService
+	eventSvc *events.Service
 	pool     *worker.Pool
 }
 
@@ -33,7 +33,7 @@ type StripeHandler struct {
 func NewStripeHandler(
 	logger *zerolog.Logger,
 	svc *stripe.Service,
-	eventSvc *events.EventService,
+	eventSvc *events.Service,
 	pool *worker.Pool,
 ) *StripeHandler {
 	return &StripeHandler{

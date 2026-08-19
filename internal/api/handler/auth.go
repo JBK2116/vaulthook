@@ -40,12 +40,12 @@ type loginRequestBody struct {
 // structured error reporting.
 type AuthHandler struct {
 	logger *zerolog.Logger
-	svc    *auth.AuthService
+	svc    *auth.Service
 }
 
 // NewAuthHandler returns an AuthHandler configured with the provided
 // logger and AuthService.
-func NewAuthHandler(logger *zerolog.Logger, svc *auth.AuthService) *AuthHandler {
+func NewAuthHandler(logger *zerolog.Logger, svc *auth.Service) *AuthHandler {
 	return &AuthHandler{
 		logger: logger,
 		svc:    svc,

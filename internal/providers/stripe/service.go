@@ -28,6 +28,28 @@ func safePrefix(s string) string {
 	return s[:secretPrefixLength]
 }
 
+// Service provides the main business logic for handling webhook events
+// pertaining to the Stripe provider.
+type Service struct {
+	logger       *zerolog.Logger
+	eventRepo    *events.EventRepo
+	providerRepo *providers.ProviderRepo
+}
+
+// NewStripeService returns a Service configured with the provided
+// logger, event repository, and provider repository.
+func NewStripeService(
+	logger *zerolog.Logger,
+	eventRepo *events.EventRepo,
+	providerRepo *providers.ProviderRepo,
+) *Service {
+	return &Service{
+		logger:       logger,
+		eventRepo:    eventRepo,
+		providerRepo: providerRepo,
+	}
+}
+
 // SetForwardHeaders applies the appropriate Stripe-specific HTTP headers
 // to the outgoing forward request. Only a curated allowlist of headers
 // from the original incoming webhook are forwarded.
@@ -50,28 +72,6 @@ func SetForwardHeaders(r *http.Request, headers []byte) error {
 		}
 	}
 	return nil
-}
-
-// Service provides the main business logic for handling webhook events
-// pertaining to the Stripe provider.
-type Service struct {
-	logger       *zerolog.Logger
-	eventRepo    *events.EventRepo
-	providerRepo *providers.ProviderRepo
-}
-
-// NewStripeService returns a Service configured with the provided
-// logger, event repository, and provider repository.
-func NewStripeService(
-	logger *zerolog.Logger,
-	eventRepo *events.EventRepo,
-	providerRepo *providers.ProviderRepo,
-) *Service {
-	return &Service{
-		logger:       logger,
-		eventRepo:    eventRepo,
-		providerRepo: providerRepo,
-	}
 }
 
 // ValidateSecret receives a stripe signature from the `Stripe-Signature` header

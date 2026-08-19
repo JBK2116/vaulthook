@@ -34,11 +34,11 @@ const (
 // EventsHandler handles SSE event logic for sending webhook related data to the frontend.
 type EventsHandler struct {
 	logger  *zerolog.Logger
-	service *events.EventService
+	service *events.Service
 }
 
 // NewEventsHandler returns an EventsHandler configured with the provided logger and service.
-func NewEventsHandler(logger *zerolog.Logger, service *events.EventService) *EventsHandler {
+func NewEventsHandler(logger *zerolog.Logger, service *events.Service) *EventsHandler {
 	return &EventsHandler{
 		logger:  logger,
 		service: service,

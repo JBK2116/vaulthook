@@ -9,7 +9,7 @@ import (
 // It extracts the bearer token from the Authorization header, validates it via
 // the AuthService, and either passes the request to the next handler or responds
 // with an appropriate status code.
-func Jwt(s *AuthService) func(http.Handler) http.Handler {
+func Jwt(s *Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := r.Cookie(accessCookieName)
