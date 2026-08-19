@@ -88,7 +88,7 @@ push: confirm audit no-dirty
 production/deploy: confirm audit no-dirty
 	go build -ldflags='-s -w' -o=./bin/${binary_name} ${main_package_path}
 
-## clean: remove unecessary files 
+## clean: remove unnecessary files 
 .PHONY: clean
 clean: 
 	rm -rf ./bin
