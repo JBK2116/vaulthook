@@ -1,6 +1,6 @@
 # Vaulthook
 
-Vaulthook is a self-hostable webhook gateway that sits between providers (Stripe, GitHub, etc.) and your app. It
+Vaulthook is a self-hostable webhook gateway that sits between providers (Stripe, GitHub, Shopify, etc.) and your app. It
 verifies every inbound webhook's signature, deduplicates and logs it, then forwards it to your destination with retries,
 replay, and rate limiting automatically handled for you.
 
