@@ -10,8 +10,9 @@ import (
 type ProviderName string
 
 const (
-	Github ProviderName = "Github"
-	Stripe ProviderName = "Stripe"
+	Github  ProviderName = "Github"
+	Stripe  ProviderName = "Stripe"
+	Shopify ProviderName = "Shopify"
 )
 
 // Provider represents a webhook provider.

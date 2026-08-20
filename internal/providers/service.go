@@ -27,12 +27,14 @@ const (
 	maxReqSecond  = 1000
 )
 
+var ErrInvalidSignature = errors.New("invalid webhook signature")
+
 // Service handles business logic for providers.
 type Service struct {
 	repo *ProviderRepo
 }
 
-// NewProviderService returns an Service configured with the provided repo.
+// NewProviderService returns a Service configured with the provided repo.
 func NewProviderService(repo *ProviderRepo) *Service {
 	return &Service{
 		repo: repo,

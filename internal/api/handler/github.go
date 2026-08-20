@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	GitMaxBodyBytes = 25_000_000
+	gitMaxBodyBytes = 25_000_000
 	Queued          = "queued"
 
 	// receiveTimeout bounds the time spent receiving and persisting a webhook.
@@ -28,10 +28,10 @@ const (
 
 // GitHandler handles webhook logic for all events that reach `/webhooks/github`.
 type GitHandler struct {
-	logger     *zerolog.Logger
-	gitSvc     *github.Service
-	eventSvc   *events.Service
-	workerPool *worker.Pool
+	logger *zerolog.Logger
+	gitSvc *github.Service
+	evSvc  *events.Service
+	pool   *worker.Pool
 }
 
 // NewGitHandler returns an GitHandler configured with the provided logger and services.
@@ -42,10 +42,10 @@ func NewGitHandler(
 	pool *worker.Pool,
 ) *GitHandler {
 	return &GitHandler{
-		logger:     logger,
-		gitSvc:     svc,
-		eventSvc:   evSvc,
-		workerPool: pool,
+		logger: logger,
+		gitSvc: svc,
+		evSvc:  evSvc,
+		pool:   pool,
 	}
 }
 
@@ -53,7 +53,7 @@ func NewGitHandler(
 func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), receiveTimeout)
 	defer cancel()
-	r.Body = http.MaxBytesReader(w, r.Body, GitMaxBodyBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, gitMaxBodyBytes)
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("[Github] error receiving webhook request")
@@ -119,9 +119,9 @@ func (h *GitHandler) Receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// notify the frontend
-	h.eventSvc.Send(hook)
+	h.evSvc.Send(hook)
 	// alert the workers to begin processing
-	h.workerPool.Notify()
+	h.pool.Notify()
 	// send a response back to github
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // Explicitly set 200

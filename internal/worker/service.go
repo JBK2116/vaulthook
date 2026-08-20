@@ -16,6 +16,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/model"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
+	"github.com/JBK2116/vaulthook/internal/providers/shopify"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 )
 
@@ -233,6 +234,12 @@ func (w *Worker) forwardEvent(ctx context.Context, hooks []model.Webhook) []upda
 				}
 			case string(model.Github):
 				if headerErr := github.SetForwardHeaders(req, hook.Headers); headerErr != nil {
+					setDefaultUpdateValues(headerErr.Error(), &updates)
+					ups[i] = updates
+					return
+				}
+			case string(model.Shopify):
+				if headerErr := shopify.SetForwardHeaders(req, hook.Headers); headerErr != nil {
 					setDefaultUpdateValues(headerErr.Error(), &updates)
 					ups[i] = updates
 					return

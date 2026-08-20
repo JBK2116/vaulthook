@@ -25,6 +25,7 @@ import (
 	"github.com/JBK2116/vaulthook/internal/health"
 	"github.com/JBK2116/vaulthook/internal/providers"
 	"github.com/JBK2116/vaulthook/internal/providers/github"
+	"github.com/JBK2116/vaulthook/internal/providers/shopify"
 	"github.com/JBK2116/vaulthook/internal/providers/stripe"
 	"github.com/JBK2116/vaulthook/internal/worker"
 )
@@ -80,7 +81,7 @@ const (
 func New() *App {
 	// Environment variables
 	if err := godotenv.Load(); err != nil {
-		slog.Warn("no .env file found, using system environment", "error", err)
+		slog.Warn("no .env file found, using system environment", "error", err) //nolint:sloglint // it is fine here
 	}
 	config.Init()
 
@@ -124,6 +125,7 @@ func New() *App {
 	providerSvc := providers.NewProviderService(providerRepo)
 	eventSvc := events.NewEventService(logger, eventRepo)
 	stripeSvc := stripe.NewStripeService(logger, eventRepo, providerRepo)
+	shopifySvc := shopify.NewShopifyService(logger, eventRepo, providerRepo)
 	gitSvc := github.NewGitService(logger, eventRepo, providerRepo)
 
 	// Caches
@@ -151,6 +153,7 @@ func New() *App {
 	providerH := handler.NewProviderHandler(logger, providerSvc)
 	eventsH := handler.NewEventsHandler(logger, eventSvc)
 	stripeH := handler.NewStripeHandler(logger, stripeSvc, eventSvc, workerPool)
+	shopifyH := handler.NewShopifyHandler(logger, shopifySvc, eventSvc, workerPool)
 	gitH := handler.NewGitHandler(logger, gitSvc, eventSvc, workerPool)
 
 	// Router
@@ -170,6 +173,7 @@ func New() *App {
 		// Public endpoints
 		authH.RegisterRoutes(r)
 		stripeH.RegisterRoutes(r)
+		shopifyH.RegisterRoutes(r)
 		gitH.RegisterRoutes(r)
 		healthH.RegisterRoutes(r)
 

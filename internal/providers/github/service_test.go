@@ -137,7 +137,7 @@ func TestValidateSecret_InvalidSignature(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid signature")
 	}
-	if !errors.Is(err, ErrInvalidSignature) {
+	if !errors.Is(err, providers.ErrInvalidSignature) {
 		t.Fatalf("expected ErrInvalidSignature, got %v", err)
 	}
 }
