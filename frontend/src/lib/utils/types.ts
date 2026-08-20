@@ -102,6 +102,7 @@ export enum SelectTypes {
 export enum ProviderTypes {
     Stripe = 'Stripe',
     Github = 'Github',
+    Shopify = 'Shopify',
 }
 
 /** SSE connection states */

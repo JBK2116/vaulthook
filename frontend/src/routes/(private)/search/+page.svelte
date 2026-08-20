@@ -28,7 +28,7 @@
     let searchEventId = $state('');
 
     // Filter state
-    const PROVIDER_OPTIONS = [ProviderTypes.Stripe, ProviderTypes.Github];
+    const PROVIDER_OPTIONS = [ProviderTypes.Stripe, ProviderTypes.Github, ProviderTypes.Shopify];
     const STATUS_OPTIONS = [
         DeliveryStatusTypes.Delivered,
         DeliveryStatusTypes.Failed,

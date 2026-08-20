@@ -33,42 +33,6 @@ export function getDisplayedEvents(
             e.event_type.toLowerCase().includes(currentSearchString.toLowerCase()),
     );
 }
-
-/**
- * Returns the total number of webhook events stored in the frontend
- */
-export function getTotalEvents(events: WebHookEvent[]): number {
-    return events.length;
-}
-
-/**
- * Returns the total number of Delivered events stored in the frontend
- */
-export function getTotalDeliveredEvents(events: WebHookEvent[]): number {
-    return events.filter((e) => e.delivery_status === DeliveryStatusTypes.Delivered).length;
-}
-
-/**
- * Returns the total number of Retrying events stored in the frontend
- */
-export function getTotalRetryingEvents(events: WebHookEvent[]): number {
-    return events.filter((e) => e.delivery_status === DeliveryStatusTypes.Retrying).length;
-}
-
-/**
- * Returns the total number of Queued events stored in the frontend
- */
-export function getTotalQueuedEvents(events: WebHookEvent[]): number {
-    return events.filter((e) => e.delivery_status === DeliveryStatusTypes.Queued).length;
-}
-
-/**
- * Returns the total number of Failed events stored in the frontend
- */
-export function getTotalFailedEvents(events: WebHookEvent[]): number {
-    return events.filter((e) => e.delivery_status === DeliveryStatusTypes.Failed).length;
-}
-
 /**
  * Capitalizes the first letter of the provided string
  */
@@ -77,7 +41,7 @@ export function capitalize(str: string): string {
 }
 
 /**
- * Returns the css background color associated with the passed in provider
+ * Returns the CSS background color associated with the passed in provider
  */
 export function getProviderBackgroundColor(provider: string): string {
     switch (provider) {
@@ -85,13 +49,15 @@ export function getProviderBackgroundColor(provider: string): string {
             return 'var(--provider-stripe)';
         case ProviderTypes.Github:
             return 'var(--provider-github)';
+        case ProviderTypes.Shopify:
+            return 'var(--provider-shopify)';
         default:
             return 'var(--provider-default)';
     }
 }
 
 /**
- * Returns the css text color associated with the passed in provider
+ * Returns the CSS text color associated with the passed in provider
  */
 export function getProviderTextColor(provider: string): string {
     switch (provider) {
@@ -99,13 +65,15 @@ export function getProviderTextColor(provider: string): string {
             return 'var(--provider-stripe-foreground)';
         case ProviderTypes.Github:
             return 'var(--provider-github-foreground)';
+        case ProviderTypes.Shopify:
+            return 'var(--provider-shopify-foreground)';
         default:
             return 'var(--provider-default-foreground)';
     }
 }
 
 /**
- * Returns the css text color associated with the provided delivery status string
+ * Returns the CSS text color associated with the provided delivery status string
  */
 export function getDeliveryStatusTextColor(delivery_status: string) {
     switch (delivery_status) {
@@ -123,7 +91,7 @@ export function getDeliveryStatusTextColor(delivery_status: string) {
 }
 
 /**
- * Returns the css color associated with the provided response code
+ * Returns the CSS color associated with the provided response code
  *
  * If the provided response_code is null, then it returns a text color variant (ie: text-muted-foreground)
  */
