@@ -25,22 +25,22 @@ var ErrInvalidSignature = errors.New("invalid GitHub webhook signature")
 // Service provides the main business logic for handling webhook events
 // pertaining to the GitHub provider.
 type Service struct {
-	logger       *zerolog.Logger
-	eventRepo    *events.EventRepo
-	providerRepo *providers.ProviderRepo
+	logger    *zerolog.Logger
+	events    *events.EventRepo
+	providers *providers.ProviderRepo
 }
 
 // NewGitService returns a Service configured with the provided logger,
 // event repository, and provider repository.
 func NewGitService(
 	logger *zerolog.Logger,
-	eventRepo *events.EventRepo,
-	providerRepo *providers.ProviderRepo,
+	events *events.EventRepo,
+	providers *providers.ProviderRepo,
 ) *Service {
 	return &Service{
-		logger:       logger,
-		eventRepo:    eventRepo,
-		providerRepo: providerRepo,
+		logger:    logger,
+		events:    events,
+		providers: providers,
 	}
 }
 
@@ -113,7 +113,7 @@ func (s *Service) InsertWebhook(
 		ForwardedTo: prov.DestinationURL,
 		ReceivedAt:  time.Now().UTC(),
 	}
-	hook, err := s.eventRepo.InsertWebhook(ctx, params)
+	hook, err := s.events.InsertWebhook(ctx, params)
 	if err != nil {
 		return model.Webhook{}, err
 	}
@@ -126,6 +126,6 @@ func (s *Service) Exists(ctx context.Context, evID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
+	exists, err := s.events.Exists(ctx, prov.ID, evID)
 	return exists, err
 }

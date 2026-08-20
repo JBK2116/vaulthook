@@ -31,22 +31,22 @@ func safePrefix(s string) string {
 // Service provides the main business logic for handling webhook events
 // pertaining to the Stripe provider.
 type Service struct {
-	logger       *zerolog.Logger
-	eventRepo    *events.EventRepo
-	providerRepo *providers.ProviderRepo
+	logger    *zerolog.Logger
+	events    *events.EventRepo
+	providers *providers.ProviderRepo
 }
 
 // NewStripeService returns a Service configured with the provided
 // logger, event repository, and provider repository.
 func NewStripeService(
 	logger *zerolog.Logger,
-	eventRepo *events.EventRepo,
-	providerRepo *providers.ProviderRepo,
+	events *events.EventRepo,
+	providers *providers.ProviderRepo,
 ) *Service {
 	return &Service{
-		logger:       logger,
-		eventRepo:    eventRepo,
-		providerRepo: providerRepo,
+		logger:    logger,
+		events:    events,
+		providers: providers,
 	}
 }
 
@@ -78,7 +78,7 @@ func SetForwardHeaders(r *http.Request, headers []byte) error {
 // and ensures that it matches the secret key used for stripe endpoints.
 func (s *Service) ValidateSecret(
 	ctx context.Context,
-	signatureHeader string,
+	signature string,
 	payload []byte,
 ) (stripe.Event, error) {
 	prov, err := providers.Cache.Get(ctx, model.Stripe)
@@ -89,13 +89,13 @@ func (s *Service) ValidateSecret(
 	if err != nil {
 		return stripe.Event{}, err
 	}
-	event, err := webhook.ConstructEvent(payload, signatureHeader, decrypted)
+	event, err := webhook.ConstructEvent(payload, signature, decrypted)
 	if err != nil {
 		s.logger.Error().
 			Err(err).
 			Int("secret_len", len(decrypted)).
 			Str("secret_prefix", safePrefix(decrypted)).
-			Str("sig_prefix", safePrefix(signatureHeader)).
+			Str("sig_prefix", safePrefix(signature)).
 			Int("payload_len", len(payload)).
 			Msg("[Stripe] failed to validate stripe webhook secret")
 		return stripe.Event{}, err
@@ -109,7 +109,7 @@ func (s *Service) Exists(ctx context.Context, evID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	exists, err := s.eventRepo.Exists(ctx, prov.ID, evID)
+	exists, err := s.events.Exists(ctx, prov.ID, evID)
 	return exists, err
 }
 
@@ -138,7 +138,7 @@ func (s *Service) InsertWebhook(
 		ForwardedTo: prov.DestinationURL,
 		ReceivedAt:  time.Now().UTC(),
 	}
-	stripeWebhook, err := s.eventRepo.InsertWebhook(ctx, params)
+	stripeWebhook, err := s.events.InsertWebhook(ctx, params)
 	if err != nil {
 		return model.Webhook{}, err
 	}
