@@ -1,5 +1,9 @@
 # .env file reference
-# All values in this file must be filled in accordingly in the .env
+# Copy this file to `.env` and fill in every value.
+#
+# IMPORTANT — host values depend on how you run the app:
+#   Docker Compose (recommended):  DB_HOST=db   REDIS_URL=redis://redis:6379
+#   Local dev (no Docker):         DB_HOST=localhost  REDIS_URL=redis://localhost:6379
 
 # 32-byte hex key used to encrypt provider signing secrets at rest.
 # Generate with: openssl rand -hex 32
@@ -17,13 +21,14 @@ TOKEN_SECRET=
 DB_TYPE=postgres
 DB_USER=postgres
 DB_PASSWORD=                    # must match POSTGRES_PASSWORD below
-DB_HOST=db                      # use "localhost" for local dev without Docker
+DB_HOST=db                      # use "db" for Docker, "localhost" for local dev
 DB_PORT=5432
 DB_NAME=vaulthook
 
 # Redis
-REDIS_URL=redis://localhost:6379 (localhost)
-REDIS_URL=redis//redis:6379 (docker)
+#   Docker:  REDIS_URL=redis://redis:6379
+#   Local:   REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://redis:6379
 
 # Docker Postgres container (creates the initial superuser + database)
 POSTGRES_USER=postgres

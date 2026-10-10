@@ -13,7 +13,6 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/vaulthook .
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
-COPY --from=builder /app/.env .
 COPY migrations/ ./migrations/
 COPY deploy/entrypoint.sh .
 RUN chmod +x entrypoint.sh
